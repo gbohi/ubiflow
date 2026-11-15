@@ -26,9 +26,16 @@ export class SidebarComponent {
     translate.setDefaultLang('fr');
   }
 
+  /** Pages déjà ouvertes par l'utilisateur : plus de pastille « Nouveau » */
+  private pagesVues = new Set<string>();
+  private clePagesVues = '';
+
   ngOnInit(): void {
     // Menu Items
     const user = this.tokenStorage.getUser();
+    this.clePagesVues = `ubifood.menu-vus.${user?.id ?? 'anonyme'}`;
+    try { this.pagesVues = new Set(JSON.parse(localStorage.getItem(this.clePagesVues) || '[]')); } catch { this.pagesVues = new Set(); }
+    this.marquerVue(this.router.url);
     // Compte limité à la caisse : seulement la caisse et la comptabilité
     this.menuItems = filtrerMenu(estCaisseSeule(user) ? MENU.filter(i => i.espaceCaisse) : MENU, user);
     if (estPrestataire(user)) {
@@ -39,6 +46,7 @@ export class SidebarComponent {
     }
 
     this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) this.marquerVue(event.urlAfterRedirects);
       if (document.documentElement.getAttribute('data-layout') == 'vertical' || document.documentElement.getAttribute('data-layout') == 'horizontal') {
         if (event instanceof NavigationEnd) {
           this.initActiveMenu();
@@ -46,6 +54,20 @@ export class SidebarComponent {
         }
       }
     });
+  }
+
+  /** Pastille « Nouveau » : avant sa date de fin et tant que la page n'a pas été ouverte */
+  estNouveau(item: MenuItem): boolean {
+    if (!item.isNew || !item.link) return false;
+    if (typeof item.isNew === 'string' && new Date().toISOString().slice(0, 10) > item.isNew) return false;
+    return !this.pagesVues.has(item.link);
+  }
+
+  private marquerVue(url: string): void {
+    const chemin = (url || '').split('?')[0];
+    if (!chemin || chemin === '/' || this.pagesVues.has(chemin)) return;
+    this.pagesVues.add(chemin);
+    try { localStorage.setItem(this.clePagesVues, JSON.stringify([...this.pagesVues])); } catch { /* stockage indisponible */ }
   }
 
   /***

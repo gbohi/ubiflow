@@ -1,5 +1,9 @@
 import { MenuItem } from "./menu.model";
+
 import { ADMINS, CAISSIERS, COMPTABLES, EMPLOYES, GESTIONNAIRES, PRESTATAIRES, RESPONSABLES_PRESTATAIRE } from "../../core/helpers/roles";
+
+/** Fin de la pastille « Nouveau » des entrées récentes (un mois après leur mise en service) */
+const NOUVEAU_JUSQU_AU = '2026-12-15';
 
 
 export const MENU: MenuItem[] = [
@@ -19,7 +23,7 @@ export const MENU: MenuItem[] = [
     { id: 306, label: 'Relevés & factures', icon: 'ri-file-text-line', link: '/prestataire/releves', roles: RESPONSABLES_PRESTATAIRE },
     { id: 307, label: 'Statistiques', icon: 'ri-bar-chart-2-line', link: '/prestataire/statistiques', roles: RESPONSABLES_PRESTATAIRE },
     { id: 308, label: 'Mon compte', isTitle: true, roles: RESPONSABLES_PRESTATAIRE },
-    { id: 310, label: 'Mon profil prestataire', icon: 'ri-store-2-line', link: '/prestataire/profil', roles: RESPONSABLES_PRESTATAIRE, isNew: true },
+    { id: 310, label: 'Mon profil prestataire', icon: 'ri-store-2-line', link: '/prestataire/profil', roles: RESPONSABLES_PRESTATAIRE, isNew: NOUVEAU_JUSQU_AU },
     { id: 309, label: 'Mon équipe', icon: 'ri-team-line', link: '/prestataire/equipe', roles: RESPONSABLES_PRESTATAIRE },
     {
         // Tableau de bord de la cantine (gestionnaires et administrateurs)
@@ -102,7 +106,7 @@ export const MENU: MenuItem[] = [
                 label: 'Suivi des livraisons',
                 link: '/cantines/suivi-livraisons',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -111,7 +115,7 @@ export const MENU: MenuItem[] = [
                 label: 'Planning des équipes',
                 link: '/cantines/planning-equipes',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -128,7 +132,7 @@ export const MENU: MenuItem[] = [
                 label: 'Mon compte repas',
                 link: '/cantines/mon-compte-repas',
                 sansRoles: PRESTATAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 roles: EMPLOYES,
                 parentId: 210
             },
@@ -138,7 +142,7 @@ export const MENU: MenuItem[] = [
                 label: 'Jeux',
                 link: '/cantines/jeux',
                 sansRoles: PRESTATAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 roles: EMPLOYES,
                 parentId: 210
             },
@@ -148,7 +152,7 @@ export const MENU: MenuItem[] = [
                 label: 'Gérer les jeux',
                 link: '/cantines/gestion-jeux',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -169,7 +173,7 @@ export const MENU: MenuItem[] = [
                 link: '/caisse/paiements-prestataires',
                 roles: ['gestionnaire'],
                 sansRoles: COMPTABLES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -193,7 +197,7 @@ export const MENU: MenuItem[] = [
                 label: 'Contrôle des retraits',
                 link: '/cantines/controle-retraits',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -202,7 +206,7 @@ export const MENU: MenuItem[] = [
                 label: "Badges d'accès",
                 link: '/cantines/badges',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             },
             {
@@ -228,7 +232,7 @@ export const MENU: MenuItem[] = [
                 label: 'MENUITEMS.CANTINES.LIST.STATISTIQUES',
                 link: '/cantines/statistiques',
                 roles: GESTIONNAIRES,
-                isNew: true,
+                isNew: NOUVEAU_JUSQU_AU,
                 parentId: 210
             }
         ]
@@ -246,8 +250,8 @@ export const MENU: MenuItem[] = [
     { id: 413, label: 'Comptes repas', icon: 'ri-wallet-3-line', link: '/caisse/comptes', roles: COMPTABLES, espaceCaisse: true },
     { id: 414, label: 'Journal', icon: 'ri-file-list-3-line', link: '/caisse/journal', roles: COMPTABLES, espaceCaisse: true },
     // Suivi des relevés prestataires jusqu'au paiement (étape 3)
-    { id: 415, label: 'Paiements prestataires', icon: 'ri-bank-card-line', link: '/caisse/paiements-prestataires', roles: COMPTABLES, espaceCaisse: true, isNew: true },
-    { id: 416, label: 'Coût des jeux', icon: 'ri-trophy-line', link: '/caisse/couts-jeux', roles: COMPTABLES, espaceCaisse: true, isNew: true },
+    { id: 415, label: 'Paiements prestataires', icon: 'ri-bank-card-line', link: '/caisse/paiements-prestataires', roles: COMPTABLES, espaceCaisse: true, isNew: NOUVEAU_JUSQU_AU },
+    { id: 416, label: 'Coût des jeux', icon: 'ri-trophy-line', link: '/caisse/couts-jeux', roles: COMPTABLES, espaceCaisse: true, isNew: NOUVEAU_JUSQU_AU },
     {
         // Une seule entrée vers l'accueil des paramètres (cartes par thème,
         // filtrées selon le rôle : le gestionnaire n'y voit que la cantine)

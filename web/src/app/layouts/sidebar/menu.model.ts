@@ -15,8 +15,11 @@ export interface MenuItem {
     sansRoles?: string[];
     /** Autres adresses (préfixes) pour lesquelles l'entrée est affichée comme active */
     actifSur?: string[];
-    /** Pastille « Nouveau » à côté du libellé */
-    isNew?: boolean;
+    /**
+     * Pastille « Nouveau » à côté du libellé, jusqu'à cette date (AAAA-MM-JJ)
+     * incluse et tant que l'utilisateur n'a pas ouvert la page (sidebar).
+     */
+    isNew?: boolean | string;
     /** Entrée de la caisse / comptabilité : seules entrées d'un compte limité à la caisse */
     espaceCaisse?: boolean;
 }
