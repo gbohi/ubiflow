@@ -12,6 +12,7 @@ import { DepartementComponent } from './departement/departement.component';
 import { RoleComponent } from './role/role.component';
 import { UserComponent } from './user/user.component';
 import { TypeplatComponent } from './typeplat/typeplat.component';
+import { SupplementsComponent } from './supplements/supplements.component';
 import { TypeequipeComponent } from './typeequipe/typeequipe/typeequipe.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
@@ -122,6 +123,14 @@ const routes: Routes = [
     component: UserComponent,
     canActivate: [RoleGuard],
     data: { roles: ADMINS }
+  },
+  {
+    // Familles de suppléments (desserts…) : administrateurs
+    path: 'supplements',
+    component: SupplementsComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ADMINS },
+    title: 'Suppléments | UbiFood'
   },
   {
     path: 'typeplat',

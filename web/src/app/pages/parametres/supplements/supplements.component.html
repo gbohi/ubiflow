@@ -1,0 +1,59 @@
+<div class="lst">
+  <app-page-entete titre="Suppléments" icone="ri-cake-3-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Cantine'}]"
+                   sousTitre="Desserts, boissons… : ils accompagnent le plat principal du jour, jamais seuls">
+    <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle famille</span></button>
+  </app-page-entete>
+
+  <div class="lst-carte">
+    <div class="lst-table-wrap">
+      <table class="lst-table">
+        <thead><tr><th>Famille</th><th>Pour l'employé</th><th>Par jour</th><th>Repas offerts</th><th>Types / plats</th><th>État</th><th class="lst-c-act"></th></tr></thead>
+        <tbody>
+          @for (f of familles; track f.id) {
+            <tr>
+              <td><div class="lst-qui"><span class="lst-av carre"><i class="ri-cake-3-line"></i></span><b>{{ f.libelle }}</b></div></td>
+              <td>@if (f.inclus) { <span class="lst-tag t-ve">Inclus · 0 F</span> } @else { <span class="lst-tag t-or">Payant</span> }</td>
+              <td>{{ f.max_par_jour }}</td>
+              <td>{{ f.repas_offert ? 'Proposé' : 'Non' }}</td>
+              <td>{{ f.nb_types }} type(s) · {{ f.nb_plats }} plat(s)</td>
+              <td>@if (f.actif) { <span class="lst-tag t-ve">Active</span> } @else { <span class="lst-tag t-gr">Désactivée</span> }</td>
+              <td class="lst-c-act"><div class="lst-act">
+                <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="modifier(f)"><i class="ri-pencil-line"></i></button>
+                <button type="button" class="lst-ic" title="Supprimer" aria-label="Supprimer" (click)="supprimer(f)"><i class="ri-delete-bin-6-line"></i></button>
+              </div></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7"><div class="lst-vide"><i class="ri-cake-3-line"></i><h5>{{ chargement ? 'Chargement…' : 'Aucune famille' }}</h5></div></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (edition; as f) {
+    <div class="lst-carte p-3 mt-3" style="max-width:720px">
+      <h5 class="mb-3">{{ f.id ? 'Modifier « ' + f.libelle + ' »' : 'Nouvelle famille' }}</h5>
+      <div class="mb-3"><label class="form-label" for="fam-lib">Nom de la famille</label>
+        <input id="fam-lib" class="form-control" [(ngModel)]="f.libelle" placeholder="Ex. Dessert, Boisson"></div>
+      <div class="mb-2">
+        <div class="form-check"><input class="form-check-input" type="radio" id="fam-inc" name="inclus" [value]="true" [(ngModel)]="f.inclus">
+          <label class="form-check-label" for="fam-inc"><b>Inclus dans le prix du repas</b><br><small class="text-muted">Gratuit pour l'employé ; le prestataire est payé à son tarif du type de plat (Paramètres › Prestataires, 0 F possible).</small></label></div>
+        <div class="form-check mt-2"><input class="form-check-input" type="radio" id="fam-pay" name="inclus" [value]="false" [(ngModel)]="f.inclus">
+          <label class="form-check-label" for="fam-pay"><b>Payant</b><br><small class="text-muted">Prix selon la catégorie de salarié (grille des tarifs, type de plat), payé avec le même mode que le plat.</small></label></div>
+      </div>
+      <div class="mb-3 d-flex align-items-center gap-2"><label class="form-label mb-0" for="fam-max">Nombre par jour</label>
+        <input id="fam-max" type="number" min="1" max="5" class="form-control" style="width:90px" [(ngModel)]="f.max_par_jour"></div>
+      <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="fam-off" [(ngModel)]="f.repas_offert">
+        <label class="form-check-label" for="fam-off">Proposé aussi dans les équipes « repas offert »</label></div>
+      <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" role="switch" id="fam-act" [(ngModel)]="f.actif">
+        <label class="form-check-label" for="fam-act">Famille active (désactivée : ses plats ne sont plus proposés)</label></div>
+      <p class="small text-muted mb-3"><i class="ri-information-line me-1"></i>Toujours : un supplément ne se commande qu'avec un plat principal.
+        Ensuite, reliez un type de plat à cette famille (Paramètres › Types de plat) et ajoutez ses plats aux menus.</p>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn-ubi" (click)="edition = null">Annuler</button>
+        <button type="button" class="btn-ubi vert" [disabled]="envoi" (click)="enregistrer()"><i class="ri-check-line"></i>Enregistrer</button>
+      </div>
+    </div>
+  }
+</div>

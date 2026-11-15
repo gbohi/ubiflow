@@ -31,8 +31,12 @@ class ChoixPaiementSheet extends StatefulWidget {
   final DateTime? limite;
   final Future<InfoPaiement> Function() chargerInfo;
 
+  /// Dessert choisi avec le plat (récapitulatif : « inclus »)
+  final String? supplementNom;
+
   const ChoixPaiementSheet({
     super.key,
+    this.supplementNom,
     required this.platNom,
     this.jour,
     this.modeActuel,
@@ -49,6 +53,7 @@ class ChoixPaiementSheet extends StatefulWidget {
     ModePaiementCommande? modeActuel,
     DateTime? limite,
     Future<InfoPaiement> Function()? chargerInfo,
+    String? supplementNom,
   }) =>
       showModalBottomSheet<ModePaiementCommande>(
         context: context,
@@ -57,6 +62,7 @@ class ChoixPaiementSheet extends StatefulWidget {
         useSafeArea: true,
         showDragHandle: true,
         builder: (_) => ChoixPaiementSheet(
+          supplementNom: supplementNom,
           platNom: platNom,
           jour: jour,
           modeActuel: modeActuel,
@@ -130,6 +136,20 @@ class _ChoixPaiementSheetState extends State<ChoixPaiementSheet> {
                 ].join(' · '),
                 style: TextStyle(color: gris, fontSize: 13),
               ),
+              if (widget.supplementNom != null) ...[
+                const SizedBox(height: 6),
+                Row(key: const Key('recap-dessert'), children: [
+                  const Icon(Icons.cake_outlined,
+                      size: 16, color: Color(0xFFC2417A)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                      child: Text('+ ${widget.supplementNom}',
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600))),
+                  Text('inclus · total inchangé',
+                      style: TextStyle(color: gris, fontSize: 12)),
+                ]),
+              ],
               const SizedBox(height: 14),
               if (snap.connectionState != ConnectionState.done)
                 const Padding(

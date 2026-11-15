@@ -334,7 +334,7 @@ def tri_equipes(user, equipes, cle='libelle'):
 
 def _commandes_actives(user, debut, fin):
     """Commandes non annulées de l'utilisateur sur la période (toutes agences)."""
-    return list(Commande.objects.filter(user=user, statut__in=ACTIVES, menu__date_menu__gte=debut,
+    return list(Commande.objects.filter(commande_principale__isnull=True, user=user, statut__in=ACTIVES, menu__date_menu__gte=debut,
                                         menu__date_menu__lte=fin)
                 .select_related('plat', 'menu__agence', 'menu__prestataire', 'menu__typeequipe'))
 
@@ -347,6 +347,10 @@ def _commande_json(c, ici=None):
             'prestataire': c.menu.prestataire.nom_public if c.menu.prestataire_id else CANTINE_UBIPHARM_NOM,
             'typeequipe_id': c.menu.typeequipe_id,
             'mode_paiement': c.mode_paiement,
+            # Suppléments (desserts…) choisis avec ce repas
+            'supplements': [{'id': s.id, 'plat_id': s.plat_id, 'plat': s.plat.nom,
+                             'famille_id': s.plat.type_plat.famille_supplement_id}
+                            for s in c.supplements.exclude(statut='annulee').select_related('plat__type_plat')],
             **({'ici': ici} if ici is not None else {})}
 
 
@@ -602,7 +606,7 @@ class CommanderJoursView(APIView):
 
         menus = list(selection.filter(date_menu__gte=jours[0], date_menu__lte=jours[-1])
                      .select_related('typeequipe')
-                     .prefetch_related('menu_plats__plat__type_plat')
+                     .prefetch_related('menu_plats__plat__type_plat__famille_supplement')
                      .order_by('date_menu', 'typeequipe__libelle'))
         mes = _commandes_actives(user, jours[0], jours[-1])
         par_jour_cmd = {c.menu.date_menu: c for c in mes}
@@ -639,9 +643,32 @@ class CommanderJoursView(APIView):
             else:
                 etat = 'ferme'
             plats = []
+            supplements = []
+            choisis = ({s.plat_id for s in commande.supplements.exclude(statut='annulee')}
+                       if commande is not None else set())
             for m in menus_jour:
                 for mp in sorted(m.menu_plats.all(), key=lambda mp: mp.plat.nom.upper()):
                     pl = mp.plat
+                    famille = pl.type_plat.famille_supplement if pl.type_plat_id else None
+                    if famille is not None:
+                        # Supplément (dessert…) : affiché à part, choisi avec un plat principal
+                        if not famille.actif or (m.typeequipe.repas_offert and not famille.repas_offert):
+                            continue
+                        photos = images.get(pl.id, [])
+                        prix_s = None
+                        if not famille.inclus and not m.typeequipe.repas_offert:
+                            prix_s = tarif.prix(user.id, d, pl.type_plat_id)[1]
+                        supplements.append({
+                            'id': pl.id, 'nom': pl.nom, 'description': pl.description,
+                            'type_plat_id': pl.type_plat_id, 'mentions': pl.mentions or [],
+                            'photo_url': photos[0] if photos else None, 'photos': photos,
+                            'famille_id': famille.id, 'famille': famille.libelle,
+                            'inclus': famille.inclus or bool(m.typeequipe.repas_offert),
+                            'max_par_jour': famille.max_par_jour,
+                            'prix': float(prix_s) if prix_s is not None else None,
+                            'menu_id': m.id, 'choisi': pl.id in choisis,
+                        })
+                        continue
                     if commande is not None and commande.menu_id == m.id and commande.plat_id == pl.id:
                         statut = 'commande'
                     elif commande is not None:
@@ -684,6 +711,7 @@ class CommanderJoursView(APIView):
                           for m in menus_jour],
                 'commande': _commande_json(commande, ici=commande.menu_id in ids_menus) if commande else None,
                 'plats': plats,
+                'supplements': supplements,
             })
 
         defaut = next((j['date'] for j in resultat if j['etat'] == 'a_reserver'), None)

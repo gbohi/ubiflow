@@ -607,6 +607,56 @@ class PlatJour {
   }
 }
 
+/// Supplément (dessert…) proposé au menu : jamais commandé seul, choisi
+/// après le plat principal.
+class SupplementJour {
+  final int id;
+  final String nom;
+  final String description;
+  final List<String> mentions;
+  final String? photoUrl;
+  final int? familleId;
+  final String famille;
+
+  /// Inclus dans le prix du repas (gratuit pour l'employé)
+  final bool inclus;
+  final double? prix;
+  final int? menuId;
+
+  /// Choisi avec le repas déjà réservé ce jour
+  final bool choisi;
+
+  const SupplementJour({
+    required this.id,
+    required this.nom,
+    this.description = '',
+    this.mentions = const [],
+    this.photoUrl,
+    this.familleId,
+    this.famille = '',
+    this.inclus = true,
+    this.prix,
+    this.menuId,
+    this.choisi = false,
+  });
+
+  factory SupplementJour.fromJson(Map<String, dynamic> j) => SupplementJour(
+        id: _int(j['id']),
+        nom: _texte(j['nom']),
+        description: _texte(j['description']),
+        mentions: (j['mentions'] is List)
+            ? (j['mentions'] as List).map((e) => '$e').toList()
+            : const [],
+        photoUrl: _url(j['photo_url']),
+        familleId: _intOuNull(j['famille_id']),
+        famille: _texte(j['famille']),
+        inclus: j['inclus'] != false,
+        prix: j['prix'] is num ? (j['prix'] as num).toDouble() : null,
+        menuId: _intOuNull(j['menu_id']),
+        choisi: j['choisi'] == true,
+      );
+}
+
 class JourCommande {
   final DateTime date;
   final String libelle;
@@ -620,6 +670,9 @@ class JourCommande {
   final List<MenuJour> menus;
   final CommandeJour? commande;
   final List<PlatJour> plats;
+
+  /// Suppléments (desserts…) du jour, choisis avec un plat
+  final List<SupplementJour> supplements;
 
   /// « Vous n'êtes pas programmé(e) dans l'équipe Nuit le sam. 14/11. »
   final String motifIndisponible;
@@ -635,8 +688,13 @@ class JourCommande {
     this.menus = const [],
     this.commande,
     this.plats = const [],
+    this.supplements = const [],
     this.motifIndisponible = '',
   });
+
+  /// Suppléments proposés avec un plat de ce menu
+  List<SupplementJour> supplementsDuMenu(int? menuId) =>
+      supplements.where((s) => s.menuId == null || s.menuId == menuId).toList();
 
   factory JourCommande.fromJson(Map<String, dynamic> j) => JourCommande(
         date: jourIso(j['date']) ?? DateTime(1970),
@@ -651,6 +709,8 @@ class JourCommande {
         menus: _maps(j['menus']).map(MenuJour.fromJson).toList(),
         commande: CommandeJour.fromJsonOuNull(j['commande']),
         plats: _maps(j['plats']).map(PlatJour.fromJson).toList(),
+        supplements:
+            _maps(j['supplements']).map(SupplementJour.fromJson).toList(),
         motifIndisponible: _texte(j['motif_indisponible']),
       );
 }

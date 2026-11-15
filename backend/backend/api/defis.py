@@ -132,7 +132,7 @@ def progression(c, user_ids, aujourdhui=None):
     ids = list(user_ids)
     jours_cmd, plats, statuts = defaultdict(set), defaultdict(set), defaultdict(list)
     commandes = exclure_suspensions(
-        Commande.objects.filter(user_id__in=ids, menu__date_menu__range=(debut, fin)).exclude(statut='annulee'),
+        Commande.objects.filter(commande_principale__isnull=True, user_id__in=ids, menu__date_menu__range=(debut, fin)).exclude(statut='annulee'),
         'date_commande', 'defis', c.id)
     for uid, d, plat, statut in commandes.values_list('user_id', 'menu__date_menu', 'plat_id', 'statut'):
         jours_cmd[uid].add(d)
@@ -140,7 +140,7 @@ def progression(c, user_ids, aujourdhui=None):
         statuts[uid].append((d, statut))
     if c.plats_nouveaux:
         deja = defaultdict(set)
-        for uid, plat in (Commande.objects.filter(user_id__in=ids, menu__date_menu__lt=debut).exclude(statut='annulee')
+        for uid, plat in (Commande.objects.filter(commande_principale__isnull=True, user_id__in=ids, menu__date_menu__lt=debut).exclude(statut='annulee')
                           .values_list('user_id', 'plat_id').distinct()):
             deja[uid].add(plat)
         plats = {u: p - deja.get(u, set()) for u, p in plats.items()}

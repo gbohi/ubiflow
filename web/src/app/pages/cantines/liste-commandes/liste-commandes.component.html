@@ -340,6 +340,18 @@
                           <span>{{ texteMode(cmd) }}</span>
                         </div>
                       }
+                      @for (s of cmd.supplements ?? []; track s.id) {
+                        <div class="pc-dessert-ligne">
+                          <span class="pc-dessert-ph">@if (url(imagePlat(s.plat_detail)); as ph) { <img [src]="ph" [alt]="s.plat_detail.nom"> } @else { <i class="ri-cake-3-line"></i> }</span>
+                          <span><b>{{ s.plat_detail.nom }}</b><small>{{ s.famille }}</small></span>
+                          @if (s.inclus) { <span class="pc-inclus">inclus</span> }
+                        </div>
+                      }
+                      @if (!estRetire(j, plat) && cmd.mode_paiement_modifiable && dessertsDe(j, plat).length) {
+                        <button type="button" class="ce-lien-paie" [disabled]="isSubmitting" (click)="ouvrirDessert(j, plat)">
+                          <i class="ri-cake-3-line"></i>{{ cmd.supplements?.length ? 'Changer de dessert' : 'Ajouter un dessert' }}
+                        </button>
+                      }
                       @if (estRetire(j, plat)) {
                         <button type="button" class="ce-cta ce-cta-info" disabled><i class="ri-checkbox-circle-line"></i>Repas retiré</button>
                       } @else {
@@ -387,6 +399,20 @@
             }
           }
         </div>
+        @if (j.supplements?.length) {
+          <div class="pc-desserts-jour">
+            <div class="pc-dessert-titre"><b>Desserts du jour</b><span class="pc-inclus">inclus avec votre plat</span></div>
+            <div class="pc-desserts-vig">
+              @for (s of j.supplements; track s.id + '-' + s.menu_id) {
+                <div class="pc-vig" [title]="s.description || s.nom">
+                  <span class="pc-dessert-ph">@if (url(s.photo_url); as ph) { <img [src]="ph" [alt]="s.nom"> } @else { <i class="ri-cake-3-line"></i> }</span>
+                  <small>{{ s.nom }}</small>
+                </div>
+              }
+            </div>
+            <p class="ce-muted ce-petit mb-0"><i class="ri-information-line"></i> Réservez un plat : vous choisirez votre dessert à l'étape suivante.</p>
+          </div>
+        }
       </div>
 
       @if (derniereCommande) {
@@ -446,6 +472,25 @@
             <b>{{ p.cible.platNom }} · {{ p.cible.prestataire }}</b>
             <span class="ce-muted">{{ jourLong(p.cible.date) }}@if (p.info?.offert) { · repas offert } @else if (p.info?.prix != null) { · {{ montant(p.info?.prix) }} }@if (p.cible.equipe) { · équipe {{ p.cible.equipe }} }</span>
           </div>
+          @if (!p.commande && p.cible.supplements.length) {
+            <div class="pc-dessert-choix" role="radiogroup" aria-label="Votre dessert">
+              <div class="pc-dessert-titre"><b>Votre dessert</b><span class="pc-inclus">inclus · 1 au choix</span></div>
+              <div class="pc-dessert-grille">
+                @for (s of p.cible.supplements; track s.id) {
+                  <label class="pc-dessert-opt" [class.ce-on]="p.dessert === s.id">
+                    <input type="radio" name="dessert" [checked]="p.dessert === s.id" (change)="p.dessert = s.id">
+                    <span class="pc-dessert-ph">@if (url(s.photo_url); as ph) { <img [src]="ph" [alt]="s.nom"> } @else { <i class="ri-cake-3-line"></i> }</span>
+                    <span class="pc-dessert-nom">{{ s.nom }}@if (!s.inclus && s.prix != null) { <small> · {{ montant(s.prix) }}</small> }</span>
+                  </label>
+                }
+                <label class="pc-dessert-opt" [class.ce-on]="p.dessert === null">
+                  <input type="radio" name="dessert" [checked]="p.dessert === null" (change)="p.dessert = null">
+                  <span class="pc-dessert-ph pc-sans"><i class="ri-close-line"></i></span>
+                  <span class="pc-dessert-nom">Sans dessert</span>
+                </label>
+              </div>
+            </div>
+          }
           @if (p.chargement) {
             <div class="ce-chargement"><span class="spinner-border spinner-border-sm" role="status"></span><span>Chargement de votre solde…</span></div>
           } @else if (p.erreur) {
@@ -494,6 +539,40 @@
         <button type="button" class="btn btn-success" id="confirmer-paiement" [disabled]="!paiementValidable" (click)="confirmerPaiement()">
           {{ paiement?.commande ? 'Changer' : (paiement?.info?.offert ? 'Réserver (offert)' : (paiement?.mode === 'compte' ? 'Réserver et payer par le compte' : 'Réserver')) }}
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Changer / ajouter / retirer le dessert d'un repas réservé ── -->
+<div bsModal #dessertModal="bs-modal" class="modal fade" tabindex="-1" aria-hidden="true" aria-labelledby="titre-dessert">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="titre-dessert">Votre dessert</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="dessertModal.hide(); dessertEdition = null"></button></div>
+      <div class="modal-body">
+        @if (dessertEdition; as d) {
+          <p class="ce-muted ce-petit">Avec votre {{ d.commande.plat_detail?.nom }} · modifiable jusqu'à l'heure limite de commande.</p>
+          <div class="pc-dessert-grille" role="radiogroup" aria-label="Votre dessert">
+            @for (s of d.supplements; track s.id) {
+              <label class="pc-dessert-opt" [class.ce-on]="d.choix === s.id">
+                <input type="radio" name="dessert-edit" [checked]="d.choix === s.id" (change)="d.choix = s.id">
+                <span class="pc-dessert-ph">@if (url(s.photo_url); as ph) { <img [src]="ph" [alt]="s.nom"> } @else { <i class="ri-cake-3-line"></i> }</span>
+                <span class="pc-dessert-nom">{{ s.nom }}</span>
+              </label>
+            }
+            <label class="pc-dessert-opt" [class.ce-on]="d.choix === null">
+              <input type="radio" name="dessert-edit" [checked]="d.choix === null" (change)="d.choix = null">
+              <span class="pc-dessert-ph pc-sans"><i class="ri-close-line"></i></span>
+              <span class="pc-dessert-nom">Sans dessert</span>
+            </label>
+          </div>
+          @if (d.erreur) { <div class="ce-alerte ce-alerte-ro mt-2"><i class="ri-error-warning-line"></i><div>{{ d.erreur }}</div></div> }
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="dessertModal.hide(); dessertEdition = null">Annuler</button>
+        <button type="button" class="btn btn-success" [disabled]="dessertEdition?.envoi" (click)="validerDessert()">Enregistrer</button>
       </div>
     </div>
   </div>

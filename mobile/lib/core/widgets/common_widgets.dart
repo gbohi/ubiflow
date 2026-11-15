@@ -972,8 +972,15 @@ class VignettePlat extends StatelessWidget {
   final String? url;
   final double taille;
   final double rayon;
+
+  /// Icône sans photo (gâteau pour un dessert)
+  final IconData icone;
   const VignettePlat(
-      {super.key, required this.url, this.taille = 42, this.rayon = 10});
+      {super.key,
+      required this.url,
+      this.taille = 42,
+      this.rayon = 10,
+      this.icone = Icons.restaurant_rounded});
 
   @override
   Widget build(BuildContext context) {
@@ -984,7 +991,7 @@ class VignettePlat extends StatelessWidget {
       color: isDark
           ? AppColors.accent.withOpacity(0.12)
           : AppColors.primary.withOpacity(0.06),
-      child: Icon(Icons.restaurant_rounded,
+      child: Icon(icone,
           size: taille * 0.45,
           color: isDark
               ? AppColors.accent.withOpacity(0.8)

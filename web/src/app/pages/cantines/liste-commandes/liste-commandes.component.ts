@@ -30,7 +30,7 @@ import {
 import { CommandeService } from 'src/app/core/services/commande/commande.service';
 import {
   ParcoursCommandeService, AgenceCommande, PrestataireCarte, EquipeCommande,
-  JoursCommande, JourCommande, PlatCommande,
+  JoursCommande, JourCommande, PlatCommande, SupplementJour,
 } from 'src/app/core/services/commande/parcours-commande.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import {
@@ -58,6 +58,8 @@ const CLE_AGENCE = 'ubifood.commander.agence';
 interface CiblePaiement {
   menuId: number; date: string; limite?: string;
   platId: number; platNom: string; prestataire: string; equipe?: string;
+  /** Desserts (suppléments) du menu, choisis avec le plat */
+  supplements: SupplementJour[];
 }
 
 @Component({
@@ -116,7 +118,14 @@ export class ListeCommandesComponent implements OnInit, OnDestroy {
   paiement: {
     cible: CiblePaiement; commande?: CommandeModel;
     info?: InfoPaiement; chargement: boolean; erreur?: string; mode: ModePaiement;
+    /** Dessert choisi avec le plat (null : sans dessert) */
+    dessert: number | null;
   } | null = null;
+
+  /** Changer / ajouter / retirer le dessert d'un repas réservé */
+  dessertEdition: { commande: CommandeModel; supplements: SupplementJour[]; choix: number | null;
+                    familleId: number | null; envoi: boolean; erreur?: string } | null = null;
+  @ViewChild('dessertModal', { static: false }) dessertModal?: ModalDirective;
   @ViewChild('paiementModal', { static: false }) paiementModal?: ModalDirective;
   readonly libellesModes = MODES_PAIEMENT_LIBELLES;
 
@@ -360,6 +369,11 @@ export class ListeCommandesComponent implements OnInit, OnDestroy {
 
   // ══ Libellés et images ════════════════════════════════════════
 
+  /** Photo principale d'un plat renvoyé par l'API (images[]) */
+  imagePlat(p?: { images?: { url: string; is_principale: boolean }[] } | null): string | null {
+    return p?.images?.find(i => i.is_principale)?.url ?? p?.images?.[0]?.url ?? null;
+  }
+
   url(chemin?: string | null): string | null {
     if (!chemin) return null;
     return chemin.startsWith('http') || chemin.startsWith('data:') ? chemin : `${this.imgBase}${chemin}`;
@@ -460,7 +474,41 @@ export class ListeCommandesComponent implements OnInit, OnDestroy {
       menuId: plat.menu_id, date: j.date, limite: j.date_limite_commande,
       platId: plat.id, platNom: plat.nom,
       prestataire: this.prestataire?.nom_affiche ?? '', equipe: plat.typeequipe,
+      supplements: this.dessertsDe(j, plat),
     };
+  }
+
+  /** Desserts (suppléments) proposés avec ce plat : ceux de son menu */
+  dessertsDe(j: JourCommande, plat: PlatCommande): SupplementJour[] {
+    return (j.supplements ?? []).filter(s => s.menu_id === plat.menu_id);
+  }
+
+  ouvrirDessert(j: JourCommande, plat: PlatCommande): void {
+    const commande = this.commandeDe(plat.commande_id);
+    if (!commande) return;
+    const actuel = commande.supplements?.find(s => s.statut !== 'annulee');
+    const supplements = this.dessertsDe(j, plat);
+    this.dessertEdition = { commande, supplements, choix: actuel?.plat_detail?.id ?? null,
+                            familleId: actuel?.famille_id ?? supplements[0]?.famille_id ?? null, envoi: false };
+    this.dessertModal?.show();
+  }
+
+  validerDessert(): void {
+    const d = this.dessertEdition;
+    if (!d || d.envoi) return;
+    d.envoi = true;
+    d.erreur = undefined;
+    const req = d.choix ? this.commandeService.choisirSupplement(d.commande.id, d.choix)
+                        : this.commandeService.retirerSupplement(d.commande.id, d.familleId);
+    req.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.dessertModal?.hide();
+        this.dessertEdition = null;
+        this.store.dispatch(fetchMesCommandes({}));
+        if (this.etape === 3) this.chargerJours(this.semaine?.semaine.debut ?? null, this.jourSelectionne);
+      },
+      error: err => { d.envoi = false; d.erreur = this.message(err, 'Le dessert n\'a pas pu être modifié.'); },
+    });
   }
 
   reserver(j: JourCommande, plat: PlatCommande): void {
@@ -476,6 +524,7 @@ export class ListeCommandesComponent implements OnInit, OnDestroy {
     this.paiement = {
       cible, commande, chargement: true,
       mode: commande?.mode_paiement ?? this.semaine?.mode_paiement_prefere ?? 'retenue',
+      dessert: null,
     };
     this.paiementModal?.show();
     this.commandeService.infoPaiement(cible.menuId, cible.platId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -530,7 +579,10 @@ export class ListeCommandesComponent implements OnInit, OnDestroy {
       this.enCours = { date: p.cible.date, platNom: p.cible.platNom };
       // Repas offert : le serveur fixe le mode (rien à payer)
       const mode = p.info?.offert ? undefined : p.mode;
-      this.store.dispatch(createCommande({ payload: { menu_id: p.cible.menuId, plat_id: p.cible.platId, mode_paiement: mode } }));
+      this.store.dispatch(createCommande({ payload: {
+        menu_id: p.cible.menuId, plat_id: p.cible.platId, mode_paiement: mode,
+        ...(p.dessert ? { supplements: [p.dessert] } : {}),
+      } }));
     }
   }
 

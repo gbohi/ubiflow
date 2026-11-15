@@ -829,6 +829,9 @@ class BesoinWithDocumentsSerializer(serializers.ModelSerializer):
 # ============================================================
 
 class TypePlatSerializer(serializers.ModelSerializer):
+    # Type d'un supplément (Dessert…) : famille de suppléments, sinon plat principal
+    famille_supplement_libelle = serializers.ReadOnlyField(source='famille_supplement.libelle')
+
     class Meta:
         model = TypePlat
         fields = '__all__'
@@ -877,6 +880,9 @@ class PlatImageSerializer(serializers.ModelSerializer):
 class PlatSerializer(serializers.ModelSerializer):
     type_plat_id      = serializers.ReadOnlyField(source='type_plat.id')
     type_plat_libelle = serializers.ReadOnlyField(source='type_plat.libelle')
+    # Supplément (dessert…) : se commande seulement avec un plat principal
+    famille_supplement_id = serializers.ReadOnlyField(source='type_plat.famille_supplement_id')
+    famille_supplement    = serializers.ReadOnlyField(source='type_plat.famille_supplement.libelle')
     agence_id         = serializers.ReadOnlyField(source='agence.id')
     agence_nom        = serializers.ReadOnlyField(source='agence.nom_agence')
     images = PlatImageSerializer(many=True, read_only=True)
@@ -1216,8 +1222,27 @@ class CommandeSerializer(serializers.ModelSerializer):
             # non, règlement effectif (compte débité, caisse, retenue)
             'mode_paiement', 'mode_paiement_libelle', 'mode_paiement_modifiable',
             'mode_paiement_limite', 'paiement',
+            # Suppléments (desserts…) rattachés à ce plat principal ; pour un
+            # supplément : son plat principal
+            'supplements', 'commande_principale', 'supplements_disponibles',
         ]
-        read_only_fields = ['date_commande', 'date_annulation', 'statut', 'motif_annulation']
+        read_only_fields = ['date_commande', 'date_annulation', 'statut', 'motif_annulation',
+                            'commande_principale']
+
+    supplements = serializers.SerializerMethodField()
+    # Nombre de suppléments (desserts…) au menu de ce repas en attente : « Ajouter un dessert »
+    supplements_disponibles = serializers.SerializerMethodField()
+
+    def get_supplements_disponibles(self, obj):
+        if obj.commande_principale_id or obj.statut != 'en_attente':
+            return 0
+        return MenuPlat.objects.filter(menu_id=obj.menu_id, plat__type_plat__famille_supplement__actif=True).count()
+
+    def get_supplements(self, obj):
+        if obj.commande_principale_id:
+            return []
+        from .supplements import supplements_json
+        return supplements_json(obj, self.context.get('request'))
 
     mode_paiement = serializers.ChoiceField(choices=Commande.MODE_PAIEMENT_CHOICES, required=False,
                                             allow_blank=True)

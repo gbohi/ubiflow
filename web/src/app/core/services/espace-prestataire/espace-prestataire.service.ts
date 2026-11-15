@@ -97,6 +97,8 @@ export interface LignePlatJour {
   plat_id: number;
   plat: string;
   par_agence: Record<string, number>;
+  /** Supplément (dessert…) : listé, hors totaux des repas */
+  famille?: string | null;
   total: number;
   servis: number;
 }
@@ -180,14 +182,17 @@ export interface ServiceComptoirPresta {
   servies: number;
   a_servir: number;
   pct_servis: number;
-  plats: { plat_id: number; nom: string; image_url: string | null; commandees: number; servies: number; a_servir: number; externes?: number }[];
+  plats: { plat_id: number; nom: string; image_url: string | null; commandees: number; servies: number; a_servir: number; externes?: number;
+           /** Supplément (dessert…) : hors total des repas */ famille?: string | null }[];
   mes_retraits_aujourdhui: number;
   derniers: RetraitComptoir[];
 }
 
 export interface RechercheComptoir extends OrigineCommande {
   employe: { id: number; nom: string; prenoms: string; nom_complet: string; matricule: string; agence: string } & OrigineCommande;
-  commandes: { commande_id: number; menu_id: number; plat_id: number; plat: string; plat_image_url: string | null; statut: string; date_commande: string }[];
+  commandes: { commande_id: number; menu_id: number; plat_id: number; plat: string; plat_image_url: string | null; statut: string; date_commande: string;
+    /** Supplément (dessert…) remis avec le plat ; null : plat principal */
+    famille?: string | null }[];
   deja_retire: boolean;
   retrait: RetraitComptoir | null;
   a_retirer: boolean;

@@ -31,7 +31,7 @@ from django.db import transaction
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from decimal import Decimal
 from django.utils import timezone
@@ -1704,7 +1704,11 @@ class CommandeViewSet(BaseViewSet):
             Commande.objects
             .select_related('user', 'menu__agence', 'menu__typeequipe', 'plat__type_plat',
                             'plat__agence', 'avis', 'reglement')
-            .prefetch_related('plat__images', 'user__useragence_set__agence')
+            .prefetch_related('plat__images', 'user__useragence_set__agence',
+                              Prefetch('supplements', to_attr='_supplements_actifs',
+                                       queryset=Commande.objects.exclude(statut='annulee')
+                                       .select_related('plat__type_plat__famille_supplement')
+                                       .prefetch_related('plat__images')))
             .order_by('-date_commande')
         )
 
@@ -1716,6 +1720,9 @@ class CommandeViewSet(BaseViewSet):
     def get_queryset(self):
         qs = self._base_queryset()
         user = self.request.user
+        if self.action == 'list':
+            # Suppléments (desserts…) : affichés dans leur plat principal
+            qs = qs.filter(commande_principale__isnull=True)
         if is_admin(user):
             return qs
         if is_gestionnaire(user):
@@ -1740,6 +1747,23 @@ class CommandeViewSet(BaseViewSet):
         menu = serializer.validated_data['menu']
         plat = serializer.validated_data['plat']
         mode_demande = cr.lire_mode_commande(serializer.validated_data.pop('mode_paiement', None))
+        # Suppléments (dessert…) choisis avec le plat : jamais sans plat principal
+        from . import supplements as sp
+        sp.verifier_plat_principal(plat)
+        ids_sup = request.data.get('supplements') or request.data.get('supplement_ids') or []
+        if not isinstance(ids_sup, list):
+            ids_sup = [ids_sup]
+        plats_sup = list(Plat.objects.filter(pk__in=[int(i) for i in ids_sup if str(i).isdigit()])
+                         .select_related('type_plat__famille_supplement'))
+        par_famille = {}
+        for p in plats_sup:
+            f = sp.famille_du_plat(p)
+            if f is None:
+                raise ValidationError({'supplements': f"« {p.nom} » n'est pas un supplément."})
+            par_famille.setdefault(f, []).append(p)
+        for f, ps in par_famille.items():
+            if len(ps) > f.max_par_jour:
+                raise ValidationError({'supplements': f"{f.max_par_jour} {f.libelle.lower()} par jour au plus."})
 
         with transaction.atomic():
             # Verrou sur la ligne user : deux requêtes simultanées du même
@@ -1750,6 +1774,7 @@ class CommandeViewSet(BaseViewSet):
                 user=user,
                 menu__date_menu=menu.date_menu,
                 statut__in=['en_attente', 'retiree'],
+                commande_principale__isnull=True,      # un supplément n'est pas un repas
             )
             if commande_jour.exists():
                 raise ValidationError(
@@ -1769,12 +1794,16 @@ class CommandeViewSet(BaseViewSet):
                 commande_existante.save()
                 commande_existante.user = user
                 cr.payer_a_la_commande(commande_existante, mode_demande, user)
+                for p in plats_sup:
+                    sp.ajouter(commande_existante, p, user, verifier_delai=False)
                 commande_existante = self._base_queryset().get(pk=commande_existante.pk)
                 output = CommandeSerializer(commande_existante, context={'request': request})
                 return Response(output.data, status=status.HTTP_200_OK)
 
             commande = serializer.save(user=user, user_created=user, user_updated=user, mode_paiement='retenue')
             cr.payer_a_la_commande(commande, mode_demande, user)
+            for p in plats_sup:
+                sp.ajouter(commande, p, user, verifier_delai=False)
         commande = self._base_queryset().get(pk=commande.pk)
         return Response(CommandeSerializer(commande, context={'request': request}).data,
                         status=status.HTTP_201_CREATED)
@@ -1852,7 +1881,8 @@ class CommandeViewSet(BaseViewSet):
 
     @action(detail=False, methods=['get'], url_path='mes-commandes')
     def mes_commandes(self, request):
-        qs = self._base_queryset().filter(user=request.user)
+        # Suppléments (desserts…) : affichés dans leur plat principal (« supplements »)
+        qs = self._base_queryset().filter(user=request.user, commande_principale__isnull=True)
         qs = self.filter_queryset(qs)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
@@ -1893,7 +1923,7 @@ class CommandeViewSet(BaseViewSet):
         typeequipe = request.query_params.get('typeequipe')
         statut     = request.query_params.get('statut')
 
-        qs = self._dans_mes_agences(self._base_queryset())
+        qs = self._dans_mes_agences(self._base_queryset()).filter(commande_principale__isnull=True)
         try:
             if date_debut:  qs = qs.filter(menu__date_menu__gte=date_debut)
             if date_fin:    qs = qs.filter(menu__date_menu__lte=date_fin)
@@ -2002,8 +2032,8 @@ class DashboardCantineView(APIView):
         # ── Querysets de base ─────────────────────────────────
         # base_qs : période / agences / équipes (sans filtre statut) →
         # facturation et évolution par date. commande_qs : + filtre statut.
-        base_qs = Commande.objects.filter(
-            menu__date_menu__gte=date_debut, menu__date_menu__lte=date_fin)
+        base_qs = Commande.objects.filter(          # suppléments (desserts…) : pas des repas
+            menu__date_menu__gte=date_debut, menu__date_menu__lte=date_fin, commande_principale__isnull=True)
         menu_qs = Menu.objects.filter(date_menu__gte=date_debut, date_menu__lte=date_fin)
 
         if agences_ids:
@@ -2293,13 +2323,14 @@ class RetraitViewSet(BaseViewSet):
         actives = Commande.objects.filter(menu=menu, statut__in=['en_attente', 'retiree'])
         plats = [
             {'plat_id': r['plat_id'], 'nom': r['plat__nom'], 'commandees': r['commandees'],
-             'servies': r['servies'], 'a_servir': r['commandees'] - r['servies']}
-            for r in actives.values('plat_id', 'plat__nom')
+             'servies': r['servies'], 'a_servir': r['commandees'] - r['servies'],
+             'famille': r['plat__type_plat__famille_supplement__libelle'] or None}
+            for r in actives.values('plat_id', 'plat__nom', 'plat__type_plat__famille_supplement__libelle')
             .annotate(commandees=Count('id'), servies=Count('id', filter=Q(statut='retiree')))
-            .order_by('plat__nom')
+            .order_by('plat__type_plat__famille_supplement__libelle', 'plat__nom')
         ]
-        commandees = sum(p['commandees'] for p in plats)
-        servies = sum(p['servies'] for p in plats)
+        commandees = sum(p['commandees'] for p in plats if not p['famille'])
+        servies = sum(p['servies'] for p in plats if not p['famille'])
         # Employés d'une autre agence que celle du menu (commandes « externes »)
         from .parcours_commande import agences_origine, est_externe, origine_json
         from .prestataires import horaires_json

@@ -18,6 +18,7 @@ import '../../core/services/cantine_service.dart';
 import '../../core/services/parcours_service.dart';
 import '../avis/avis_widgets.dart';
 import '../paiements/choix_paiement_sheet.dart';
+import 'desserts.dart';
 import '../../shared/models/compte_repas_models.dart'
     show InfoPaiement, ModePaiementCommande;
 import '../dashboard/accueil_widgets.dart' show fermeDans, formatFcfa;
@@ -252,10 +253,24 @@ class _CarteVotreRepas extends StatelessWidget {
 /// après le choix du mode de paiement (compte repas / retenue sur salaire)
 Future<void> _reserverPlat(
     BuildContext context, CommandeProvider cmdProv, Menu menu, Plat plat,
-    {Future<InfoPaiement> Function()? chargerInfo}) async {
+    {Future<InfoPaiement> Function()? chargerInfo,
+    List<SupplementJour> desserts = const []}) async {
   if (cmdProv.isLoading) return;
   final facturation = context.read<FacturationProvider>();
+  // Dessert (supplément) : choisi après le plat, avant le paiement
+  SupplementJour? dessert;
+  if (desserts.isNotEmpty) {
+    final choix = await ChoixDessertSheet.show(context,
+        platNom: plat.nom,
+        platDetail: [
+          if ((plat.typePlatLibelle ?? '').isNotEmpty) plat.typePlatLibelle!,
+        ].join(' · '),
+        desserts: desserts);
+    if (choix == null || !context.mounted) return;
+    dessert = desserts.where((d) => d.id == choix).firstOrNull;
+  }
   final mode = await ChoixPaiementSheet.show(context,
+      supplementNom: dessert?.nom,
       menuId: menu.id,
       // « Garba · Traiteur Délices d'Abidjan »
       platNom: menu.prestataireNom == null
@@ -269,7 +284,8 @@ Future<void> _reserverPlat(
   final ok = await cmdProv.commander(
       menuId: menu.id,
       platId: plat.id,
-      modePaiement: mode == ModePaiementCommande.offert ? null : mode.code);
+      modePaiement: mode == ModePaiementCommande.offert ? null : mode.code,
+      supplements: [if (dessert != null) dessert.id]);
   // « Ma facturation » doit refléter la nouvelle commande
   if (ok) facturation.charger();
   if (ok && context.mounted) {
@@ -278,7 +294,8 @@ Future<void> _reserverPlat(
         const Icon(Icons.check_circle_rounded, color: Colors.white),
         const SizedBox(width: 8),
         Expanded(
-            child: Text('${plat.nom} — commande confirmée !'
+            child: Text(
+                '${plat.nom}${dessert != null ? ' + ${dessert.nom}' : ''} — commande confirmée !'
                 '${switch (mode) {
           ModePaiementCommande.compte => ' Payée par votre compte repas.',
           ModePaiementCommande.offert => ' Repas offert.',
@@ -426,11 +443,24 @@ class _PlatDetailSheet extends StatefulWidget {
   /// Résumé des avis du plat (par défaut GET /plats/{id}/avis/)
   final Future<ResumeAvisPlat> Function(int platId)? chargerAvis;
 
+  /// Desserts du menu, choisis après « Réserver ce plat »
+  final List<SupplementJour> desserts;
+
+  /// Prix et solde (feuille de paiement)
+  final Future<InfoPaiement> Function()? chargerInfo;
+
   const _PlatDetailSheet(
-      {required this.menu, required this.plat, this.chargerAvis});
+      {required this.menu,
+      required this.plat,
+      this.chargerAvis,
+      this.desserts = const [],
+      this.chargerInfo});
 
   static Future<void> show(BuildContext context,
-      {required Menu menu, required Plat plat}) {
+      {required Menu menu,
+      required Plat plat,
+      List<SupplementJour> desserts = const [],
+      Future<InfoPaiement> Function()? chargerInfo}) {
     return showModalBottomSheet<void>(
       context: context,
       // Même navigateur que la boîte de confirmation d'annulation
@@ -438,7 +468,8 @@ class _PlatDetailSheet extends StatefulWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PlatDetailSheet(menu: menu, plat: plat),
+      builder: (_) => _PlatDetailSheet(
+          menu: menu, plat: plat, desserts: desserts, chargerInfo: chargerInfo),
     );
   }
 
@@ -464,7 +495,8 @@ class _PlatDetailSheetState extends State<_PlatDetailSheet> {
   /// [ctx] : contexte sous le messager de la feuille (SnackBar visible)
   Future<void> _reserver(BuildContext ctx, CommandeProvider cmdProv) async {
     setState(() => _envoi = true);
-    await _reserverPlat(ctx, cmdProv, widget.menu, widget.plat);
+    await _reserverPlat(ctx, cmdProv, widget.menu, widget.plat,
+        desserts: widget.desserts, chargerInfo: widget.chargerInfo);
     if (mounted) setState(() => _envoi = false);
   }
 

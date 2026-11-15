@@ -92,7 +92,8 @@ class Perimetre:
 
     # Filtres sur Commande (sans la période)
     def commandes(self):
-        qs = Commande.objects.all()
+        # Suppléments (desserts…) : ne comptent pas comme des repas
+        qs = Commande.objects.filter(commande_principale__isnull=True)
         if self.agence is not None:
             qs = qs.filter(menu__agence_id=self.agence)
         elif self.geres is not None:

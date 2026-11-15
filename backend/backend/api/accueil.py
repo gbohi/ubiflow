@@ -77,12 +77,12 @@ class AccueilView(APIView):
         agence = agence_actuelle(user)
         horizon = aujourdhui + timedelta(days=21)
         mes = list(
-            Commande.objects.filter(user=user, menu__date_menu__gte=jours[0], menu__date_menu__lte=horizon)
+            Commande.objects.filter(commande_principale__isnull=True, user=user, menu__date_menu__gte=jours[0], menu__date_menu__lte=horizon)
             .select_related('plat', 'menu__agence', 'menu__typeequipe')
         )
         actives_par_jour = {c.menu.date_menu: c for c in mes if c.statut in ACTIVES}
         recentes = list(
-            Commande.objects.filter(user=user)
+            Commande.objects.filter(commande_principale__isnull=True, user=user)
             .select_related('plat', 'menu__agence', 'menu__typeequipe')
             .order_by('-menu__date_menu', '-date_commande')[:3]
         )
@@ -138,7 +138,7 @@ class AccueilView(APIView):
             d += timedelta(days=1)
 
         debut_mois, fin_mois = fact.bornes_mois(aujourdhui.year, aujourdhui.month)
-        du_mois = Commande.objects.filter(user=user, menu__date_menu__gte=debut_mois,
+        du_mois = Commande.objects.filter(commande_principale__isnull=True, user=user, menu__date_menu__gte=debut_mois,
                                           menu__date_menu__lte=fin_mois)
         compte = du_mois.aggregate(
             repas=Count('id', filter=Q(statut__in=ACTIVES)),
@@ -206,7 +206,7 @@ class AccueilView(APIView):
             # Administrateur : agences qui ont servi des repas ces deux derniers mois
             recentes = menus.filter(date_menu__gte=aujourdhui - timedelta(days=60)).values('agence_id')
             agences = list(Agence.objects.filter(id__in=recentes).order_by('nom_agence'))
-        commandes = Commande.objects.filter(menu__in=menus)
+        commandes = Commande.objects.filter(commande_principale__isnull=True, menu__in=menus)
 
         # Service du jour, par agence
         service = []

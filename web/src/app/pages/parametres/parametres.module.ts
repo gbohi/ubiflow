@@ -23,6 +23,7 @@ import { DepartementComponent } from './departement/departement.component';
 import { RoleComponent } from './role/role.component';
 import { UserComponent } from './user/user.component';
 import { TypeplatComponent } from './typeplat/typeplat.component';
+import { SupplementsComponent } from './supplements/supplements.component';
 import { TypeequipeComponent } from './typeequipe/typeequipe/typeequipe.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
@@ -55,6 +56,7 @@ import { BadgeEmployeComponent } from '../cantines/badges/badge-employe.componen
     DepartementComponent,
     RoleComponent,
     UserComponent,
+    SupplementsComponent,
     TypeplatComponent,
     TypeequipeComponent,
     FonctionComponent,

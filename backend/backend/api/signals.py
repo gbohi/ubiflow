@@ -121,6 +121,12 @@ def _notifier_commande(commande_id, statut):
 @receiver(post_save, sender='api.Commande')
 def notifier_commande(sender, instance, created, **kwargs):
     ancien = getattr(instance, '_ancien_statut', None)
+    if instance.commande_principale_id:
+        return  # supplément (dessert…) : pas de notification séparée
+    if instance.statut == 'annulee' and ancien != 'annulee' and not created:
+        # Plat principal annulé : ses suppléments le suivent (recrédités si payés)
+        from .supplements import annuler_avec_principal
+        annuler_avec_principal(instance, getattr(instance, 'annulee_par', None))
     if getattr(instance, '_sans_notification', False):
         return  # notification dédiée envoyée par l'appelant (planning des équipes)
     if created or ancien != instance.statut:
@@ -143,7 +149,7 @@ def _notifier_retrait(retrait_id):
                .filter(pk=retrait_id).first())
     if not retrait:
         return
-    commande = (Commande.objects.filter(user=retrait.user, menu=retrait.menu,
+    commande = (Commande.objects.filter(commande_principale__isnull=True, user=retrait.user, menu=retrait.menu,
                                         statut__in=('en_attente', 'retiree'))
                 .select_related('plat').first())
     heure = timezone.localtime(retrait.date_retrait).strftime('%H:%M')

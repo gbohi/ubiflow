@@ -1846,12 +1846,16 @@ class _PageJoursState extends State<_PageJours> {
         padding: const EdgeInsets.only(bottom: 10),
         child: _CartePlatJour(
           plat: p,
+          desserts: j.supplementsDuMenu(p.menuId),
           reservable: j.etat == EtatJour.aReserver,
           menu: () => _menuDe(d, j, p, cmdProv.mesCommandes),
           chargerInfo: (menuId, platId) =>
               widget.service.infoPaiement(menuId, platId: platId),
         ),
       ));
+    }
+    if (j.supplements.isNotEmpty) {
+      out.add(DessertsDuJour(desserts: j.supplements));
     }
     return out;
   }
@@ -2086,6 +2090,9 @@ class _CartePlatJour extends StatefulWidget {
   final PlatJour plat;
   final bool reservable;
 
+  /// Desserts du menu, choisis après le plat
+  final List<SupplementJour> desserts;
+
   /// Menu du plat (fiche détaillée, réservation)
   final Menu Function() menu;
 
@@ -2094,6 +2101,7 @@ class _CartePlatJour extends StatefulWidget {
   const _CartePlatJour(
       {required this.plat,
       required this.reservable,
+      this.desserts = const [],
       required this.menu,
       required this.chargerInfo});
 
@@ -2108,7 +2116,8 @@ class _CartePlatJourState extends State<_CartePlatJour> {
     setState(() => _envoi = true);
     final menu = widget.menu();
     await _reserverPlat(context, cmdProv, menu, widget.plat.versPlat(),
-        chargerInfo: () => widget.chargerInfo(menu.id, widget.plat.id));
+        chargerInfo: () => widget.chargerInfo(menu.id, widget.plat.id),
+        desserts: widget.desserts);
     if (mounted) setState(() => _envoi = false);
   }
 
@@ -2186,8 +2195,14 @@ class _CartePlatJourState extends State<_CartePlatJour> {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _PlatDetailSheet.show(context,
-            menu: widget.menu(), plat: p.versPlat()),
+        onTap: () {
+          final menu = widget.menu();
+          _PlatDetailSheet.show(context,
+              menu: menu,
+              plat: p.versPlat(),
+              desserts: widget.desserts,
+              chargerInfo: () => widget.chargerInfo(menu.id, p.id));
+        },
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(children: [

@@ -476,7 +476,7 @@ def mesurer_impact(employe, equipe, avant, apres, rapport, executer=False, par=N
     a_notifier_employe = []
     annulees_ici = []
     if retires:
-        commandes = [c for c in Commande.objects.filter(user=employe, statut='en_attente', menu__typeequipe=equipe,
+        commandes = [c for c in Commande.objects.filter(commande_principale__isnull=True, user=employe, statut='en_attente', menu__typeequipe=equipe,
                                                         menu__date_menu__in=retires)
                      .select_related('user', 'plat', 'menu__agence', 'menu__typeequipe', 'menu__prestataire')
                      .order_by('menu__date_menu')
@@ -508,7 +508,7 @@ def mesurer_impact(employe, equipe, avant, apres, rapport, executer=False, par=N
     if ajoutes:
         # Repas déjà commandé dans une autre équipe un jour désormais programmé (équipe exclusive)
         if equipe.exclusive_planning:
-            for c in (Commande.objects.filter(user=employe, statut='en_attente', menu__date_menu__in=ajoutes)
+            for c in (Commande.objects.filter(commande_principale__isnull=True, user=employe, statut='en_attente', menu__date_menu__in=ajoutes)
                       .exclude(menu__typeequipe=equipe)
                       .select_related('user', 'plat', 'menu__agence', 'menu__typeequipe', 'menu__prestataire')
                       .order_by('menu__date_menu')):
@@ -910,7 +910,7 @@ class PlanningEquipesView(APIView):
         users = {pr.user_id: pr.user for pr in progs}
         origines = agence_de(set(users))
         commandes = defaultdict(dict)
-        for c in (Commande.objects.filter(user_id__in=list(users), statut__in=('en_attente', 'retiree'),
+        for c in (Commande.objects.filter(commande_principale__isnull=True, user_id__in=list(users), statut__in=('en_attente', 'retiree'),
                                           menu__typeequipe=equipe, menu__date_menu__gte=jours[0],
                                           menu__date_menu__lte=jours[-1]).select_related('plat', 'menu')):
             commandes[c.user_id][c.menu.date_menu] = c
@@ -1332,7 +1332,7 @@ def envoyer_rappels(maintenant=None):
                     continue
                 if prog.agence_id is not None and prog.agence_id not in agences_menu:
                     continue   # pas de menu de l'équipe dans l'agence où il est programmé
-                if Commande.objects.filter(user=prog.user, menu__date_menu=d,
+                if Commande.objects.filter(commande_principale__isnull=True, user=prog.user, menu__date_menu=d,
                                            statut__in=('en_attente', 'retiree')).exists():
                     continue
                 _, cree = RappelPlanning.objects.get_or_create(user=prog.user, typeequipe_id=eq, date_menu=d)

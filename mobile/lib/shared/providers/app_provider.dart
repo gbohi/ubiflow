@@ -159,7 +159,8 @@ class AuthProvider extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      return messageErreurApi(e) ?? "La préférence n'a pas pu être enregistrée.";
+      return messageErreurApi(e) ??
+          "La préférence n'a pas pu être enregistrée.";
     }
   }
 
@@ -375,13 +376,19 @@ class CommandeProvider extends ChangeNotifier {
   }
 
   Future<bool> commander(
-      {required int menuId, required int platId, String? modePaiement}) async {
+      {required int menuId,
+      required int platId,
+      String? modePaiement,
+      List<int> supplements = const []}) async {
     _state = CommandeState.loading;
     _error = null;
     notifyListeners();
     try {
       final c = await commandeService.commander(
-          menuId: menuId, platId: platId, modePaiement: modePaiement);
+          menuId: menuId,
+          platId: platId,
+          modePaiement: modePaiement,
+          supplements: supplements);
       // Le serveur peut renvoyer une commande existante (re-commande après
       // annulation) : on remplace l'élément au lieu de créer un doublon
       final idx = _mesCommandes.indexWhere((e) => e.id == c.id);
@@ -403,6 +410,14 @@ class CommandeProvider extends ChangeNotifier {
     }
   }
 
+  /// Remplace la commande (dessert changé, ajouté ou retiré) dans la liste
+  void remplacerCommande(Commande c) {
+    final idx = _mesCommandes.indexWhere((e) => e.id == c.id);
+    if (idx != -1) _mesCommandes[idx] = c;
+    notifyListeners();
+    apresModification?.call();
+  }
+
   /// Change le mode de paiement d'une commande en attente (jusqu'à la date
   /// limite de commande). true si le serveur l'a accepté.
   Future<bool> changerModePaiement(int commandeId, String mode) async {
@@ -411,7 +426,8 @@ class CommandeProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final updated = await commandeService.changerModePaiement(commandeId, mode);
+      final updated =
+          await commandeService.changerModePaiement(commandeId, mode);
       final idx = _mesCommandes.indexWhere((c) => c.id == commandeId);
       if (idx != -1) _mesCommandes[idx] = updated;
       _successMessage = mode == 'compte'
@@ -423,7 +439,8 @@ class CommandeProvider extends ChangeNotifier {
       apresModification?.call();
       return true;
     } catch (e) {
-      _error = messageErreurApi(e) ?? 'Le mode de paiement n\'a pas pu être changé';
+      _error =
+          messageErreurApi(e) ?? 'Le mode de paiement n\'a pas pu être changé';
       _state = CommandeState.error;
       _commandeEnCours = null;
       notifyListeners();

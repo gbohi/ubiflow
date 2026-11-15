@@ -18,6 +18,8 @@ import {
 } from 'src/app/store/Typeplat/typeplat.action';
 import { selecttypeplatData, selectTotalItems, selectLoading, selectCurrentPage } from 'src/app/store/Typeplat/typeplat-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-typeplat',
@@ -32,6 +34,9 @@ export class TypeplatComponent implements OnInit, AfterViewInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly actions$ = inject(Actions);
+  private readonly http = inject(HttpClient);
+  /** Familles de suppléments (Dessert…) : un type relié est un supplément */
+  familles: { id: number; libelle: string; inclus: boolean; actif: boolean }[] = [];
 
   // bread crumb items
   breadCrumbItems!: Array<{}>;
@@ -75,8 +80,11 @@ export class TypeplatComponent implements OnInit, AfterViewInit {
 
     this.typeplatForm = this.formBuilder.group({
       id: [''],
-      libelle: ['', [Validators.required]]
+      libelle: ['', [Validators.required]],
+      famille_supplement: [null]
     });
+    this.http.get<any[]>(`${environment.apiUrl}/api/api/supplements/familles/`)
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: f => this.familles = f ?? [], error: () => {} });
 
     this.store.select(selectLoading)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -209,7 +217,7 @@ export class TypeplatComponent implements OnInit, AfterViewInit {
     this.lastActiveElement = document.activeElement as HTMLElement;
     this.isEdit = true;
     this.typeplatForm.reset();
-    this.typeplatForm.patchValue({ id: editData.id, libelle: editData.libelle });
+    this.typeplatForm.patchValue({ id: editData.id, libelle: editData.libelle, famille_supplement: editData.famille_supplement ?? null });
     this.addTypeplat?.show();
   }
 

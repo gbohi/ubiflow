@@ -7,7 +7,7 @@ from .views import *
 from .accueil import AccueilView
 from .planning import PlanningView
 from .tarifs_grille import GrilleTarifsView
-from . import jeux, gains, defis, pronostics, tickets, suspensions, dupliquer, badges
+from . import jeux, gains, defis, pronostics, tickets, suspensions, dupliquer, badges, supplements
 from .suivi_repas import (
     PonctualiteView, PreferencesSuiviView, PrestataireIncidentView, PrestataireSuiviEtapeView, PrestataireSuiviView,
     SuiviLivraisonsView,
@@ -302,5 +302,11 @@ urlpatterns = [
     path('api/admin/badges/import/', badges.ImportBadgesView.as_view(), name='admin-badges-import'),
     *[path(f'api/admin/badges/<int:pk>/{a}/', badges.AdminBadgeActionView.as_view(action=a), name=f'admin-badge-{a}')
       for a in ('perdu', 'dissocier', 'reactiver')],
+    # Suppléments (desserts…) : familles et supplément d'une commande
+    path('api/supplements/familles/', supplements.FamillesSupplementView.as_view(), name='supplements-familles'),
+    path('api/supplements/familles/<int:pk>/', supplements.FamilleSupplementDetailView.as_view(),
+         name='supplements-famille'),
+    path('api/commandes/<int:pk>/supplement/', supplements.CommandeSupplementView.as_view(),
+         name='commande-supplement'),
 ]
 

@@ -90,6 +90,18 @@ export class CommandeService {
     return this.http.post<CommandeModel>(`${this.apiUrl}/commandes/`, payload);
   }
 
+  // ── Supplément (dessert…) d'un repas ───────────────────────
+  /** Ajoute ou remplace le supplément de sa famille (jusqu'à la date limite de commande) */
+  choisirSupplement(commandeId: number, platId: number): Observable<CommandeModel> {
+    return this.http.post<CommandeModel>(`${this.apiUrl}/commandes/${commandeId}/supplement/`, { plat_id: platId });
+  }
+
+  /** « Sans dessert » : retire le supplément de la famille */
+  retirerSupplement(commandeId: number, familleId?: number | null): Observable<CommandeModel> {
+    const params = familleId ? new HttpParams().set('famille', String(familleId)) : undefined;
+    return this.http.delete<CommandeModel>(`${this.apiUrl}/commandes/${commandeId}/supplement/`, { params });
+  }
+
   // ── Mode de paiement (compte repas / retenue sur salaire) ───
   /** Solde, prix du repas et mode proposé pour le menu (écran de commande) */
   infoPaiement(menuId: number, platId?: number): Observable<InfoPaiement> {

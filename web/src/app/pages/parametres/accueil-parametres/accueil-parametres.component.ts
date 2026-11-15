@@ -75,6 +75,8 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
         lien: '/parametres/cantine', roles: GESTIONNAIRES, motsCles: 'note avis seuil nouveau délai commande annulation' },
       { titre: 'Types de plat', description: 'Plat principal, dessert…', icone: 'ri-restaurant-2-line',
         lien: '/parametres/typeplat', roles: GESTIONNAIRES, compte: 'typeplats/', motsCles: 'plat menu' },
+      { titre: 'Suppléments', description: 'Desserts… inclus ou payants, avec le plat principal', icone: 'ri-cake-3-line',
+        lien: '/parametres/supplements', roles: ADMINS, motsCles: 'dessert boisson entrée supplément accompagnement' },
       { titre: "Types d'équipe", description: 'Journée, nuit… (services de repas)', icone: 'ri-time-line',
         lien: '/parametres/type-equipe', roles: GESTIONNAIRES, compte: 'typeequipes/', motsCles: 'équipe horaire' },
       { titre: 'Prestataires', description: 'Traiteurs, agences servies, plats et prix', icone: 'ri-truck-line',

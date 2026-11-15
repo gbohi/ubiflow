@@ -73,6 +73,16 @@ export interface CommandeJour {
   date_menu: string; agence_id: number; agence: string;
   prestataire_id: number | null; prestataire: string; typeequipe_id: number;
   mode_paiement: ModePaiement; ici: boolean;
+  /** Suppléments (desserts…) choisis avec ce repas */
+  supplements?: { id: number; plat_id: number; plat: string; famille_id: number | null }[];
+}
+
+/** Supplément proposé au menu (dessert…) : jamais commandé seul, choisi avec un plat */
+export interface SupplementJour {
+  id: number; nom: string; description: string; type_plat_id: number; mentions: string[];
+  photo_url: string | null; photos: string[];
+  famille_id: number; famille: string; inclus: boolean; max_par_jour: number;
+  prix: number | null; menu_id: number; choisi: boolean;
 }
 
 export interface JourCommande {
@@ -83,6 +93,7 @@ export interface JourCommande {
   menus: { id: number; typeequipe_id: number; typeequipe: string; mon_equipe?: boolean | null }[];
   commande: CommandeJour | null;
   plats: PlatCommande[];
+  supplements?: SupplementJour[];
 }
 
 export interface JoursCommande {

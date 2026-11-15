@@ -49,7 +49,7 @@
               <tbody>
                 @for (p of j.plats; track p.plat_id) {
                   <tr>
-                    <td><b>{{ p.plat }}</b>@if (j.etat === 'en_service' || j.etat === 'passe') { <small class="d-block">{{ p.servis }} servi{{ p.servis > 1 ? 's' : '' }}</small> }</td>
+                    <td><b>{{ p.plat }}</b>@if (p.famille) { <span class="lst-tag t-or ms-1">{{ p.famille }}</span> }@if (j.etat === 'en_service' || j.etat === 'passe') { <small class="d-block">{{ p.servis }} servi{{ p.servis > 1 ? 's' : '' }}</small> }</td>
                     @for (a of agences; track a.id) { <td class="n">{{ qte(p.par_agence, a.id) || '—' }}</td> }
                     <td class="n"><b>{{ p.total }}</b></td>
                     @if (avecExternes) { <td class="n">@if (p.externes) { <span class="ubi-externe ubi-externe-court">{{ p.externes }}</span> } @else { — }</td> }
@@ -151,7 +151,7 @@
       <thead><tr><th>Plat</th>@for (a of agencesFiche(j); track a.id) { <th class="n">{{ a.nom }}</th> }<th class="n">Total</th></tr></thead>
       <tbody>
         @for (p of j.plats; track p.plat_id) {
-          <tr><td>{{ p.plat }}</td>@for (a of agencesFiche(j); track a.id) { <td class="n">{{ qte(p.par_agence, a.id) || '—' }}</td> }<td class="n"><b>{{ p.total }}</b></td></tr>
+          <tr><td>{{ p.plat }}@if (p.famille) { ({{ p.famille }}) }</td>@for (a of agencesFiche(j); track a.id) { <td class="n">{{ qte(p.par_agence, a.id) || '—' }}</td> }<td class="n"><b>{{ p.total }}</b></td></tr>
         }
         <tr class="tot"><td>Total</td>@for (a of agencesFiche(j); track a.id) { <td class="n">{{ qte(j.totaux_par_agence, a.id) }}</td> }<td class="n">{{ j.total }}</td></tr>
       </tbody>
@@ -163,7 +163,7 @@
         <thead><tr><th>Plat</th><th class="n">Portions</th><th class="c">Prêt</th></tr></thead>
         <tbody>
           @for (p of platsAgence(j, a); track p.plat_id) {
-            <tr><td>{{ p.plat }}</td><td class="n">{{ qte(p.par_agence, a.id) }}</td><td class="c"><span class="ep-fp-case"></span></td></tr>
+            <tr><td>{{ p.plat }}@if (p.famille) { ({{ p.famille }}) }</td><td class="n">{{ qte(p.par_agence, a.id) }}</td><td class="c"><span class="ep-fp-case"></span></td></tr>
           }
           <tr class="tot"><td>Total {{ a.nom }}</td><td class="n">{{ qte(j.totaux_par_agence, a.id) }}</td><td></td></tr>
         </tbody>

@@ -267,6 +267,12 @@ class ContestationRetraitViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixi
                 # ou caisse — historique), le montant est recrédité sur le compte repas
                 from .comptes_repas import liberer_reglement
                 liberer_reglement(commande, request.user, raison='Contestation acceptée (erreur au comptoir)')
+                # Suppléments (dessert…) du repas : annulés avec lui, facturés à personne
+                for sup in Commande.objects.filter(commande_principale=commande, statut__in=('en_attente', 'retiree')):
+                    Commande.objects.filter(pk=sup.pk).update(
+                        statut='annulee', annulee_par=request.user, date_annulation=maintenant,
+                        motif_annulation='contestation', updated_at=maintenant, user_updated=request.user)
+                    liberer_reglement(sup, request.user, raison='Contestation acceptée (erreur au comptoir)')
             c.statut = 'acceptee'
             c.cause = cause
             c.traite_par = request.user
@@ -420,7 +426,7 @@ class ControleRetraitsView(APIView):
         plats = defaultdict(list)
         for c in (Commande.objects.filter(menu__in=menus, statut='retiree').select_related('plat')):
             plats[(c.menu_id, c.user_id)].append(c.plat.nom)
-        commandes = Commande.objects.filter(menu__in=menus, statut__in=('en_attente', 'retiree')).count()
+        commandes = Commande.objects.filter(commande_principale__isnull=True, menu__in=menus, statut__in=('en_attente', 'retiree')).count()
         # Employés d'une autre agence que celle du menu (commandes « externes »)
         from .parcours_commande import agences_origine, est_externe
         origines = agences_origine({r.user_id for r in retraits})

@@ -224,7 +224,7 @@ def suivi_employe(user, maintenant=None):
     maintenant = maintenant or timezone.now()
     p = ParametresSociete.charger()
     aujourdhui = timezone.localdate(maintenant)
-    commandes = list(Commande.objects.filter(user=user, statut__in=ACTIVES,
+    commandes = list(Commande.objects.filter(commande_principale__isnull=True, user=user, statut__in=ACTIVES,
                                              menu__date_menu__in=[aujourdhui, aujourdhui - timedelta(days=1)])
                      .select_related('menu__agence', 'menu__typeequipe', 'menu__prestataire', 'plat'))
     if not commandes:
@@ -255,7 +255,7 @@ def _veut(user, cle, p):
 
 
 def _commandes_a_prevenir(menu):
-    return list(Commande.objects.filter(menu=menu, statut='en_attente').select_related('user', 'plat'))
+    return list(Commande.objects.filter(commande_principale__isnull=True, menu=menu, statut='en_attente').select_related('user', 'plat'))
 
 
 def _envoyer(user_ids, titre, message, menu_id, donnees=None):
@@ -418,7 +418,7 @@ def _service_json(menu, p, cfg, maintenant, stats=None):
 
 def _stats(menu_ids):
     res = {}
-    for r in (Commande.objects.filter(menu_id__in=menu_ids, statut__in=ACTIVES).values('menu_id')
+    for r in (Commande.objects.filter(commande_principale__isnull=True, menu_id__in=menu_ids, statut__in=ACTIVES).values('menu_id')
               .annotate(n=Count('id'), r=Count('id', filter=Q(statut='retiree')))):
         res[r['menu_id']] = (r['n'], r['r'])
     return res

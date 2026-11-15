@@ -200,6 +200,11 @@ export class MesCommandesComponent implements OnInit {
     }
   }
 
+  /** Photo d'un supplément (dessert…), sinon l'image par défaut */
+  imageSupplement(s: { plat_detail?: any }): string {
+    return this.getImageUrl({ plat_detail: s.plat_detail } as CommandeModel);
+  }
+
   getImageUrl(commande: CommandeModel): string {
     const images = (commande.plat_detail as any)?.images;
     if (images?.length) {

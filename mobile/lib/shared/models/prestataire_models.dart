@@ -314,12 +314,16 @@ class CommandeComptoir {
   final String? platImageUrl;
   final String statut; // en_attente | retiree | annulee
 
+  /// Supplément (dessert…) remis avec le plat ; null : plat principal
+  final String? famille;
+
   const CommandeComptoir({
     required this.commandeId,
     this.menuId,
     required this.plat,
     this.platImageUrl,
     this.statut = '',
+    this.famille,
   });
 
   bool get aRemettre => statut == 'en_attente';
@@ -330,6 +334,9 @@ class CommandeComptoir {
         plat: _str(j['plat']),
         platImageUrl: _url(j['plat_image_url']),
         statut: _str(j['statut']),
+        famille: j['famille'] is String && (j['famille'] as String).isNotEmpty
+            ? j['famille'] as String
+            : null,
       );
 }
 

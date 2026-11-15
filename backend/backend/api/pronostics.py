@@ -95,7 +95,7 @@ def destinataires(c, maintenant=None):
 
 def eligibilite(user, c, m):
     d = timezone.localdate(m.coup_envoi)
-    n = (Commande.objects.filter(user=user, menu__date_menu__year=d.year, menu__date_menu__month=d.month)
+    n = (Commande.objects.filter(commande_principale__isnull=True, user=user, menu__date_menu__year=d.year, menu__date_menu__month=d.month)
          .exclude(statut='annulee').exclude(mode_paiement='offert').count())
     ok = n >= c.repas_minimum
     mois = f"{MOIS[d.month - 1]} {d.year}"

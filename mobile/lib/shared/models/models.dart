@@ -383,6 +383,12 @@ class Commande {
   final String? paiementMode;
   final double? paiementMontant;
 
+  /// Suppléments (desserts…) de ce plat principal
+  final List<SupplementCommande> supplements;
+
+  /// Suppléments proposés au menu (repas en attente) : « Ajouter un dessert »
+  final int supplementsDisponibles;
+
   const Commande({
     required this.id,
     required this.statut,
@@ -400,6 +406,8 @@ class Commande {
     this.modePaiementLimite,
     this.paiementMode,
     this.paiementMontant,
+    this.supplements = const [],
+    this.supplementsDisponibles = 0,
   });
 
   /// Payé par le compte repas (débité à la commande)
@@ -489,6 +497,49 @@ class Commande {
         paiementMode: j['paiement'] is Map ? '${j['paiement']['mode']}' : null,
         paiementMontant: j['paiement'] is Map && j['paiement']['montant'] is num
             ? (j['paiement']['montant'] as num).toDouble()
+            : null,
+        supplements: j['supplements'] is List
+            ? (j['supplements'] as List)
+                .whereType<Map>()
+                .map((e) =>
+                    SupplementCommande.fromJson(Map<String, dynamic>.from(e)))
+                .toList()
+            : const [],
+        supplementsDisponibles: j['supplements_disponibles'] is int
+            ? j['supplements_disponibles'] as int
+            : 0,
+      );
+}
+
+/// Supplément (dessert…) choisi avec un plat principal
+class SupplementCommande {
+  final int id;
+  final String statut;
+  final int? familleId;
+  final String famille;
+
+  /// Inclus dans le prix du repas (gratuit pour l'employé)
+  final bool inclus;
+  final Plat? platDetail;
+
+  const SupplementCommande({
+    required this.id,
+    this.statut = 'en_attente',
+    this.familleId,
+    this.famille = '',
+    this.inclus = true,
+    this.platDetail,
+  });
+
+  factory SupplementCommande.fromJson(Map<String, dynamic> j) =>
+      SupplementCommande(
+        id: j['id'] is int ? j['id'] as int : int.tryParse('${j['id']}') ?? 0,
+        statut: '${j['statut'] ?? 'en_attente'}',
+        familleId: j['famille_id'] is int ? j['famille_id'] as int : null,
+        famille: '${j['famille'] ?? ''}',
+        inclus: j['inclus'] != false,
+        platDetail: j['plat_detail'] is Map
+            ? Plat.fromJson(Map<String, dynamic>.from(j['plat_detail']))
             : null,
       );
 }
@@ -1046,4 +1097,46 @@ class Accueil {
       suivi: SuiviRepas.fromJsonOuNull(j['suivi']),
     );
   }
+}
+
+/// Suppléments proposés au menu d'un repas réservé (« Changer de dessert »)
+class SupplementsProposes {
+  final bool modifiable;
+  final List<SupplementPropose> supplements;
+  const SupplementsProposes(
+      {this.modifiable = false, this.supplements = const []});
+}
+
+class SupplementPropose {
+  final int id;
+  final String nom;
+  final String description;
+  final String? photoUrl;
+  final int? familleId;
+  final String famille;
+  final bool inclus;
+  final bool choisi;
+
+  const SupplementPropose({
+    required this.id,
+    required this.nom,
+    this.description = '',
+    this.photoUrl,
+    this.familleId,
+    this.famille = '',
+    this.inclus = true,
+    this.choisi = false,
+  });
+
+  factory SupplementPropose.fromJson(Map<String, dynamic> j) =>
+      SupplementPropose(
+        id: j['id'] is int ? j['id'] as int : int.tryParse('${j['id']}') ?? 0,
+        nom: '${j['nom'] ?? ''}',
+        description: '${j['description'] ?? ''}',
+        photoUrl: _absoluteUrl(j['photo_url'] as String?),
+        familleId: j['famille_id'] is int ? j['famille_id'] as int : null,
+        famille: '${j['famille'] ?? ''}',
+        inclus: j['inclus'] != false,
+        choisi: j['choisi'] == true,
+      );
 }

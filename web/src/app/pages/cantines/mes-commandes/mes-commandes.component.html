@@ -93,6 +93,13 @@
                       <div>
                         <b>{{ c.plat_detail?.nom }}</b>
                         <small>{{ c.plat_detail?.type_plat_libelle }}</small>
+                        @for (s of c.supplements ?? []; track s.id) {
+                          <div class="pc-dessert-ligne">
+                            <img [src]="imageSupplement(s)" class="pc-dessert-ph" alt="" loading="lazy">
+                            <span><b>{{ s.plat_detail.nom }}</b><small>{{ s.famille }}</small></span>
+                            @if (s.inclus) { <span class="pc-inclus">inclus</span> }
+                          </div>
+                        }
                       </div>
                     </div>
                   </td>
@@ -167,6 +174,13 @@
 
                   <h6 class="card-title fw-semibold mb-1">{{ c.plat_detail?.nom }}</h6>
                   <small class="text-muted">{{ c.plat_detail?.type_plat_libelle }}</small>
+                  @for (s of c.supplements ?? []; track s.id) {
+                    <div class="pc-dessert-ligne">
+                      <img [src]="imageSupplement(s)" class="pc-dessert-ph" alt="" loading="lazy">
+                      <span><b>{{ s.plat_detail.nom }}</b><small>{{ s.famille }} · à changer dans Commander</small></span>
+                      @if (s.inclus) { <span class="pc-inclus">inclus</span> }
+                    </div>
+                  }
 
                   <hr class="my-2">
 

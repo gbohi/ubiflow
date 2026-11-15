@@ -50,6 +50,9 @@ export interface CommandeModel {
   mode_paiement_limite?: string;
   /** Règlement effectif (null : retenue sur salaire à la clôture) */
   paiement?: { mode: 'compte' | 'caisse' | 'retenue'; libelle: string; montant: number } | null;
+  /** Suppléments (desserts…) de ce plat principal */
+  supplements?: SupplementCommande[];
+  commande_principale?: number | null;
 }
 
 export interface CommandeListModel {
@@ -66,6 +69,14 @@ export interface CommandeCreatePayload {
   user_id?: number;
   /** Absent : préférence de l'employé (compte si le solde suffit, sinon retenue) */
   mode_paiement?: ModePaiement;
+  /** Suppléments (desserts…) choisis avec le plat : identifiants de plats */
+  supplements?: number[];
+}
+
+/** Supplément (dessert…) d'un plat principal, renvoyé dans la commande */
+export interface SupplementCommande {
+  id: number; statut: string; mode_paiement: string; famille_id: number | null; famille: string;
+  inclus: boolean; plat_detail: PlatModel;
 }
 
 /** Vue groupée par user (endpoint par-menu) */

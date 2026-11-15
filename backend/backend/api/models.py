@@ -162,8 +162,39 @@ class BesoinDocument(BaseModel):
     document = models.FileField(upload_to='documents_besoins/', validators=[FileExtensionValidator(['pdf', 'docx', 'jpg', 'png','jpeg'])])
     date_creation = models.DateTimeField(auto_now_add=True)
 
+class FamilleSupplement(models.Model):
+    """
+    Famille de suppléments (Dessert ; plus tard Boisson, Entrée…) : un
+    supplément accompagne le plat principal du jour (supplements.py).
+      - inclus        : gratuit pour l'employé (repas « offert » côté employé),
+                        payé au prestataire à son tarif du type de plat ;
+                        sinon payant au tarif de la catégorie de salarié ;
+      - max_par_jour  : nombre de suppléments de la famille par jour ;
+      - repas_offert  : proposé aussi dans les équipes « repas offert ».
+    Jamais sans plat principal.
+    """
+    libelle      = models.CharField(max_length=60, unique=True)
+    inclus       = models.BooleanField('Inclus dans le prix du repas', default=True)
+    max_par_jour = models.PositiveSmallIntegerField('Nombre par jour', default=1)
+    repas_offert = models.BooleanField('Proposé dans les équipes « repas offert »', default=True)
+    actif        = models.BooleanField(default=True)
+    ordre        = models.PositiveSmallIntegerField(default=0)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['ordre', 'libelle']
+
+    def __str__(self):
+        return self.libelle
+
+
 class TypePlat(BaseModel):
     libelle = models.CharField(max_length=100)
+    # Type d'un supplément (ex. « Dessert ») : ses plats ne se commandent
+    # qu'avec un plat principal. Vide : plat principal.
+    famille_supplement = models.ForeignKey(FamilleSupplement, on_delete=models.PROTECT, null=True, blank=True,
+                                           related_name='types_plat')
 
 class TypeEquipe(BaseModel):
     libelle = models.CharField(max_length=100)
@@ -355,6 +386,10 @@ class Commande(BaseModel):
         ('offert',  'Repas offert'),
     ]
     mode_paiement = models.CharField(max_length=10, choices=MODE_PAIEMENT_CHOICES, default='retenue')
+    # Supplément (dessert…) : rattaché au plat principal du même menu ;
+    # annulé avec lui. Vide : plat principal (supplements.py).
+    commande_principale = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True,
+                                            related_name='supplements')
 
     class Meta:
         # Un agent ne peut commander le même plat qu'une seule fois par menu

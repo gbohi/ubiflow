@@ -17,6 +17,7 @@ import '../dashboard/accueil_widgets.dart' show formatFcfa, jourCourt;
 import '../../shared/models/prestataire_models.dart';
 import '../../shared/providers/prestataire_provider.dart';
 import '../contestation/retrait_detail_screen.dart';
+import '../menu/desserts.dart';
 
 /// État affiché d'une commande (« non retirée » : jour passé sans retrait,
 /// comme sur l'accueil)
@@ -387,51 +388,72 @@ class LigneCommande extends StatelessWidget {
       onTap: () => DetailCommandeSheet.show(context, c),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(children: [
-          SizedBox(
-            width: 38,
-            child: Column(children: [
-              Text(j == null ? '—' : jourCourt(j).toUpperCase(),
-                  style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.w600, color: gris)),
-              Text(j == null ? '' : '${j.day}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          VignettePlat(url: c.platDetail?.imageUrl, taille: 42),
-          const SizedBox(width: 11),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.platDetail?.nom ?? 'Plat',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: annulee ? gris : null,
-                      decoration: annulee ? TextDecoration.lineThrough : null,
-                      decorationColor: gris)),
-              if (sousTitre.isNotEmpty)
-                Text(sousTitre,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: gris)),
-            ]),
-          ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 108),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              pastilleCommande(c),
-              _Secondaire(commande: c),
-            ]),
-          ),
+        child: Column(children: [
+          Row(children: [
+            SizedBox(
+              width: 38,
+              child: Column(children: [
+                Text(j == null ? '—' : jourCourt(j).toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: gris)),
+                Text(j == null ? '' : '${j.day}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            VignettePlat(url: c.platDetail?.imageUrl, taille: 42),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(c.platDetail?.nom ?? 'Plat',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: annulee ? gris : null,
+                                decoration:
+                                    annulee ? TextDecoration.lineThrough : null,
+                                decorationColor: gris)),
+                    if (sousTitre.isNotEmpty)
+                      Text(sousTitre,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: gris)),
+                  ]),
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 108),
+              child:
+                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                pastilleCommande(c),
+                _Secondaire(commande: c),
+              ]),
+            ),
+          ]),
+          // Dessert (supplément) choisi avec le plat
+          if (!annulee)
+            for (final d in c.supplements)
+              Padding(
+                padding: const EdgeInsets.only(left: 46, top: 8),
+                child: LigneDessert(
+                    key: Key('ligne-dessert-${d.id}'),
+                    dessert: d,
+                    detail: c.statut == StatutCommande.retiree
+                        ? 'retiré avec le plat'
+                        : ''),
+              ),
         ]),
       ),
     );
@@ -765,6 +787,13 @@ class DetailCommandeSheet extends StatelessWidget {
                     const SizedBox(width: 8),
                     pastilleCommande(c),
                   ]),
+                  if (etat != EtatCommande.annulee &&
+                      (c.supplements.isNotEmpty ||
+                          (c.modePaiementModifiable &&
+                              c.supplementsDisponibles > 0))) ...[
+                    const SizedBox(height: 12),
+                    _BlocDessert(commande: c),
+                  ],
                   const SizedBox(height: 16),
                   _Chronologie(etapes: etapes),
 
@@ -865,15 +894,16 @@ class _BlocPaiement extends StatelessWidget {
               color: compte ? AppColors.accentDark : AppColors.warning),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Paiement', style: TextStyle(fontSize: 11, color: gris)),
-                  Text(libelleModeCommande(c) ?? '',
-                      key: const Key('mode-detail-commande'),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 14, fontWeight: FontWeight.w700)),
-                ]),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Paiement', style: TextStyle(fontSize: 11, color: gris)),
+              Text(libelleModeCommande(c) ?? '',
+                  key: const Key('mode-detail-commande'),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontSize: 14, fontWeight: FontWeight.w700)),
+            ]),
           ),
         ]),
         const SizedBox(height: 4),
@@ -1155,5 +1185,49 @@ class _BlocAvis extends StatelessWidget {
         onPressed: () => showAvisSheet(context, commande),
       ),
     ]);
+  }
+}
+
+/// Dessert du repas (fiche détaillée) : « Changer de dessert » / « Ajouter
+/// un dessert » jusqu'à l'heure limite de commande
+class _BlocDessert extends StatelessWidget {
+  final Commande commande;
+  const _BlocDessert({required this.commande});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = commande;
+    return Container(
+      key: const Key('bloc-dessert'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (c.supplements.isEmpty)
+          const Text('Sans dessert',
+              style: TextStyle(fontWeight: FontWeight.w600))
+        else
+          for (final d in c.supplements) LigneDessert(dessert: d),
+        if (c.modePaiementModifiable &&
+            (c.supplements.isNotEmpty || c.supplementsDisponibles > 0)) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const Key('changer-dessert'),
+            icon: const Icon(Icons.cake_outlined, size: 18),
+            label: Text(c.supplements.isEmpty
+                ? 'Ajouter un dessert'
+                : 'Changer de dessert'),
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              await ChangerDessertSheet.show(context, c);
+              // La fiche affichait l'ancien dessert : la liste est à jour
+              if (nav.canPop()) nav.pop();
+            },
+          ),
+        ],
+      ]),
+    );
   }
 }

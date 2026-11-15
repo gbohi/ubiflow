@@ -113,10 +113,11 @@
           @for (c of r.commandes; track c.commande_id; let premier = $first) {
             <div class="ce-res-plat">
               <div class="ce-photo">
-                @if (urlMedia(c.plat_image_url); as url) { <img [src]="url" [alt]="c.plat"> } @else { <i class="ri-restaurant-2-line"></i> }
+                @if (urlMedia(c.plat_image_url); as url) { <img [src]="url" [alt]="c.plat"> } @else { <i [class]="c.famille ? 'ri-cake-3-line' : 'ri-restaurant-2-line'"></i> }
               </div>
               <div class="ce-res-plat-txt">
-                <p>Commande n° {{ c.commande_id }} · passée le {{ dateCommande(c.date_commande) }}</p>
+                @if (c.famille) { <p><b>{{ c.famille }}</b> · remis avec le plat</p> }
+                @else { <p>Commande n° {{ c.commande_id }} · passée le {{ dateCommande(c.date_commande) }}</p> }
                 <h3>{{ c.plat }}</h3>
                 <p>{{ c.statut === 'retiree' ? 'Déjà retiré' : '1 portion' }}</p>
               </div>
@@ -163,7 +164,7 @@
         <div class="ce-reste">
           @for (p of service?.plats ?? []; track p.plat_id) {
             <div class="ce-reste-l">
-              <b>{{ p.nom }}</b>
+              <b>{{ p.nom }}@if (p.famille) { <small class="ce-muted"> · {{ p.famille }}</small> }</b>
               <span class="ce-muted">{{ p.a_servir }} / {{ p.commandees }}@if (p.externes) { <span class="ubi-externe-nb"> · dont {{ p.externes }} autre{{ p.externes > 1 ? 's' : '' }} agence{{ p.externes > 1 ? 's' : '' }}</span> }</span>
               <div class="ce-jauge ce-jauge-fine"><i [style.width.%]="pct(p.a_servir, p.commandees)"></i></div>
             </div>

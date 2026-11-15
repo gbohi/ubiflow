@@ -225,7 +225,21 @@ Map<String, dynamic> _jour(int i, String etat,
       'plats': etat == 'pas_de_menu'
           ? []
           : _plats(i, statuts ?? ['disponible', 'disponible', 'disponible']),
+      // Desserts (suppléments) inclus, seulement si le test les demande
+      'supplements': _avecDesserts && etat == 'a_reserver'
+          ? [
+              for (final (id, nom) in [(901, 'Banane flambée'), (902, 'Salade de fruits')])
+                {
+                  'id': id, 'nom': nom, 'description': 'Dessert maison',
+                  'famille_id': 1, 'famille': 'Dessert', 'inclus': true,
+                  'menu_id': 40 + i, 'choisi': false, 'photo_url': null,
+                }
+            ]
+          : [],
     };
+
+/// Desserts dans les jours « à réserver » (test des suppléments)
+bool _avecDesserts = false;
 
 Map<String, dynamic> _joursJson() => {
       'agence': {'id': 1, 'nom': 'Siège Plateau'},
@@ -385,9 +399,16 @@ class _Commandes extends CommandeProvider {
   Future<void> loadMesCommandes() async {}
 
   @override
+  final List<List<int>> supplementsEnvoyes = [];
+
+  @override
   Future<bool> commander(
-      {required int menuId, required int platId, String? modePaiement}) async {
+      {required int menuId,
+      required int platId,
+      String? modePaiement,
+      List<int> supplements = const []}) async {
     commandes.add((menuId, platId, modePaiement));
+    supplementsEnvoyes.add(supplements);
     return true;
   }
 }
@@ -781,6 +802,55 @@ void main() {
       await _attendre(tester);
       expect(cmds.commandes, [(42, 1, 'compte')]);
       expect(find.textContaining('commande confirmée'), findsOneWidget);
+    });
+
+    testWidgets(
+        'desserts : vignettes non réservables, fiche en lecture, choix après le plat',
+        (tester) async {
+      _avecDesserts = true;
+      addTearDown(() => _avecDesserts = false);
+      final cmds = _Commandes([_commandeJeudi()]);
+      await _ouvrir(tester, commandes: cmds);
+      await _tap(tester, find.byKey(const Key('presta-1')));
+      await _tap(tester, find.byKey(const Key('equipe-1')));
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('desserts-du-jour')), 200,
+          scrollable: find.byType(Scrollable).last);
+      expect(find.text('Desserts du jour'), findsOneWidget);
+      // Un dessert seul : fiche en lecture, seul bouton « Fermer »
+      await tester.ensureVisible(find.byKey(const Key('dessert-902')));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(const Key('dessert-902')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byKey(const Key('fermer-fiche-dessert')), findsOneWidget);
+      expect(find.textContaining('se choisit en réservant un plat'),
+          findsOneWidget);
+      await tester.tap(find.byKey(const Key('fermer-fiche-dessert')));
+      await tester.pump(const Duration(milliseconds: 400));
+      // Réserver : plat rappelé, puis dessert, puis paiement
+      await tester.scrollUntilVisible(find.byKey(const Key('reserver-1')), -200,
+          scrollable: find.byType(Scrollable).last);
+      await _tap(tester, find.byKey(const Key('reserver-1')));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byKey(const Key('plat-choisi')), findsOneWidget);
+      expect(find.text('Sans dessert'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('choix-dessert-902')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('continuer-paiement')));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Comment payer ce repas ?'), findsOneWidget);
+      expect(find.byKey(const Key('recap-dessert')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const Key('confirmer-paiement')));
+      await tester.pump(const Duration(milliseconds: 500));
+      await _attendre(tester);
+      expect(cmds.commandes, [(42, 1, 'compte')]);
+      expect(cmds.supplementsEnvoyes, [
+        [902]
+      ]);
+      expect(find.textContaining('Salade de fruits — commande confirmée'),
+          findsOneWidget);
     });
 
     testWidgets('un plat ouvre sa fiche détaillée', (tester) async {

@@ -320,6 +320,9 @@ def changer_mode(commande, mode, par):
         commande.mode_paiement = mode
         commande.user_updated = par
         commande.save(update_fields=['mode_paiement', 'user_updated', 'updated_at'])
+        # Suppléments payants : même mode que le plat (inclus : rien à faire)
+        from .supplements import suivre_mode
+        suivre_mode(commande, par)
     return commande
 
 

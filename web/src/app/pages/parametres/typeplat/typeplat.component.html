@@ -27,6 +27,7 @@
               <div class="form-check"><input class="form-check-input" type="checkbox" aria-label="Tout sélectionner" [(ngModel)]="masterSelected" (change)="checkUncheckAll($event)"></div>
             </th>
             <th class="tri" [class.actif]="tri.estActif('libelle')" (click)="onSort('libelle')">Libellé<i class="ms-1" [ngClass]="tri.icone('libelle')"></i></th>
+            <th>Famille</th>
             <th class="lst-c-act"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -37,7 +38,11 @@
                 <div class="form-check"><input class="form-check-input" type="checkbox" [attr.aria-label]="'Sélectionner ' + data.libelle" [value]="data.id" [(ngModel)]="data.state" (change)="onCheckboxChange()"></div>
               </td>
               <td class="lst-c-principal">
-                <div class="lst-qui"><span class="lst-av carre"><i class="ri-restaurant-2-line"></i></span><b>{{ data.libelle }}</b></div>
+                <div class="lst-qui"><span class="lst-av carre"><i [class]="data.famille_supplement ? 'ri-cake-3-line' : 'ri-restaurant-2-line'"></i></span><b>{{ data.libelle }}</b></div>
+              </td>
+              <td data-label="Famille">
+                @if (data.famille_supplement_libelle) { <span class="lst-tag t-or"><i class="ri-cake-3-line"></i>Supplément · {{ data.famille_supplement_libelle }}</span> }
+                @else { <span class="text-muted">Plat principal</span> }
               </td>
               <td class="lst-c-act">
                 <div class="lst-act">
@@ -57,7 +62,7 @@
           }
           @if (typeplats.length === 0 && !isLoading) {
             <tr class="lst-l-vide">
-              <td colspan="3" class="lst-c-plein">
+              <td colspan="4" class="lst-c-plein">
                 <div class="lst-vide">
                   @if (term) {
                     <i class="ri-search-line"></i>
@@ -102,6 +107,14 @@
                         <div *ngIf="typeplatForm.get('libelle')?.invalid && typeplatForm.get('libelle')?.touched" class="text-danger mt-1">
                             <small *ngIf="typeplatForm.get('libelle')?.errors?.['required']">Le libellé est requis</small>
                         </div>
+                    </div>
+                    <div class="mb-1">
+                        <label for="famille-input" class="form-label">Famille</label>
+                        <select id="famille-input" class="form-select" formControlName="famille_supplement">
+                            <option [ngValue]="null">Plat principal</option>
+                            @for (f of familles; track f.id) { <option [ngValue]="f.id">Supplément · {{ f.libelle }}{{ f.actif ? '' : ' (désactivée)' }}</option> }
+                        </select>
+                        <small class="text-muted">Un supplément (dessert…) ne se commande qu'avec un plat principal. Familles : Paramètres › Suppléments.</small>
                     </div>
                 </div>
                 <div class="modal-footer">

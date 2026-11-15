@@ -599,7 +599,13 @@ class CarteEmployeComptoir extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(children: [
-              VignettePlat(url: c.platImageUrl, taille: 52, rayon: 10),
+              VignettePlat(
+                  url: c.platImageUrl,
+                  taille: 52,
+                  rayon: 10,
+                  icone: c.famille != null
+                      ? Icons.cake_outlined
+                      : Icons.restaurant_rounded),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -613,7 +619,13 @@ class CarteEmployeComptoir extends StatelessWidget {
                               .titleMedium
                               ?.copyWith(
                                   fontSize: 15, fontWeight: FontWeight.w700)),
-                      Text('Commande n° ${c.commandeId}',
+                      Text(
+                          c.famille != null
+                              ? '${c.famille} · remis avec le plat'
+                              : 'Commande n° ${c.commandeId}',
+                          key: c.famille != null
+                              ? Key('comptoir-dessert-${c.commandeId}')
+                              : null,
                           style: TextStyle(fontSize: 11.5, color: gris)),
                     ]),
               ),

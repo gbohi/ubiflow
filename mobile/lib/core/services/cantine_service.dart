@@ -48,8 +48,8 @@ class AuthService {
 
   /// Mode de paiement proposé par défaut à la commande (« compte » | « retenue »)
   Future<AuthUser> modifierModePaiementPrefere(String mode) async {
-    final res =
-        await apiClient.patch('/users/me/', data: {'mode_paiement_prefere': mode});
+    final res = await apiClient
+        .patch('/users/me/', data: {'mode_paiement_prefere': mode});
     return AuthUser.fromJson(res.data);
   }
 
@@ -176,12 +176,47 @@ class CommandeService {
   /// [modePaiement] : « compte » (débité du compte repas à la commande) ou
   /// « retenue » ; null : préférence de l'employé (compte si le solde suffit).
   Future<Commande> commander(
-      {required int menuId, required int platId, String? modePaiement}) async {
+      {required int menuId,
+      required int platId,
+      String? modePaiement,
+      List<int> supplements = const []}) async {
     final res = await apiClient.post('/commandes/', data: {
       'menu_id': menuId,
       'plat_id': platId,
       if (modePaiement != null) 'mode_paiement': modePaiement,
+      if (supplements.isNotEmpty) 'supplements': supplements,
     });
+    return Commande.fromJson(res.data);
+  }
+
+  /// Suppléments (desserts…) proposés au menu d'un repas réservé
+  Future<SupplementsProposes> supplementsProposes(int commandeId) async {
+    final res = await apiClient.get('/commandes/$commandeId/supplement/');
+    final j = res.data is Map
+        ? Map<String, dynamic>.from(res.data)
+        : const <String, dynamic>{};
+    return SupplementsProposes(
+      modifiable: j['modifiable'] == true,
+      supplements: (j['supplements'] is List
+              ? j['supplements'] as List
+              : const [])
+          .whereType<Map>()
+          .map((e) => SupplementPropose.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  /// Ajoute ou remplace le supplément de sa famille (jusqu'à la date limite)
+  Future<Commande> choisirSupplement(int commandeId, int platId) async {
+    final res = await apiClient
+        .post('/commandes/$commandeId/supplement/', data: {'plat_id': platId});
+    return Commande.fromJson(res.data);
+  }
+
+  /// « Sans dessert » : retire le supplément de la famille
+  Future<Commande> retirerSupplement(int commandeId, int? familleId) async {
+    final res = await apiClient.delete('/commandes/$commandeId/supplement/',
+        params: {if (familleId != null) 'famille': familleId});
     return Commande.fromJson(res.data);
   }
 

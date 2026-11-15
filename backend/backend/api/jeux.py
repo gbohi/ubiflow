@@ -210,7 +210,7 @@ def concerne(user, jeu, maintenant=None):
 
 def _commandes_du_mois(jeu):
     a, m = mois_du_jeu(jeu)
-    qs = Commande.objects.filter(menu__date_menu__year=a, menu__date_menu__month=m).exclude(statut='annulee')
+    qs = Commande.objects.filter(commande_principale__isnull=True, menu__date_menu__year=a, menu__date_menu__month=m).exclude(statut='annulee')
     if not jeu.compter_repas_offerts:
         qs = qs.exclude(mode_paiement='offert')
     return qs

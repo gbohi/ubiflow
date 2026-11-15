@@ -736,10 +736,13 @@ def quantites(prestataire_id, debut, fin, agence=None, origine='toutes'):
         statut__in=ACTIVES, menu__date_menu__gte=debut, menu__date_menu__lte=fin)
     if agence is not None:
         qs = qs.filter(menu__agence_id=agence)
-    rangs = list(qs.values_list('menu__date_menu', 'plat_id', 'plat__nom', 'menu__agence_id', 'statut', 'user_id'))
+    rangs = list(qs.values_list('menu__date_menu', 'plat_id', 'plat__nom', 'menu__agence_id', 'statut', 'user_id',
+                                'plat__type_plat__famille_supplement__libelle'))
     origines = agences_origine({r[5] for r in rangs})
     lignes = {}
-    for d, plat_id, plat_nom, agence_id, statut, user_id in rangs:
+    familles = {}
+    for d, plat_id, plat_nom, agence_id, statut, user_id, famille in rangs:
+        familles[plat_id] = famille
         externe = est_externe(origines.get(user_id), agence_id)
         if not garder_origine(origine, externe):
             continue
@@ -763,11 +766,13 @@ def quantites(prestataire_id, debut, fin, agence=None, origine='toutes'):
         j = jours[l['menu__date_menu']]
         p = j['_plats'].setdefault(l['plat_id'], {'plat_id': l['plat_id'], 'plat': l['plat__nom'],
                                                   'par_agence': defaultdict(int), 'total': 0, 'servis': 0,
-                                                  'externes': 0})
+                                                  'externes': 0, 'famille': familles.get(l['plat_id'])})
         p['par_agence'][l['menu__agence_id']] += l['n']
         p['total'] += l['n']
         p['servis'] += l['servis']
         p['externes'] += l['externes']
+        if p['famille']:
+            continue      # supplément (dessert…) : listé, hors totaux des repas
         j['totaux_par_agence'][l['menu__agence_id']] += l['n']
         j['total'] += l['n']
         j['servis'] += l['servis']
@@ -775,7 +780,7 @@ def quantites(prestataire_id, debut, fin, agence=None, origine='toutes'):
         j['externes_par_agence'][l['menu__agence_id']] += l['externes']
     resultat = []
     for j in jours.values():
-        plats = sorted(j.pop('_plats').values(), key=lambda p: (-p['total'], p['plat']))
+        plats = sorted(j.pop('_plats').values(), key=lambda p: (bool(p['famille']), -p['total'], p['plat']))
         j['plats'] = [{**p, 'par_agence': {str(k): v for k, v in p['par_agence'].items()}} for p in plats]
         j['totaux_par_agence'] = {str(k): v for k, v in j['totaux_par_agence'].items()}
         j['externes_par_agence'] = {str(k): v for k, v in j['externes_par_agence'].items() if v}
@@ -933,12 +938,15 @@ class ComptoirServiceView(APIView):
         images = _images(set(actives.values_list('plat_id', flat=True)))
         plats = [
             {'plat_id': r['plat_id'], 'nom': r['plat__nom'], 'image_url': images.get(r['plat_id']),
-             'commandees': r['c'], 'servies': r['s'], 'a_servir': r['c'] - r['s']}
-            for r in actives.values('plat_id', 'plat__nom')
-            .annotate(c=Count('id'), s=Count('id', filter=Q(statut='retiree'))).order_by('plat__nom')
+             'commandees': r['c'], 'servies': r['s'], 'a_servir': r['c'] - r['s'],
+             # Supplément (dessert…) : listé à part, hors total des repas
+             'famille': r['plat__type_plat__famille_supplement__libelle'] or None}
+            for r in actives.values('plat_id', 'plat__nom', 'plat__type_plat__famille_supplement__libelle')
+            .annotate(c=Count('id'), s=Count('id', filter=Q(statut='retiree')))
+            .order_by('plat__type_plat__famille_supplement__libelle', 'plat__nom')
         ]
-        commandees = sum(p['commandees'] for p in plats)
-        servies = sum(p['servies'] for p in plats)
+        commandees = sum(p['commandees'] for p in plats if not p['famille'])
+        servies = sum(p['servies'] for p in plats if not p['famille'])
         try:
             limite = min(max(int(request.query_params.get('limite', 8)), 1), 50)
         except ValueError:
@@ -1029,7 +1037,7 @@ class ComptoirRechercheView(APIView):
         menus = _menus_du_jour(request, agence)
         ordre = {m.id: i for i, m in enumerate(menus)}
         commandes = sorted(Commande.objects.filter(user=employe, menu__in=menus, statut__in=ACTIVES)
-                           .select_related('plat', 'menu__agence'), key=lambda c: ordre.get(c.menu_id, 0))
+                           .select_related('plat__type_plat__famille_supplement', 'menu__agence'), key=lambda c: (ordre.get(c.menu_id, 0), bool(c.commande_principale_id)))
         images = _images({c.plat_id for c in commandes})
         retraits = list(Retrait.objects.filter(user=employe, menu__in=menus)
                         .select_related('user', 'valide_par__prestataire'))
@@ -1055,7 +1063,11 @@ class ComptoirRechercheView(APIView):
             **origine,
             'commandes': [{'commande_id': c.id, 'menu_id': c.menu_id, 'plat_id': c.plat_id, 'plat': c.plat.nom,
                            'plat_image_url': images.get(c.plat_id), 'statut': c.statut,
-                           'date_commande': c.date_commande.isoformat()} for c in commandes],
+                           'date_commande': c.date_commande.isoformat(),
+                           # Supplément (dessert…) remis avec le plat ; None : plat principal
+                           'famille': (c.plat.type_plat.famille_supplement.libelle
+                                       if c.plat.type_plat_id and c.plat.type_plat.famille_supplement_id else None)}
+                          for c in commandes],
             'deja_retire': retrait is not None,
             'retrait': _retrait_json(retrait, request.user,
                                      [{'commande_id': c.id, 'plat': c.plat.nom} for c in commandes
@@ -1196,17 +1208,18 @@ def _service_agence(menus, images, agence_id=None):
     ids = [m.id for m in menus]
     actives = Commande.objects.filter(menu_id__in=ids, statut__in=ACTIVES)
     plats = [{'plat_id': r['plat_id'], 'plat': r['plat__nom'], 'image_url': images.get(r['plat_id']),
-              'commandees': r['c'], 'servies': r['s'], 'a_servir': r['c'] - r['s']}
-             for r in actives.values('plat_id', 'plat__nom')
+              'commandees': r['c'], 'servies': r['s'], 'a_servir': r['c'] - r['s'],
+              'famille': r['plat__type_plat__famille_supplement__libelle'] or None}
+             for r in actives.values('plat_id', 'plat__nom', 'plat__type_plat__famille_supplement__libelle')
              .annotate(c=Count('id'), s=Count('id', filter=Q(statut='retiree'))).order_by('-c', 'plat__nom')]
-    c = sum(p['commandees'] for p in plats)
-    s = sum(p['servies'] for p in plats)
+    c = sum(p['commandees'] for p in plats if not p['famille'])
+    s = sum(p['servies'] for p in plats if not p['famille'])
     donnees = {'commandees': c, 'servies': s, 'a_servir': c - s,
                'pct_servis': round(s / c * 100) if c else 0, 'plats': plats}
     if agence_id is not None:
         # Employés d'une autre agence que celle du menu (« dont N autres agences »)
         from .parcours_commande import agences_origine, est_externe
-        users = list(actives.values_list('user_id', flat=True))
+        users = list(actives.filter(commande_principale__isnull=True).values_list('user_id', flat=True))
         origines = agences_origine(users)
         donnees['externes'] = sum(est_externe(origines.get(u), agence_id) for u in users)
     return donnees
