@@ -646,10 +646,14 @@ class FinitionsParcoursTests(_ParcoursBase):
         a = next(p for p in r.data['prestataires'] if p['id'] == self.presta_a.id)
         self.assertEqual([(e['libelle'], e['mon_equipe']) for e in a['equipes']], [('Soir', True), ('Jour', False)])
         self.assertEqual(r.data['equipe_utilisateur']['id'], self.soir.id)
-        r = client.get(f'{API}/commander/jours/', {'agence': self.agence.id, 'prestataire': self.presta_a.id,
-                                                  'semaine': m_soir.date_menu.isoformat()})
-        self.assertEqual(r.data['equipe_utilisateur']['id'], self.soir.id)
-        plats = [p for j in r.data['jours'] for p in j['plats']]
+        # Les deux menus (J+5, J+6) peuvent tomber dans deux semaines différentes
+        plats = []
+        for jours in (5, 6):
+            d = (timezone.localdate() + timedelta(days=jours)).isoformat()
+            r = client.get(f'{API}/commander/jours/', {'agence': self.agence.id, 'prestataire': self.presta_a.id,
+                                                      'semaine': d})
+            self.assertEqual(r.data['equipe_utilisateur']['id'], self.soir.id)
+            plats += [p for j in r.data['jours'] for p in j['plats'] if j['date'] == d]
         self.assertEqual({(p['typeequipe'], p['mon_equipe']) for p in plats}, {('Jour', False), ('Soir', True)})
         # Sans équipe : inconnue (null), ordre alphabétique
         r = self.client_pour(self.emp_yop).get(f'{API}/commander/prestataires/{self.presta_a.id}/equipes/',

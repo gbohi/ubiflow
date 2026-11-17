@@ -8,3 +8,14 @@
   &.ag-on { border: 2px solid #3EC970; background: #F4FCF7; padding: 13px 15px; }
   &.ag-on .form-check-input { background-color: #3EC970; border-color: #3EC970; }
 }
+
+// Jours d'ouverture de la cantine
+.ag-jours { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag-jour {
+  min-width: 48px; padding: 7px 10px; border-radius: 10px; border: 1px solid #D5E0EE; background: #fff;
+  font-weight: 600; font-size: 13px; color: #5A7090; cursor: pointer;
+  &.ag-on { background: #092440; border-color: #092440; color: #fff; }
+  &.ag-we.ag-on { background: #2563EB; border-color: #2563EB; }
+  &:disabled { cursor: default; opacity: .85; }
+}
+.ag-aide { display: block; margin-top: 6px; font-size: 12px; color: #5A7090; }

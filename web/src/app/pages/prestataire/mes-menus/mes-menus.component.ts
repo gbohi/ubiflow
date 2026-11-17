@@ -114,19 +114,21 @@ export class MesMenusComponent implements OnInit {
     this.charger();
   }
 
-  /** Lundi → vendredi (samedi / dimanche seulement s'ils ont un menu) */
+  /** Jours d'ouverture de l'agence (lundi → vendredi par défaut), plus un jour fermé qui a un menu */
+  joursOuverts(agenceId = this.agenceId): number[] {
+    const a = this.agences.find(x => x.id === agenceId);
+    return a?.jours_ouverture?.length ? a.jours_ouverture : [0, 1, 2, 3, 4];
+  }
+
   get jours(): string[] {
-    const j = [0, 1, 2, 3, 4].map(i => ajouterJours(this.semaine, i));
-    for (const i of [5, 6]) {
-      const d = ajouterJours(this.semaine, i);
-      if (this.menus.some(m => m.date_menu === d && m.agence === this.agenceId)) j.push(d);
-    }
-    return j;
+    const ouverts = this.joursOuverts();
+    return [0, 1, 2, 3, 4, 5, 6].map(i => ajouterJours(this.semaine, i))
+      .filter((d, i) => ouverts.includes(i) || this.menus.some(m => m.date_menu === d && m.agence === this.agenceId));
   }
 
   get titreSemaine(): string {
     const d = versDate(this.semaine);
-    const f = versDate(ajouterJours(this.semaine, 4));
+    const f = versDate(ajouterJours(this.semaine, Math.max(4, ...this.joursOuverts())));
     const moisD = d.getMonth() !== f.getMonth() ? ` ${MOIS_FR[d.getMonth()]}` : '';
     return `Semaine du ${d.getDate()}${moisD} au ${f.getDate()} ${MOIS_FR[f.getMonth()]} ${f.getFullYear()}`;
   }
@@ -137,7 +139,7 @@ export class MesMenusComponent implements OnInit {
 
   /** « 3 / 5 publiés » dans l'onglet de l'agence */
   nbPublies(agenceId: number): number {
-    return [0, 1, 2, 3, 4].map(i => ajouterJours(this.semaine, i))
+    return this.joursOuverts(agenceId).map(i => ajouterJours(this.semaine, i))
       .filter(d => this.menusDuJour(d, agenceId).some(m => m.publie && !m.masque)).length;
   }
 

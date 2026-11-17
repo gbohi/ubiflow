@@ -24,6 +24,7 @@ export interface AgencePresta {
   nb_employes: number;
   heure_debut_service: string;
   heure_fin_service: string;
+  jours_ouverture?: number[];
 }
 
 export interface ContextePresta {

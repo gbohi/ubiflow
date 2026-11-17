@@ -130,6 +130,15 @@ class AgenceSerializer(serializers.ModelSerializer):
         model = Agence
         fields = '__all__'
 
+    def validate_jours_ouverture(self, v):
+        if v in (None, ''):
+            return [0, 1, 2, 3, 4]
+        if not isinstance(v, list) or any(not isinstance(j, int) or isinstance(j, bool) or not 0 <= j <= 6 for j in v):
+            raise serializers.ValidationError("Jours d'ouverture : liste de 0 (lundi) à 6 (dimanche).")
+        if not v:
+            raise serializers.ValidationError("Cochez au moins un jour d'ouverture.")
+        return sorted(set(v))
+
     def validate(self, attrs):
         return verifier_horaires_service(self, super().validate(attrs))
 

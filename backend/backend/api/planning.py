@@ -2,7 +2,9 @@
 Planning des menus (web, gestionnaires et administrateurs).
 
 GET /api/api/planning/?debut=AAAA-MM-JJ[&agence=ID&typeequipe=ID&origine=toutes|mon_agence|autres]
-  Semaine (lundi → vendredi) contenant `debut` (par défaut : la semaine en cours).
+  Semaine contenant `debut` (par défaut : la semaine en cours) : jours d'ouverture
+  des agences (lundi → vendredi par défaut ; samedi / dimanche si une agence est
+  ouverte ou a un menu ce jour-là), chaque case indiquant si l'agence est ouverte.
   Pour chaque agence gérée (gestionnaire : ses agences ; administrateur : toutes)
   et chaque jour : les menus, leurs plats avec le nombre de commandes reçues
   (non annulées), l'état des commandes (ouvert / fermé / en service / terminé)
@@ -58,7 +60,8 @@ class PlanningView(APIView):
         except ValueError:
             raise ValidationError(f"Date invalide : {debut} (format AAAA-MM-JJ)")
         lundi = reference - timedelta(days=reference.weekday())
-        jours = [lundi + timedelta(days=i) for i in range(5)]
+        semaine = [lundi + timedelta(days=i) for i in range(7)]
+        jours = semaine
 
         geres = agences_gerees(request.user)
         agences = Agence.objects.all().order_by('nom_agence')
@@ -75,6 +78,11 @@ class PlanningView(APIView):
             menus = menus.filter(typeequipe_id=typeequipe_id)
         menus = list(menus.select_related('typeequipe').order_by('date_menu', 'typeequipe__libelle'))
         agences = list(agences)
+        # Jours affichés : jours d'ouverture des agences (lundi → vendredi par
+        # défaut), plus tout jour qui a un menu (ex. samedi exceptionnel)
+        ouverts = {j for ag in agences for j in (ag.jours_ouverture or [])}
+        avec_menu = {m.date_menu for m in menus}
+        jours = [d for d in semaine if d.weekday() in ouverts or d in avec_menu] or semaine[:5]
 
         # Commandes reçues par menu et par plat, origine des employés (externes)
         from .parcours_commande import agences_origine, est_externe, garder_origine, lire_origine
@@ -147,6 +155,8 @@ class PlanningView(APIView):
                 'nb_agents': nb_agents.get(ag.id, 0),
                 'equipes': sorted({m.typeequipe.libelle for m in menus
                                    if m.agence_id == ag.id and m.typeequipe_id}),
-                'jours': [{'date': d, 'menus': par_case.get((ag.id, d), [])} for d in jours],
+                'jours_ouverture': ag.jours_ouverture or [],
+                'jours': [{'date': d, 'menus': par_case.get((ag.id, d), []), 'ouvert': ag.ouvert_le(d)}
+                          for d in jours],
             } for ag in agences],
         })

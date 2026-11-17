@@ -63,7 +63,7 @@
 
   @if (planning) {
     <div class="ce-cal-defile" [class.ce-attente]="isLoading">
-      <div class="ce-cal">
+      <div class="ce-cal" [style.grid-template-columns]="'150px repeat(' + planning.jours.length + ', minmax(150px, 1fr))'" [style.min-width.px]="150 + planning.jours.length * 150">
         <div class="ce-cal-h ce-cal-coin">Agence</div>
         @for (j of planning.jours; track j.date) {
           <div class="ce-cal-h" [class.ce-auj]="estAujourdhui(j.date)">
@@ -82,7 +82,17 @@
           @for (jour of ag.jours; track jour.date) {
             <div class="ce-cal-case" [class.ce-auj]="estAujourdhui(jour.date)" [class.ce-passe]="estPasse(jour.date)">
               @if (jour.menus.length === 0) {
-                @if (estPasse(jour.date)) {
+                @if (jour.ouvert === false) {
+                  <div class="ce-cal-ferme">
+                    <i class="ri-door-closed-line"></i>
+                    Fermé le {{ libelleJour(jour.date).toLowerCase() }}
+                    @if (!estPasse(jour.date)) {
+                      <button type="button" class="ce-lien-mini" (click)="ouvrirCreation(ag, jour.date)" title="Menu exceptionnel (jour non ouvert)">
+                        Menu exceptionnel
+                      </button>
+                    }
+                  </div>
+                } @else if (estPasse(jour.date)) {
                   <div class="ce-cal-rien">Pas de menu</div>
                 } @else {
                   <div class="ce-cal-vide">

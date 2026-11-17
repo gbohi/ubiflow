@@ -1,4 +1,4 @@
-// Planning des menus : calendrier de la semaine (agences × jours, lundi → vendredi).
+// Planning des menus : calendrier de la semaine (agences × jours, jours d'ouverture des agences, week-end compris).
 // Les données viennent du serveur en une requête (GET /api/api/planning/) :
 // menus, plats et nombre de commandes reçues, état des commandes selon les
 // délais paramétrés. Un gestionnaire ne voit que ses agences (règle serveur).
@@ -42,7 +42,8 @@ export interface PlanningAgence {
   nom: string;
   nb_agents: number;
   equipes: string[];
-  jours: { date: string; menus: PlanningMenu[] }[];
+  jours: { date: string; ouvert?: boolean; menus: PlanningMenu[] }[];
+  jours_ouverture?: number[];
 }
 export interface PlanningReponse {
   aujourdhui: string;
@@ -329,7 +330,7 @@ export class PlanningMenuComponent implements OnInit {
   private lignesExport(): string[][] {
     const lignes: string[][] = [];
     for (const ag of this.planning?.agences ?? []) {
-      const cellules = ag.jours.map(j => j.menus.length === 0 ? ['Pas de menu'] :
+      const cellules = ag.jours.map(j => j.menus.length === 0 ? [j.ouvert === false ? 'Fermé' : 'Pas de menu'] :
         j.menus.flatMap(m => [
           ...(j.menus.length > 1 && m.typeequipe ? [`[${m.typeequipe}]`] : []),
           ...m.plats.map(p => `- ${p.nom} (${p.commandes})`),

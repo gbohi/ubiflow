@@ -29,6 +29,7 @@
               <div class="form-check"><input class="form-check-input" type="checkbox" aria-label="Tout sélectionner" [(ngModel)]="masterSelected" (change)="checkUncheckAll($event)"></div>
             </th>
             <th class="tri" [class.actif]="tri.estActif('nom_agence')" (click)="onSort('nom_agence')">Libellé<i class="ms-1" [ngClass]="tri.icone('nom_agence')"></i></th>
+            <th>Jours d'ouverture</th>
             <th>Autres agences</th>
             <th class="lst-c-act"><span class="visually-hidden">Actions</span></th>
           </tr>
@@ -41,6 +42,11 @@
               </td>
               <td class="lst-c-principal">
                 <div class="lst-qui"><span class="lst-av carre"><i class="ri-map-pin-line"></i></span><b>{{ data.nom_agence }}</b></div>
+              </td>
+              <td data-label="Jours d'ouverture">
+                <span class="lst-tag" [ngClass]="aWeekend(data.jours_ouverture) ? 't-bl' : 't-gr'" [title]="'Cantine ouverte : ' + resumeJours(data.jours_ouverture)">
+                  <i class="ri-calendar-line"></i>{{ resumeJours(data.jours_ouverture) }}
+                </span>
               </td>
               <td data-label="Autres agences">
                 @if (data.accepter_autres_agences) {
@@ -73,7 +79,7 @@
           }
           @if (agences.length === 0 && !isLoading) {
             <tr class="lst-l-vide">
-              <td colspan="4" class="lst-c-plein">
+              <td colspan="5" class="lst-c-plein">
                 <div class="lst-vide">
                   @if (term) {
                     <i class="ri-search-line"></i>
@@ -118,6 +124,21 @@
                         <div *ngIf="agenceForm.get('nom_agence')?.invalid && agenceForm.get('nom_agence')?.touched" class="text-danger mt-1">
                             <small *ngIf="agenceForm.get('nom_agence')?.errors?.['required']">Le nom de l'agence est requis</small>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Jours d'ouverture de la cantine</label>
+                      <div class="ag-jours" role="group" aria-label="Jours d'ouverture de la cantine">
+                        @for (j of joursSemaine; track $index) {
+                          <button type="button" class="ag-jour" [class.ag-on]="joursOuverture.includes($index)" [class.ag-we]="$index >= 5"
+                                  [disabled]="!estAdmin" [attr.aria-pressed]="joursOuverture.includes($index)" (click)="basculerJour($index)">{{ j }}</button>
+                        }
+                      </div>
+                      <small class="ag-aide">
+                        Les jours cochés apparaissent dans le planning des menus et chez le prestataire.
+                        Cochez <b>Sam</b> / <b>Dim</b> si la cantine sert le week-end. Un menu exceptionnel reste possible un jour non coché.
+                        @if (!estAdmin) { <br>Modifiable par un administrateur. }
+                      </small>
                     </div>
 
                     @if (!isEdit || peutOuvrir(agenceForm.get('id')?.value)) {

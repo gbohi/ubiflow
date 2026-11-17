@@ -258,7 +258,7 @@
   &:hover:not(.on) { color: var(--ubi-navy); }
 }
 .ep-semaine-nav { display: flex; gap: 8px; align-items: center; b { font-size: 13.5px; min-width: 220px; text-align: center; } }
-.ep-semaine { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.ep-semaine { display: grid; grid-template-columns: repeat(var(--nb-jours, 5), minmax(0, 1fr)); gap: 12px; align-items: start; }
 .ep-semaine:has(> .ep-jour:nth-child(6)) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .ep-semaine:has(> .ep-jour:nth-child(7)) { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .ep-jour {

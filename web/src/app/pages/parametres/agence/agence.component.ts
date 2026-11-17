@@ -101,6 +101,7 @@ export class AgenceComponent implements OnInit, AfterViewInit {
       id: [''],
       nom_agence: ['', [Validators.required]],
       accepter_autres_agences: [false],
+      jours_ouverture: [[0, 1, 2, 3, 4]],
     });
 
     this.store.select(selectLoading)
@@ -216,7 +217,7 @@ export class AgenceComponent implements OnInit, AfterViewInit {
   openAddModal() {
     this.lastActiveElement = document.activeElement as HTMLElement;
     this.isEdit = false;
-    this.agenceForm.reset({ accepter_autres_agences: false });
+    this.agenceForm.reset({ accepter_autres_agences: false, jours_ouverture: [0, 1, 2, 3, 4] });
     this.agenceForm.get('nom_agence')?.enable();
     this.addAgence?.show();
   }
@@ -239,6 +240,7 @@ export class AgenceComponent implements OnInit, AfterViewInit {
     this.ouvertureInitiale = !!editData.accepter_autres_agences;
     this.agenceForm.patchValue({
       id: editData.id, nom_agence: editData.nom_agence, accepter_autres_agences: this.ouvertureInitiale,
+      jours_ouverture: [...((editData as any).jours_ouverture ?? [0, 1, 2, 3, 4])],
     });
     if (this.estAdmin) this.agenceForm.get('nom_agence')?.enable();
     else this.agenceForm.get('nom_agence')?.disable();
@@ -254,6 +256,29 @@ export class AgenceComponent implements OnInit, AfterViewInit {
   peutModifier(agenceId: any): boolean {
     return this.peutOuvrir(agenceId);
   }
+
+  // ── Jours d'ouverture de la cantine (0 = lundi … 6 = dimanche) ──
+  readonly joursSemaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  get joursOuverture(): number[] { return this.agenceForm.get('jours_ouverture')?.value ?? []; }
+
+  basculerJour(i: number): void {
+    if (!this.estAdmin) return;
+    const j = this.joursOuverture;
+    const n = j.includes(i) ? j.filter(x => x !== i) : [...j, i].sort();
+    if (n.length) this.agenceForm.get('jours_ouverture')?.setValue(n);
+  }
+
+  /** « Lun → Ven », « Lun → Sam », « Tous les jours », « Lun, Mer, Sam » */
+  resumeJours(jours?: number[] | null): string {
+    const j = [...new Set(jours?.length ? jours : [0, 1, 2, 3, 4])].sort();
+    if (j.length === 7) return 'Tous les jours';
+    const suite = j.every((x, k) => k === 0 || x === j[k - 1] + 1);
+    if (suite && j.length > 2) return `${this.joursSemaine[j[0]]} → ${this.joursSemaine[j[j.length - 1]]}`;
+    return j.map(x => this.joursSemaine[x]).join(', ');
+  }
+
+  aWeekend(jours?: number[] | null): boolean { return !!jours?.some(j => j >= 5); }
 
   get ouvertureDemandee(): boolean {
     return !!this.agenceForm.get('accepter_autres_agences')?.value;
@@ -303,10 +328,14 @@ export class AgenceComponent implements OnInit, AfterViewInit {
     const id = Number(formValue.id);
     const ouverte = !!formValue.accepter_autres_agences;
     const avant = this.agences.find(a => a.id === id);
-    const nomChange = this.estAdmin && avant && avant.nom_agence !== formValue.nom_agence;
+    const joursAvant = JSON.stringify([...(((avant as any)?.jours_ouverture) ?? [0, 1, 2, 3, 4])].sort());
+    const joursChange = this.estAdmin && !!avant && joursAvant !== JSON.stringify([...(formValue.jours_ouverture ?? [])].sort());
+    const nomChange = (this.estAdmin && avant && avant.nom_agence !== formValue.nom_agence) || joursChange;
     const suite = () => {
       if (nomChange) {
-        this.store.dispatch(updateagenceData({ updatedData: { id, nom_agence: formValue.nom_agence } as any }));
+        const maj: any = { id, nom_agence: formValue.nom_agence };
+        if (joursChange) maj.jours_ouverture = formValue.jours_ouverture;
+        this.store.dispatch(updateagenceData({ updatedData: maj }));
       } else {
         this.isSaving = false;
         this.closeAddModal();

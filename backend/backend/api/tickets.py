@@ -105,9 +105,12 @@ def supprimer_ticket_retrait(retrait_id):
 
 
 def tickets_du_jour(user, maintenant):
-    """Ticket gratuit du jour (lundi-vendredi) des campagnes qui le prévoient."""
+    """Ticket gratuit du jour (jours d'ouverture de son agence, lundi → vendredi
+    par défaut) des campagnes qui le prévoient."""
+    from .parcours_commande import agences_origine
     jour = timezone.localdate(maintenant)
-    if jour.weekday() >= 5:
+    agence = agences_origine({user.id}).get(user.id)
+    if not (agence.ouvert_le(jour) if agence else jour.weekday() < 5):
         return
     for c in campagnes_actives(maintenant).filter(ticket_quotidien=True):
         if concerne(user, c, maintenant):

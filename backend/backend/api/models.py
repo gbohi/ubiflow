@@ -75,6 +75,11 @@ class User(AbstractUser):
     class Meta:
         db_table = 'users'
 
+def jours_ouvres():
+    """Lundi → vendredi (jours d'ouverture par défaut d'une agence)."""
+    return [0, 1, 2, 3, 4]
+
+
 class Agence(BaseModel):
     nom_agence = models.CharField(max_length=255)
     # Horaires du service de la cantine de l'agence (vides : horaires par
@@ -86,6 +91,14 @@ class Agence(BaseModel):
     # de l'agence et les administrateurs). Fermée : agence masquée aux
     # employés des autres agences ; leurs commandes déjà passées sont maintenues.
     accepter_autres_agences = models.BooleanField(default=False)
+    # Jours d'ouverture de la cantine (0 = lundi … 6 = dimanche) : jours
+    # affichés dans le planning des menus, les menus du prestataire, les
+    # accueils et les alertes « menu manquant ». Par défaut lundi → vendredi.
+    jours_ouverture = models.JSONField(default=jours_ouvres, blank=True)
+
+    def ouvert_le(self, d):
+        return d.weekday() in (self.jours_ouverture or [])
+
 
 class Etat(BaseModel):
     libelle_etat = models.CharField(max_length=255)

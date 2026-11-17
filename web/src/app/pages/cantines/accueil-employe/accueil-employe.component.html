@@ -92,7 +92,7 @@
     <!-- ── Ma semaine ──────────────────────────────────────────── -->
     <div class="acc-carte">
       <h3><i class="ri-calendar-2-line"></i>Ma semaine <small>touchez un jour pour voir le menu</small></h3>
-      <div class="acc-semaine">
+      <div class="acc-semaine" [style.--nb-jours]="d.semaine.length">
         @for (j of d.semaine; track j.date) {
           <a class="acc-jour" [ngClass]="styleJour(j).classe" [class.auj]="estAujourdhui(j.date)"
              routerLink="/cantines/liste-commandes">

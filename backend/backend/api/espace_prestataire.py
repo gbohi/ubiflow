@@ -139,7 +139,9 @@ def _agences_json(agence_ids, parametres=None):
         debut, fin = horaires_service(a, parametres)
         resultat.append({'id': a.id, 'nom': a.nom_agence, 'nb_employes': nb.get(a.id, 0),
                          'heure_debut_service': debut.strftime('%H:%M'),
-                         'heure_fin_service': fin.strftime('%H:%M')})
+                         'heure_fin_service': fin.strftime('%H:%M'),
+                         # 0 = lundi … 6 = dimanche : jours à composer dans « Mes menus »
+                         'jours_ouverture': a.jours_ouverture or [0, 1, 2, 3, 4]})
     return resultat
 
 
@@ -1282,14 +1284,17 @@ class AccueilPrestataireView(APIView):
         # Alertes
         alertes = []
         lundi = aujourdhui - timedelta(days=aujourdhui.weekday()) + timedelta(days=7)
-        jours_sem = [lundi + timedelta(days=i) for i in range(5)]
+        jours_sem = [lundi + timedelta(days=i) for i in range(7)]
         menus_sem = list(menus_du_prestataire(p.id).filter(date_menu__in=jours_sem)
                          .values('agence_id', 'date_menu', 'publie'))
+        # Jours d'ouverture de chaque agence (lundi → vendredi par défaut)
+        ouvertures = dict(Agence.objects.filter(id__in=list(agences)).values_list('id', 'jours_ouverture'))
         manquants = []
         for a in agences:
+            ouverts = ouvertures.get(a) or [0, 1, 2, 3, 4]
             faits = {m['date_menu'] for m in menus_sem if m['agence_id'] == a}
             brouillons = {m['date_menu'] for m in menus_sem if m['agence_id'] == a and not m['publie']}
-            sans = [d for d in jours_sem if d not in faits
+            sans = [d for d in jours_sem if d.weekday() in ouverts and d not in faits
                     and maintenant < date_limite_commande(d, parametres)]
             if sans or brouillons:
                 manquants.append({'agence_id': a, 'agence_nom': noms.get(a), 'jours_a_composer': len(sans),

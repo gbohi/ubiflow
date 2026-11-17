@@ -12,7 +12,7 @@
     <div class="ep-onglets" role="tablist" aria-label="Agences">
       @for (a of agences; track a.id) {
         <button type="button" role="tab" class="ep-onglet" [class.on]="a.id === agenceId" [attr.aria-selected]="a.id === agenceId" (click)="choisirAgence(a.id)">
-          <i class="ri-building-line"></i>{{ a.nom }}<em>{{ nbPublies(a.id) }} / 5 publiés</em>
+          <i class="ri-building-line"></i>{{ a.nom }}<em>{{ nbPublies(a.id) }} / {{ joursOuverts(a.id).length }} publiés</em>
         </button>
       }
     </div>
@@ -40,7 +40,7 @@
   }
 
   @if (agenceId) {
-    <div class="ep-semaine" [class.ep-attente]="chargement">
+    <div class="ep-semaine" [class.ep-attente]="chargement" [style.--nb-jours]="jours.length">
       @for (d of jours; track d) {
         <section class="ep-jour" [class.ep-jour-auj]="d === aujourdhui" [class.ep-jour-passe]="d < aujourdhui">
           <header class="ep-jour-hd">

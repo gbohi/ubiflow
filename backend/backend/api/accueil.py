@@ -46,8 +46,9 @@ def _images(plat_ids):
 
 
 def _semaine_courante(aujourdhui):
+    """Lundi → dimanche ; chaque partie ne garde que les jours d'ouverture utiles."""
     lundi = aujourdhui - timedelta(days=aujourdhui.weekday())
-    return [lundi + timedelta(days=i) for i in range(5)]
+    return [lundi + timedelta(days=i) for i in range(7)]
 
 
 def _commande_json(c, images):
@@ -118,7 +119,11 @@ class AccueilView(APIView):
                 return {'statut': 'ferme'}
             return {'statut': 'pas_de_menu'}
 
-        semaine = [{'date': d, 'libelle': _jour_libelle(d), **etat_jour(d)} for d in jours]
+        # Jours d'ouverture de son agence (lundi → vendredi par défaut), plus
+        # tout jour où il a un repas ou un menu visible (ex. samedi exceptionnel)
+        ouverts = set(agence.jours_ouverture or []) if agence else {0, 1, 2, 3, 4}
+        semaine = [{'date': d, 'libelle': _jour_libelle(d), **etat_jour(d)} for d in jours
+                   if d.weekday() in ouverts or d in actives_par_jour or d in menus_agence]
 
         prochain = None
         d = aujourdhui
@@ -250,10 +255,14 @@ class AccueilView(APIView):
             avec_menu.setdefault(date_menu, set()).add(agence_id)
 
         def sans_menu(d):
-            return [a.nom_agence for a in agences if a.id not in avec_menu.get(d, set())]
+            # Seulement les agences ouvertes ce jour-là (jours d'ouverture)
+            return [a.nom_agence for a in agences if a.ouvert_le(d) and a.id not in avec_menu.get(d, set())]
 
+        ouverts = {j for a in agences for j in (a.jours_ouverture or [])} or {0, 1, 2, 3, 4}
         semaine = []
         for d in jours:
+            if d.weekday() not in ouverts and d not in avec_menu and d not in par_jour:
+                continue
             r = par_jour.get(d, {})
             if d < aujourdhui:
                 etat = 'termine'
@@ -262,7 +271,7 @@ class AccueilView(APIView):
             else:
                 etat = 'ouvert' if maintenant < date_limite_commande(d, parametres) else 'ferme'
             manquants = sans_menu(d) if d >= aujourdhui else []
-            if d >= aujourdhui and agences and len(manquants) == len(agences):
+            if d >= aujourdhui and agences and manquants and len(manquants) == sum(a.ouvert_le(d) for a in agences):
                 etat = 'sans_menu'
             semaine.append({'date': d, 'libelle': _jour_libelle(d), 'etat': etat,
                             'commandees': r.get('commandees', 0), 'retirees': r.get('retirees', 0),
@@ -273,12 +282,11 @@ class AccueilView(APIView):
         manquants_a_faire = []
         d = aujourdhui + timedelta(days=1)
         while d <= aujourdhui + timedelta(days=7) and len(manquants_a_faire) < 3:
-            if d.weekday() < 5:
-                manquants = sans_menu(d)
-                if manquants:
-                    manquants_a_faire.append({'type': 'menu_manquant', 'date': d, 'agences': manquants,
-                                    'titre': f"Pas de menu {_jour_libelle(d)}",
-                                    'detail': f"{', '.join(manquants)} · les agents ne peuvent pas commander"})
+            manquants = sans_menu(d)
+            if manquants:
+                manquants_a_faire.append({'type': 'menu_manquant', 'date': d, 'agences': manquants,
+                                'titre': f"Pas de menu {_jour_libelle(d)}",
+                                'detail': f"{', '.join(manquants)} · les agents ne peuvent pas commander"})
             d += timedelta(days=1)
         fin_journee = timezone.make_aware(datetime.combine(aujourdhui + timedelta(days=1), time.min))
         dates_futures = sorted({m for m in avec_menu if m > aujourdhui})

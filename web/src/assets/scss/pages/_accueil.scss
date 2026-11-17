@@ -178,7 +178,7 @@ app-accueil-employe {
   // ── Ma semaine ───────────────────────────────────────────────
   .acc-semaine {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--nb-jours, 5), minmax(0, 1fr));
     gap: 12px;
   }
 
@@ -489,7 +489,7 @@ app-dashboard-cantine {
   // ── Cette semaine ────────────────────────────────────────────
   .acc-semaine {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--nb-jours, 5), minmax(0, 1fr));
     gap: 12px;
   }
 

@@ -167,6 +167,13 @@ app-planning-menus, app-retrait-commande, app-facturation-commande, app-liste-co
 // ══ Planning ═══════════════════════════════════════════════════
 app-planning-menus {
   .ce-cal-defile { overflow-x: auto; border-radius: 14px; }
+  .ce-cal-ferme {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 100%;
+    min-height: 90px; color: #94A3B8; font-size: 12.5px; text-align: center;
+    background: repeating-linear-gradient(135deg, #F8FAFC 0 8px, #F1F5F9 8px 16px); border-radius: 10px;
+    i { font-size: 18px; }
+    .ce-lien-mini { border: 0; background: none; color: #2563EB; font-size: 11.5px; text-decoration: underline; padding: 0; cursor: pointer; }
+  }
   .ce-cal {
     display: grid; grid-template-columns: 150px repeat(5, minmax(150px, 1fr)); min-width: 900px;
     border: 1px solid var(--ce-bord); border-radius: 14px; overflow: hidden; background: #fff;

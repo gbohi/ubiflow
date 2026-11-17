@@ -155,7 +155,7 @@
     <!-- Cette semaine -->
     <div class="acc-carte">
       <h3><i class="ri-calendar-2-line"></i>Cette semaine <small>commandes par jour · toutes vos agences</small></h3>
-      <div class="acc-semaine">
+      <div class="acc-semaine" [style.--nb-jours]="g.semaine.length">
         @for (j of g.semaine; track j.date) {
           <div class="acc-j" [class.auj]="estAujourdhui(j)">
             <div class="acc-j-d">{{ jourCourt(j.date) }} <small>{{ jourMois(j.date) }}</small></div>
