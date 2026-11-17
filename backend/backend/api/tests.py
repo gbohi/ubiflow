@@ -2192,7 +2192,7 @@ class APreparerTests(_EspacePrestataireBase):
         self.assertEqual(r.data['agence'], self.agence.id)
         ligne = r.data['lignes'][0]
         self.assertEqual(set(ligne), {'commande_id', 'menu_id', 'nom', 'prenoms', 'nom_complet', 'matricule',
-                                      'agence', 'user_id', 'agence_id', 'plat_id', 'plat', 'statut',
+                                      'agence', 'user_id', 'agence_id', 'plat_id', 'plat', 'supplements', 'statut',
                                       'heure_retrait', 'valide_par_nom',
                                       'externe', 'agence_origine_id', 'agence_origine'})
         # Agence d'un autre prestataire

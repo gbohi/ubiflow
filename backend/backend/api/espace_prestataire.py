@@ -1479,6 +1479,33 @@ class StatistiquesPrestataireView(APIView):
         })
 
 
+class IndicateursPrestataireView(APIView):
+    """
+    GET /prestataire/statistiques/indicateurs/?debut=&fin=&agence= : plats et
+    montants du prestataire (ses menus, ce qui lui est dû ; pas les montants des employés).
+    """
+    permission_classes = [IsPrestataireResponsable]
+
+    def get(self, request):
+        from . import indicateurs as ind
+        aujourdhui = timezone.localdate()
+        d0, f0 = fact.bornes_mois(aujourdhui.year, aujourdhui.month)
+        debut = _date(request.query_params.get('debut'), d0)
+        fin = _date(request.query_params.get('fin'), f0)
+        if fin < debut:
+            raise ValidationError("La date de début doit être antérieure ou égale à la date de fin.")
+        if (fin - debut).days > 366:
+            raise ValidationError("Période trop longue (un an au plus).")
+        agence = _agence_demandee(request)
+        qs = commandes_du_prestataire(request.user.prestataire_id).filter(
+            menu__date_menu__gte=debut, menu__date_menu__lte=fin)
+        if agence is not None:
+            qs = qs.filter(menu__agence_id=agence)
+        return Response({'debut': debut.isoformat(), 'fin': fin.isoformat(),
+                         **ind.plats(qs, debut, fin),
+                         'montants': ind.montants(qs, debut, fin, request.user.prestataire_id, avec_employes=False)})
+
+
 class EquipeView(APIView):
     """
     GET  /prestataire/equipe/ : comptes du prestataire (responsables et agents de comptoir).

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
 import { SharedModule } from 'src/app/shared/shared.module';
+import { IndicateursPlatsComponent } from 'src/app/shared/indicateurs-plats/indicateurs-plats.component';
 import { PrestataireRoutingModule } from './prestataire-routing.module';
 
 import { AccueilPrestataireComponent } from './accueil/accueil-prestataire.component';
@@ -44,6 +45,7 @@ import { HistoriqueRetraitsComponent } from './historique-retraits/historique-re
     CommonModule,
     FormsModule,
     SharedModule,
+    IndicateursPlatsComponent,
     ModalModule.forRoot(),
     PrestataireRoutingModule,
   ],

@@ -17,6 +17,7 @@ from .planning_equipes import (
     ProgrammationDetailView, ProgrammerView, RetirerView,
 )
 from .statistiques import DetailServiceView, RepasCategoriesView, StatistiquesView
+from .indicateurs import IndicateursView
 from .controle import AnomalieVerifierView, ContestationRetraitViewSet, ControleRetraitsView
 from . import espace_prestataire as presta
 from . import caisse
@@ -136,6 +137,7 @@ urlpatterns = [
     path('api/statistiques/', StatistiquesView.as_view(), name='statistiques'),
     path('api/statistiques/repas-categories/', RepasCategoriesView.as_view(), name='statistiques-repas-categories'),
     path('api/statistiques/detail/', DetailServiceView.as_view(), name='statistiques-detail'),
+    path('api/statistiques/indicateurs/', IndicateursView.as_view(), name='statistiques-indicateurs'),
     path('api/facturation/', FacturationView.as_view(), name='facturation'),
     path('api/facturation/prestataires/', FacturationPrestataireView.as_view(), name='facturation-prestataires'),
     path('api/facturation/prestataires/releve/', RelevePrestataireView.as_view(), name='facturation-prestataires-releve'),
@@ -182,6 +184,8 @@ urlpatterns = [
          suivi.PrestaFichiersView.as_view(quoi='depot'), name='prestataire-facture-depot-fichier'),
     path('api/prestataire/factures/<int:pk>/justificatif/', suivi.PrestaFichiersView.as_view(quoi='justificatif'),
          name='prestataire-facture-justificatif'),
+    path('api/prestataire/statistiques/indicateurs/', presta.IndicateursPrestataireView.as_view(),
+         name='prestataire-indicateurs'),
     path('api/prestataire/statistiques/', presta.StatistiquesPrestataireView.as_view(),
          name='prestataire-statistiques'),
     path('api/prestataire/equipe/', presta.EquipeView.as_view(), name='prestataire-equipe'),

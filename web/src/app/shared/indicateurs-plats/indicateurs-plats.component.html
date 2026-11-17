@@ -1,0 +1,185 @@
+@if (erreur) { <div class="ip-alerte"><i class="ri-error-warning-line"></i>{{ erreur }}</div> }
+@if (chargement && !d) { <div class="ip-charge"><span class="spinner-border" role="status"></span></div> }
+
+@if (d; as d) {
+  <div class="ip" [class.ip-attente]="chargement">
+    <div class="ip-actions"><button type="button" class="ip-btn" (click)="exporter()"><i class="ri-file-excel-2-line"></i>Excel</button></div>
+
+    <!-- ═════════ PLATS & POPULARITÉ ═════════ -->
+    @if (vue !== 'montants') {
+      <div class="ip-titre"><i class="ri-restaurant-2-line"></i>Plats &amp; popularité</div>
+      <div class="ip-kpis">
+        <div class="ip-kpi"><small><i class="ri-trophy-line"></i> Plat le plus commandé</small>
+          @if (d.kpis.plat_plus; as p) { <b>{{ p.plat }}</b><span>{{ nb(p.commandes) }} commandes · {{ nb(p.popularite, 1) }} %</span> } @else { <b>—</b> }</div>
+        <div class="ip-kpi"><small><i class="ri-arrow-down-circle-line"></i> Plat le moins commandé</small>
+          @if (d.kpis.plat_moins; as p) { <b>{{ p.plat }}</b><span>{{ nb(p.commandes) }} commande{{ p.commandes > 1 ? 's' : '' }} · {{ nb(p.popularite, 1) }} %</span> } @else { <b>—</b><span>un seul plat commandé</span> }</div>
+        <div class="ip-kpi"><small><i class="ri-calendar-event-line"></i> Commandes par menu</small><b>{{ nb(d.kpis.moyenne_par_menu, 1) }}</b><span>en moyenne sur {{ d.kpis.nb_menus }} menu{{ d.kpis.nb_menus > 1 ? 's' : '' }}</span></div>
+        <div class="ip-kpi"><small><i class="ri-restaurant-line"></i> Repas commandés</small><b>{{ nb(d.kpis.nb_repas) }}</b><span>{{ d.kpis.nb_plats }} plats@if (d.kpis.nb_supplements) { · + {{ nb(d.kpis.nb_supplements) }} desserts }</span></div>
+      </div>
+
+      <div class="ip-g2">
+        <div class="ip-carte">
+          <h4><i class="ri-bar-chart-horizontal-line"></i>Popularité des plats <small>part des commandes</small></h4>
+          @if (g['popularite']; as c) {
+            <apx-chart [series]="c.series" [chart]="c.chart" [colors]="c.colors" [plotOptions]="c.plotOptions" [dataLabels]="c.dataLabels"
+                       [xaxis]="c.xaxis" [grid]="c.grid" [tooltip]="c.tooltip"></apx-chart>
+          } @else { <div class="ip-vide">Aucune commande</div> }
+        </div>
+        <div class="ip-carte">
+          <h4><i class="ri-table-line"></i>Par plat</h4>
+          <div class="ip-table-wrap">
+            <table class="ip-table">
+              <thead><tr><th>Plat</th><th>Popularité</th><th class="n">Commandes</th><th class="n">Servis</th></tr></thead>
+              <tbody>
+                @for (p of d.par_plat; track p.plat_id) {
+                  <tr><td><b>{{ p.plat }}</b>@if (p.type_plat) { <small>{{ p.type_plat }}</small> }</td>
+                    <td><span class="ip-jauge"><i [style.width.%]="p.popularite / maxPop() * 100"></i></span>{{ nb(p.popularite, 1) }} %</td>
+                    <td class="n">{{ nb(p.commandes) }}</td><td class="n">{{ nb(p.servis) }}</td></tr>
+                } @empty { <tr><td colspan="4" class="ip-vide">Aucune commande</td></tr> }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="ip-carte">
+        <h4><i class="ri-line-chart-line"></i>Évolution de la popularité <small>5 plats les plus commandés · part des commandes par {{ d.evolution.granularite }}</small></h4>
+        @if (g['evolution']; as c) {
+          <apx-chart [series]="c.series" [chart]="c.chart" [colors]="c.colors" [stroke]="c.stroke" [markers]="c.markers" [dataLabels]="c.dataLabels"
+                     [xaxis]="c.xaxis" [yaxis]="c.yaxis" [legend]="c.legend" [grid]="c.grid" [tooltip]="c.tooltip"></apx-chart>
+        } @else { <div class="ip-vide">Choisissez une période plus longue pour voir l'évolution.</div> }
+      </div>
+
+      <div class="ip-g2">
+        <div class="ip-carte">
+          <h4><i class="ri-building-line"></i>Préférences par agence <small>part de chaque plat dans les commandes de l'agence</small></h4>
+          @if (d.preferences.plats.length) {
+            <div class="ip-table-wrap">
+              <table class="ip-table ip-carte-chaleur">
+                <thead><tr><th>Plat</th>@for (a of d.preferences.agences; track a.agence) { <th class="c">{{ a.agence }}</th> }</tr></thead>
+                <tbody>
+                  @for (p of d.preferences.plats; track p.plat) {
+                    <tr><td><b>{{ p.plat }}</b></td>
+                      @for (a of d.preferences.agences; track a.agence) {
+                        <td class="c" [style.background]="couleurPart(p.parts[a.agence] || 0)" [title]="(p.nb[a.agence] || 0) + ' commande(s)'">{{ nb(p.parts[a.agence] || 0) }} %</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else { <div class="ip-vide">Aucune commande</div> }
+        </div>
+        <div class="ip-carte">
+          <h4><i class="ri-calendar-event-line"></i>Commandes par menu</h4>
+          <div class="ip-table-wrap">
+            <table class="ip-table">
+              <thead><tr><th>Date</th><th>Agence</th><th class="n">Commandes</th><th class="n">Servis</th></tr></thead>
+              <tbody>
+                @for (m of menus; track m.menu_id) {
+                  <tr><td>{{ jour(m.date) }}</td><td>{{ m.agence }}@if (m.equipe) { <small>{{ m.equipe }}</small> }</td>
+                    <td class="n"><b>{{ m.commandes }}</b></td><td class="n">{{ m.servis }}</td></tr>
+                } @empty { <tr><td colspan="4" class="ip-vide">Aucun menu commandé</td></tr> }
+              </tbody>
+            </table>
+          </div>
+          @if (d.par_menu.length > menusAffiches) {
+            <button type="button" class="ip-plus" (click)="menusAffiches = menusAffiches + 20">Voir plus ({{ d.par_menu.length - menusAffiches }})</button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ═════════ MONTANTS ═════════ -->
+    @if (vue !== 'plats') {
+      <div class="ip-titre"><i class="ri-money-cny-circle-line"></i>Montants</div>
+      <div class="ip-kpis">
+        @if (ubipharm) {
+          <div class="ip-kpi"><small><i class="ri-user-line"></i> Facturé aux employés</small><b>{{ fcfa(d.montants.total_employes || 0) }}</b><span>repas des employés</span></div>
+          <div class="ip-kpi"><small><i class="ri-store-2-line"></i> Dû aux prestataires</small><b>{{ fcfa(d.montants.total_prestataires) }}</b><span>repas et desserts</span></div>
+          <div class="ip-kpi"><small><i class="ri-scales-3-line"></i> Écart (part UbiPharm)</small><b>{{ fcfa(d.montants.total_prestataires - (d.montants.total_employes || 0)) }}</b><span>dû aux prestataires − facturé</span></div>
+        } @else {
+          <div class="ip-kpi"><small><i class="ri-store-2-line"></i> Montant dû</small><b>{{ fcfa(d.montants.total_prestataires) }}</b><span>repas et desserts de la période</span></div>
+          <div class="ip-kpi"><small><i class="ri-building-line"></i> Agences servies</small><b>{{ d.montants.par_agence.length }}</b><span>sur la période</span></div>
+        }
+      </div>
+
+      <div class="ip-carte">
+        <h4><i class="ri-bar-chart-box-line"></i>Montants par mois</h4>
+        @if (g['mois']; as c) {
+          <apx-chart [series]="c.series" [chart]="c.chart" [colors]="c.colors" [plotOptions]="c.plotOptions" [dataLabels]="c.dataLabels"
+                     [xaxis]="c.xaxis" [yaxis]="c.yaxis" [legend]="c.legend" [grid]="c.grid" [tooltip]="c.tooltip"></apx-chart>
+        }
+        <div class="ip-table-wrap">
+          <table class="ip-table">
+            <thead><tr><th>Mois</th>@if (ubipharm) { <th class="n">Facturé aux employés</th> }<th class="n">{{ ubipharm ? 'Dû aux prestataires' : 'Montant dû' }}</th><th class="n">Repas</th><th class="n">Desserts</th></tr></thead>
+            <tbody>
+              @for (m of d.montants.par_mois; track m.libelle) {
+                <tr><td>{{ m.libelle }}</td>@if (ubipharm) { <td class="n">{{ fcfa(m.employes || 0) }}</td> }<td class="n"><b>{{ fcfa(m.prestataires) }}</b></td><td class="n">{{ nb(m.repas) }}</td><td class="n">{{ nb(m.supplements) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="ip-g2">
+        <div class="ip-carte">
+          <h4><i class="ri-building-line"></i>Par agence</h4>
+          @if (g['agence']; as c) {
+            <apx-chart [series]="c.series" [chart]="c.chart" [colors]="c.colors" [plotOptions]="c.plotOptions" [dataLabels]="c.dataLabels"
+                       [xaxis]="c.xaxis" [legend]="c.legend" [grid]="c.grid" [tooltip]="c.tooltip"></apx-chart>
+          } @else { <div class="ip-vide">Aucun montant</div> }
+        </div>
+        <div class="ip-carte">
+          <h4><i class="ri-pie-chart-2-line"></i>Par type de plat <small>desserts compris</small></h4>
+          @if (g['type']; as c) {
+            <apx-chart [series]="c.series" [labels]="c.labels" [chart]="c.chart" [colors]="c.colors" [legend]="c.legend"
+                       [dataLabels]="c.dataLabels" [plotOptions]="c.plotOptions" [tooltip]="c.tooltip"></apx-chart>
+          } @else { <div class="ip-vide">Aucun montant</div> }
+        </div>
+      </div>
+
+      <div class="ip-g2">
+        <div class="ip-carte">
+          <h4><i class="ri-restaurant-2-line"></i>Par plat <small>10 premiers</small></h4>
+          @if (g['plat']; as c) {
+            <apx-chart [series]="c.series" [chart]="c.chart" [colors]="c.colors" [plotOptions]="c.plotOptions" [dataLabels]="c.dataLabels"
+                       [xaxis]="c.xaxis" [grid]="c.grid" [tooltip]="c.tooltip"></apx-chart>
+          } @else { <div class="ip-vide">Aucun montant</div> }
+        </div>
+        @if (ubipharm) {
+          <div class="ip-carte">
+            <h4><i class="ri-wallet-3-line"></i>Par mode de règlement <small>facturé aux employés</small></h4>
+            @if (g['mode']; as c) {
+              <apx-chart [series]="c.series" [labels]="c.labels" [chart]="c.chart" [colors]="c.colors" [legend]="c.legend"
+                         [dataLabels]="c.dataLabels" [plotOptions]="c.plotOptions" [tooltip]="c.tooltip"></apx-chart>
+            } @else { <div class="ip-vide">Aucun montant</div> }
+          </div>
+        }
+      </div>
+
+      @if (ubipharm && d.montants.par_prestataire.length) {
+        <div class="ip-g2">
+          <div class="ip-carte">
+            <h4><i class="ri-store-2-line"></i>Par prestataire</h4>
+            <table class="ip-table">
+              <thead><tr><th>Prestataire</th><th class="n">Repas</th><th class="n">Desserts</th><th class="n">Dû</th></tr></thead>
+              <tbody>
+                @for (p of d.montants.par_prestataire; track p['prestataire']) {
+                  <tr><td><b>{{ p['prestataire'] }}</b></td><td class="n">{{ nb(p.repas) }}</td><td class="n">{{ nb(p.supplements) }}</td><td class="n"><b>{{ fcfa(p.prestataires) }}</b></td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (g['prestataire']; as c) {
+            <div class="ip-carte">
+              <h4><i class="ri-pie-chart-line"></i>Répartition entre prestataires</h4>
+              <apx-chart [series]="c.series" [labels]="c.labels" [chart]="c.chart" [colors]="c.colors" [legend]="c.legend"
+                         [dataLabels]="c.dataLabels" [plotOptions]="c.plotOptions" [tooltip]="c.tooltip"></apx-chart>
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+}

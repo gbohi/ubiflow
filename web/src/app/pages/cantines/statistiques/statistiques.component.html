@@ -346,6 +346,19 @@
         </div>
       </div>
 
+      <!-- ════ POPULARITÉ DES PLATS ════ -->
+      @if (filtresCharges; as f) {
+        <div class="st-sec" id="st-popularite">
+          <div class="st-sec-titre">Popularité des plats <span class="st-nouveau">Nouveau</span></div>
+          <app-indicateurs-plats source="ubipharm" vue="plats" [debut]="f.debut" [fin]="f.fin" [agence]="f.agence ?? null" [typeequipe]="f.typeequipe ?? null"></app-indicateurs-plats>
+        </div>
+        <div class="st-sec" id="st-montants">
+          <div class="st-sec-titre">Montants <span class="st-nouveau">Nouveau</span></div>
+          <app-indicateurs-plats source="ubipharm" vue="montants" [debut]="f.debut" [fin]="f.fin" [agence]="f.agence ?? null" [typeequipe]="f.typeequipe ?? null"></app-indicateurs-plats>
+        </div>
+      }
+
+
       <a class="st-facturation" routerLink="/cantines/facturation-commande">
         <i class="ri-bill-line"></i>
         <span><b>La facturation a sa propre page</b> — montants agents et prestataires, clôtures mensuelles.</span>

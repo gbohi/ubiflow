@@ -34,7 +34,7 @@ import {
 import { DetailServiceComponent } from 'src/app/shared/detail-service/detail-service.component';
 
 type Periode = 'mois' | 'mois_dernier' | 'trois_mois' | 'annee' | 'perso';
-type Section = 'commandes' | 'repas' | 'plats' | 'frequentation';
+type Section = 'commandes' | 'repas' | 'plats' | 'frequentation' | 'popularite' | 'montants';
 export type Bloc = 'mois' | 'agence' | 'evolution' | 'detail_mensuel' | 'repas' | 'categorie' | 'top'
   | 'type' | 'classement' | 'non_retires' | 'annulations' | 'jours';
 
@@ -86,7 +86,11 @@ export class StatistiquesComponent implements OnInit {
     { id: 'repas', libelle: 'Repas & catégories', icone: 'ri-restaurant-2-line', nouveau: true },
     { id: 'plats', libelle: 'Plats & avis', icone: 'ri-star-smile-line' },
     { id: 'frequentation', libelle: 'Fréquentation', icone: 'ri-group-line', nouveau: true },
+    { id: 'popularite', libelle: 'Popularité des plats', icone: 'ri-fire-line', nouveau: true },
+    { id: 'montants', libelle: 'Montants', icone: 'ri-money-cny-circle-line', nouveau: true },
   ];
+  /** Filtres du dernier chargement (blocs « Popularité » et « Montants ») */
+  filtresCharges: FiltresStats | null = null;
   kpis: Kpi[] = [];
 
   // ── Graphiques ────────────────────────────────────────────────
@@ -164,6 +168,7 @@ export class StatistiquesComponent implements OnInit {
   charger(): void {
     this.chargement = true;
     this.erreur = null;
+    this.filtresCharges = { ...this.filtres };
     this.service.statistiques(this.filtres).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: d => {
         this.d = d;

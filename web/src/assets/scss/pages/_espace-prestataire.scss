@@ -482,3 +482,7 @@ td.ep-moi { color: #1C7F45; font-weight: 600; }
 .ep-agences-choix { display: flex; flex-direction: column; gap: 6px;
   label { display: flex; gap: 10px; align-items: center; border: 1px solid #E2EAF4; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin: 0; font-size: 13.5px;
     input { margin: 0; } &.on { border-color: #BFEFD2; background: #F0FBF4; } } }
+// Statistiques : onglets Popularité des plats / Montants
+.ep-onglets-stats { display: flex; gap: 6px; margin: 18px 0 12px; flex-wrap: wrap;
+  button { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #CFDCEC; background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; color: #5A7090;
+    &.on { background: #092440; border-color: #092440; color: #fff; } } }

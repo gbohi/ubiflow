@@ -1,0 +1,30 @@
+:host { display: block; }
+.ip { display: flex; flex-direction: column; gap: 14px; transition: opacity .15s; }
+.ip-attente { opacity: .55; pointer-events: none; }
+.ip-actions { display: flex; justify-content: flex-end; margin-bottom: -6px; }
+.ip-btn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #CFDCEC; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: #092440;
+  i { color: #1C8A4B; font-size: 15px; } &:hover { background: #F4F7FB; } }
+.ip-titre { font-size: 15px; font-weight: 700; color: #092440; display: flex; gap: 8px; align-items: center; margin-top: 6px;
+  i { font-size: 18px; color: #0F3A6E; } }
+.ip-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.ip-kpi { background: #fff; border: 1px solid #E2EAF4; border-radius: 14px; padding: 12px 14px; min-width: 0;
+  small { display: block; color: #5A7090; font-size: 11.5px; } b { display: block; font-size: 18px; color: #092440; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  span { display: block; color: #5A7090; font-size: 11.5px; } }
+.ip-g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 991px) { .ip-g2 { grid-template-columns: 1fr; } }
+.ip-carte { background: #fff; border: 1px solid #E2EAF4; border-radius: 14px; padding: 14px 16px; min-width: 0;
+  h4 { font-size: 13.5px; font-weight: 600; color: #092440; display: flex; gap: 8px; align-items: center; margin: 0 0 10px; flex-wrap: wrap;
+    i { font-size: 16px; } small { color: #5A7090; font-weight: 400; font-size: 11.5px; } } }
+.ip-table-wrap { max-height: 360px; overflow: auto; }
+.ip-table { width: 100%; border-collapse: collapse; font-size: 12.5px;
+  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: #5A7090; font-weight: 600; padding: 7px 8px; border-bottom: 1px solid #E2EAF4; background: #F8FAFC; position: sticky; top: 0; }
+  td { padding: 7px 8px; border-bottom: 1px solid #EEF2F7; vertical-align: middle; }
+  td small { display: block; color: #5A7090; font-size: 11px; }
+  .n { text-align: right; white-space: nowrap; } .c { text-align: center; white-space: nowrap; } }
+.ip-carte-chaleur td.c { font-weight: 600; color: #0B3B20; border: 2px solid #fff; border-radius: 6px; }
+.ip-jauge { display: inline-block; width: 70px; height: 7px; border-radius: 99px; background: #EEF2F7; overflow: hidden; margin-right: 8px; vertical-align: middle;
+  i { display: block; height: 100%; background: #3EC970; } }
+.ip-vide { color: #8A9BB2; text-align: center; padding: 26px 0; font-size: 12.5px; }
+.ip-plus { border: 0; background: none; color: #2F80ED; font-size: 12.5px; margin-top: 8px; text-decoration: underline; }
+.ip-charge { text-align: center; padding: 40px 0; }
+.ip-alerte { display: flex; gap: 8px; align-items: center; background: #FDF0ED; border: 1px solid #F6C9BE; color: #A3341E; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
