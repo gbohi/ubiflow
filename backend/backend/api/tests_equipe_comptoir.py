@@ -107,3 +107,27 @@ class EquipeComptoirTests(_EspacePrestataireBase):
         r = self.client_pour(self.agent_a2).get(url, {'debut': debut}).data
         self.assertEqual([x['agence'] for x in r['resultats']], [self.agence.nom_agence])
         self.assertEqual(self.client_pour(self.employe).get(url).status_code, 403)
+
+    def test_historique_non_retires(self):
+        avant_hier = self.menu_du_jour(plats=[self.plat_a], jours=-2)
+        oubli = Commande.objects.create(user=self.employe, menu=avant_hier, plat=self.plat_a)    # jamais retiré
+        hier = self.menu_du_jour(plats=[self.plat_a], jours=-1)
+        Commande.objects.create(user=self.employe2, menu=hier, plat=self.plat_a, statut='retiree')
+        Retrait.objects.create(user=self.employe2, menu=hier, badge_matricule='x', valide_par=self.agent_a,
+                               mode='badge', date_retrait=timezone.now() - timedelta(days=1))
+        auj = self.menu_du_jour(plats=[self.plat_a])
+        Commande.objects.create(user=self.employe2, menu=auj, plat=self.plat_a)                 # à servir : pas un oubli
+        url = f'{API}/prestataire/comptoir/historique/'
+        debut = (timezone.localdate() - timedelta(days=5)).isoformat()
+        c = self.client_pour(self.agent_a)
+        r = c.get(url, {'debut': debut}).data
+        self.assertEqual((r['total'], r['kpis']['retraits'], r['kpis']['non_retires']), (1, 1, 1))
+        r = c.get(url, {'debut': debut, 'statut': 'non_retires'}).data
+        self.assertEqual([(x['statut'], x['matricule'], x['heure']) for x in r['resultats']],
+                         [('non_retire', self.employe.username, None)])
+        r = c.get(url, {'debut': debut, 'statut': 'tous'}).data
+        self.assertEqual([x['statut'] for x in r['resultats']], ['retire', 'non_retire'])
+        # « Validé par » / mode : retraits seulement
+        r = c.get(url, {'debut': debut, 'statut': 'tous', 'mode': 'badge'}).data
+        self.assertEqual([x['statut'] for x in r['resultats']], ['retire'])
+        self.assertEqual(oubli.statut, 'en_attente')

@@ -486,3 +486,8 @@ td.ep-moi { color: #1C7F45; font-weight: 600; }
 .ep-onglets-stats { display: flex; gap: 6px; margin: 18px 0 12px; flex-wrap: wrap;
   button { display: inline-flex; gap: 6px; align-items: center; border: 1px solid #CFDCEC; background: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; color: #5A7090;
     &.on { background: #092440; border-color: #092440; color: #fff; } } }
+// Historique des retraits : case « Non retirés » cliquable, lignes non retirées
+.ep-kpi-btn { text-align: left; border: 1px solid var(--ubi-bord); cursor: pointer; font: inherit; width: 100%;
+  &:hover { box-shadow: 0 6px 16px rgba(9, 36, 64, .08); } &.on { border-color: #F6C9BE; background: #FFF7F5; } }
+.lst-table tr.ep-ligne-oubli td { background: #FFFBF4; }
+@media (max-width: 991px) { .ep-kpis-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -443,22 +443,24 @@ export class EspacePrestataireService {
     return this.http.post<{ detail: string }>(`${this.url}/equipe/${id}/mot-de-passe/`, { password, password2 });
   }
 
-  historiqueRetraits(filtres: { debut?: string; fin?: string; agence?: any; valide_par?: any; mode?: string;
+  historiqueRetraits(filtres: { debut?: string; fin?: string; agence?: any; statut?: string; valide_par?: any; mode?: string;
                                 search?: string; page?: number; page_size?: number; export?: number }): Observable<HistoriqueRetraits> {
     return this.http.get<HistoriqueRetraits>(`${this.url}/comptoir/historique/`, { params: params(filtres) });
   }
 }
 
 export interface RetraitHistorique {
+  /** Ligne : retrait validé, ou repas commandé jamais retiré (jour passé) */
+  statut: 'retire' | 'non_retire'; cle: string;
   id: number; user_id: number; user_nom: string; matricule: string; menu_id: number; date_retrait: string;
-  heure: string; date: string; date_menu: string; agence: string;
+  heure: string | null; date: string; date_menu: string; agence: string;
   plats: { commande_id: number; plat: string; supplement?: boolean }[];
   valide_par_id: number | null; valide_par_nom: string | null; mode: string;
 }
 
 export interface HistoriqueRetraits {
   debut: string; fin: string; agence: number | null; total: number; page: number; page_size: number; nb_pages: number;
-  kpis: { retraits: number; par_badge: number; par_moi: number; jours: number };
+  kpis: { retraits: number; non_retires: number; taux_non_retires: number | null; par_badge: number; par_moi: number; jours: number };
   valideurs: { id: number; nom: string }[];
   resultats: RetraitHistorique[];
 }

@@ -1177,11 +1177,14 @@ class ComptoirAnnulerView(APIView):
 
 class ComptoirHistoriqueView(APIView):
     """
-    GET /prestataire/comptoir/historique/?debut=&fin=&agence=&valide_par=ID|moi&mode=&search=
-                                         &page=1&page_size=20 (export=1 : toutes les lignes)
-    Retraits validés des jours précédents (et du jour) dans les agences du
-    prestataire — pour un agent de comptoir : ses agences d'intervention.
-    Défaut : le mois en cours ; un an au plus.
+    GET /prestataire/comptoir/historique/?debut=&fin=&agence=&statut=retires|non_retires|tous
+                                         &valide_par=ID|moi&mode=&search=&page=1&page_size=20
+                                         (export=1 : toutes les lignes)
+    Retraits validés au comptoir et repas non retirés (commandés, jamais
+    retirés, jours passés seulement) dans les agences du prestataire — pour
+    un agent de comptoir : ses agences d'intervention. Défaut : retraits du
+    mois en cours ; un an au plus. « Validé par » et « mode » ne concernent
+    que les retraits.
     """
     permission_classes = [IsAgentComptoir]
 
@@ -1196,62 +1199,117 @@ class ComptoirHistoriqueView(APIView):
             raise ValidationError("La date de début doit être antérieure ou égale à la date de fin.")
         if (fin - debut).days > 366:
             raise ValidationError("Période trop longue (un an au plus).")
+        statut = q.get('statut') if q.get('statut') in ('retires', 'non_retires', 'tous') else 'retires'
         agence = _agence_demandee(request)
-        qs = (Retrait.objects.filter(filtre_menus_prestataire(request.user.prestataire_id, 'menu__'))
-              .filter(date_retrait__date__gte=debut, date_retrait__date__lte=fin)
-              .select_related('user', 'menu__agence', 'valide_par__prestataire'))
-        if agence is not None:
-            qs = qs.filter(menu__agence_id=agence)
-        elif agences_intervention(request.user) is not None:
-            qs = qs.filter(menu__agence_id__in=agences_intervention(request.user))
-        base = qs
+        limite = agences_intervention(request.user)
+        pid = request.user.prestataire_id
+
+        def perimetre(qs, prefixe=''):
+            qs = qs.filter(filtre_menus_prestataire(pid, prefixe))
+            if agence is not None:
+                return qs.filter(**{f'{prefixe}agence_id': agence})
+            if limite is not None:
+                return qs.filter(**{f'{prefixe}agence_id__in': limite})
+            return qs
+
+        # Retraits validés
+        rq = perimetre(Retrait.objects.filter(date_retrait__date__gte=debut, date_retrait__date__lte=fin), 'menu__')
+        base = rq
         vp = q.get('valide_par')
         if vp == 'moi':
-            qs = qs.filter(valide_par=request.user)
+            rq = rq.filter(valide_par=request.user)
         elif vp:
-            qs = qs.filter(valide_par_id=_entier(vp, 'valide_par'))
-        if q.get('mode') in ('scan', 'saisie', 'badge'):
-            qs = qs.filter(mode=q['mode'])
+            rq = rq.filter(valide_par_id=_entier(vp, 'valide_par'))
+        mode = q.get('mode') if q.get('mode') in ('scan', 'saisie', 'badge') else None
+        if mode:
+            rq = rq.filter(mode=mode)
+
+        # Repas non retirés : commandés (plat principal), jamais retirés, jours passés
+        nq = perimetre(Commande.objects.filter(commande_principale__isnull=True, statut='en_attente',
+                                               menu__date_menu__gte=debut,
+                                               menu__date_menu__lte=min(fin, aujourdhui - timedelta(days=1))),
+                       'menu__')
+        if vp or mode:
+            nq = nq.none()          # ces filtres ne concernent que les retraits
+
         terme = (q.get('search') or '').strip()
         if terme:
-            plats = Commande.objects.filter(menu_id=OuterRef('menu_id'), user_id=OuterRef('user_id'),
-                                            plat__nom__icontains=terme)
-            qs = (qs.annotate(_nom=Concat('user__nom', Value(' '), 'user__prenom'))
+            plats_r = Commande.objects.filter(menu_id=OuterRef('menu_id'), user_id=OuterRef('user_id'),
+                                              plat__nom__icontains=terme)
+            rq = (rq.annotate(_nom=Concat('user__nom', Value(' '), 'user__prenom'))
                   .filter(Q(_nom__icontains=terme) | Q(user__prenom__icontains=terme)
-                          | Q(user__username__icontains=terme) | Exists(plats)))
-        qs = qs.order_by('-date_retrait', '-id')
-        total = qs.count()
+                          | Q(user__username__icontains=terme) | Exists(plats_r)))
+            desserts = Commande.objects.filter(commande_principale_id=OuterRef('pk'), plat__nom__icontains=terme)
+            nq = (nq.annotate(_nom=Concat('user__nom', Value(' '), 'user__prenom'))
+                  .filter(Q(_nom__icontains=terme) | Q(user__prenom__icontains=terme)
+                          | Q(user__username__icontains=terme) | Q(plat__nom__icontains=terme) | Exists(desserts)))
+
+        nb_retraits, nb_non_retires = rq.count(), nq.count()
+        # Liste triée (plus récent d'abord) : retraits par heure, non retirés en fin de journée
+        cles = []
+        if statut in ('retires', 'tous'):
+            cles += [(timezone.localtime(dt).date(), 1, dt.timestamp(), 'r', i)
+                     for i, dt in rq.values_list('id', 'date_retrait')]
+        if statut in ('non_retires', 'tous'):
+            cles += [(d, 0, 0, 'n', i) for i, d in nq.values_list('id', 'menu__date_menu')]
+        cles.sort(reverse=True)
+        total = len(cles)
         if q.get('export') in ('1', 'true'):
-            page, taille, lignes = 1, total, list(qs[:5000])
+            page, taille, morceau = 1, max(total, 1), cles[:5000]
         else:
             taille = min(max(_entier(q.get('page_size'), 'page_size') or 20, 5), 100)
             page = max(_entier(q.get('page'), 'page') or 1, 1)
-            lignes = list(qs[(page - 1) * taille: page * taille])
-        # Plats retirés (plat puis dessert) de chaque retrait de la page
+            morceau = cles[(page - 1) * taille: page * taille]
+
+        retraits = {r.id: r for r in Retrait.objects.filter(id__in=[c[4] for c in morceau if c[3] == 'r'])
+                    .select_related('user', 'menu__agence', 'valide_par__prestataire')}
+        oublis = {c.id: c for c in Commande.objects.filter(id__in=[c[4] for c in morceau if c[3] == 'n'])
+                  .select_related('user', 'plat', 'menu__agence')}
+        # Plats de chaque ligne (plat puis dessert)
         plats = defaultdict(list)
-        for c in (Commande.objects.filter(statut='retiree', menu_id__in={r.menu_id for r in lignes},
-                                          user_id__in={r.user_id for r in lignes})
+        for c in (Commande.objects.filter(statut='retiree', menu_id__in={r.menu_id for r in retraits.values()},
+                                          user_id__in={r.user_id for r in retraits.values()})
                   .select_related('plat').order_by('commande_principale_id', 'id')):
             plats[(c.menu_id, c.user_id)].append({'commande_id': c.id, 'plat': c.plat.nom,
                                                    'supplement': bool(c.commande_principale_id)})
+        desserts_oublis = defaultdict(list)
+        for c in (Commande.objects.filter(commande_principale_id__in=list(oublis), statut='en_attente')
+                  .select_related('plat')):
+            desserts_oublis[c.commande_principale_id].append({'commande_id': c.id, 'plat': c.plat.nom,
+                                                              'supplement': True})
+
+        def ligne(cle):
+            if cle[3] == 'r':
+                r = retraits[cle[4]]
+                return {**_retrait_json(r, request.user, plats.get((r.menu_id, r.user_id), [])), 'statut': 'retire',
+                        'cle': f'r{r.id}', 'date': timezone.localtime(r.date_retrait).date().isoformat(),
+                        'agence': r.menu.agence.nom_agence if r.menu.agence_id else '',
+                        'date_menu': r.menu.date_menu.isoformat()}
+            c = oublis[cle[4]]
+            return {'id': c.id, 'cle': f'n{c.id}', 'statut': 'non_retire', 'user_id': c.user_id,
+                    'user_nom': nom_complet(c.user), 'matricule': c.user.username, 'menu_id': c.menu_id,
+                    'date': c.menu.date_menu.isoformat(), 'date_menu': c.menu.date_menu.isoformat(), 'heure': None,
+                    'agence': c.menu.agence.nom_agence if c.menu.agence_id else '',
+                    'plats': [{'commande_id': c.id, 'plat': c.plat.nom, 'supplement': False}]
+                             + desserts_oublis.get(c.id, []),
+                    'valide_par_id': None, 'valide_par_nom': None, 'mode': ''}
+
         valideurs = (base.exclude(valide_par__isnull=True).values('valide_par_id', 'valide_par__nom',
                                                                    'valide_par__prenom').distinct())
+        commandes = nb_retraits + nb_non_retires
         return Response({
-            'debut': debut.isoformat(), 'fin': fin.isoformat(), 'agence': agence,
+            'debut': debut.isoformat(), 'fin': fin.isoformat(), 'agence': agence, 'statut': statut,
             'total': total, 'page': page, 'page_size': taille,
             'nb_pages': max(1, -(-total // taille)) if taille else 1,
-            'kpis': {'retraits': total, 'par_badge': qs.filter(mode='badge').count(),
-                     'par_moi': qs.filter(valide_par=request.user).count(),
-                     'jours': qs.dates('date_retrait', 'day').count()},
+            'kpis': {'retraits': nb_retraits, 'non_retires': nb_non_retires,
+                     'taux_non_retires': round(nb_non_retires / commandes * 100, 1) if commandes else None,
+                     'par_badge': rq.filter(mode='badge').count(),
+                     'par_moi': rq.filter(valide_par=request.user).count(),
+                     'jours': rq.dates('date_retrait', 'day').count()},
             'valideurs': sorted(({'id': v['valide_par_id'],
                                   'nom': f"{v['valide_par__nom'] or ''} {v['valide_par__prenom'] or ''}".strip()}
                                  for v in valideurs), key=lambda v: v['nom']),
-            'resultats': [{
-                **_retrait_json(r, request.user, plats.get((r.menu_id, r.user_id), [])),
-                'date': timezone.localtime(r.date_retrait).date().isoformat(),
-                'agence': r.menu.agence.nom_agence if r.menu.agence_id else '',
-                'date_menu': r.menu.date_menu.isoformat(),
-            } for r in lignes],
+            'resultats': [ligne(c) for c in morceau],
         })
 
 

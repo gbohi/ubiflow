@@ -26,6 +26,12 @@ export class HistoriqueRetraitsComponent implements OnInit {
   debut = '';
   fin = '';
   agence: number | '' = '';
+  statut: 'retires' | 'non_retires' | 'tous' = 'retires';
+  readonly statuts = [
+    { cle: 'retires' as const, libelle: 'Retirés' },
+    { cle: 'non_retires' as const, libelle: 'Non retirés' },
+    { cle: 'tous' as const, libelle: 'Tous' },
+  ];
   validePar: number | 'moi' | '' = '';
   mode = '';
   recherche = '';
@@ -76,7 +82,7 @@ export class HistoriqueRetraitsComponent implements OnInit {
   recharger(): void { this.page = 1; this.charger(); }
 
   private get filtres() {
-    return { debut: this.debut, fin: this.fin, agence: this.agence, valide_par: this.validePar, mode: this.mode,
+    return { debut: this.debut, fin: this.fin, agence: this.agence, statut: this.statut, valide_par: this.validePar, mode: this.mode,
              search: this.recherche.trim() };
   }
 
@@ -91,6 +97,13 @@ export class HistoriqueRetraitsComponent implements OnInit {
   }
 
   changerPage(e: { page: number }): void { this.page = e.page; this.charger(); }
+
+  choisirStatut(s: 'retires' | 'non_retires' | 'tous'): void {
+    this.statut = s;
+    // « Validé par » et le mode ne concernent que les retraits
+    if (s === 'non_retires') { this.validePar = ''; this.mode = ''; }
+    this.recharger();
+  }
 
   get lignes(): RetraitHistorique[] { return this.donnees?.resultats ?? []; }
 
@@ -116,9 +129,10 @@ export class HistoriqueRetraitsComponent implements OnInit {
     this.api.historiqueRetraits({ ...this.filtres, export: 1 }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: d => {
         this.exportEnCours = false;
-        const lignes = [['Date', 'Heure', 'Employé', 'Matricule', 'Agence', 'Plat', 'Dessert', 'Mode', 'Validé par'],
-          ...d.resultats.map(r => [r.date, r.heure, r.user_nom, r.matricule, r.agence, this.platPrincipal(r),
-                                   this.supplements(r), this.libelleMode(r.mode), r.valide_par_nom || ''])];
+        const lignes = [['Statut', 'Date', 'Heure', 'Employé', 'Matricule', 'Agence', 'Plat', 'Dessert', 'Mode', 'Validé par'],
+          ...d.resultats.map(r => [r.statut === 'retire' ? 'Retiré' : 'Non retiré', r.date, r.heure || '', r.user_nom, r.matricule,
+                                   r.agence, this.platPrincipal(r), this.supplements(r),
+                                   r.statut === 'retire' ? this.libelleMode(r.mode) : '', r.valide_par_nom || ''])];
         exporterExcel(nomFichier('historique-retraits', d.debut, d.fin) + '.xlsx', [{ nom: 'Retraits', lignes }]);
       },
       error: e => { this.exportEnCours = false; this.erreur = messageErreur(e, "L'export a échoué."); },
