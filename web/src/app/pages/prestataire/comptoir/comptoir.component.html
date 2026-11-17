@@ -175,7 +175,8 @@
       </div>
 
       <div class="ce-carte">
-        <h3><i class="ri-history-line"></i>Derniers retraits <small>validé par</small></h3>
+        <h3><i class="ri-history-line"></i>Derniers retraits <small>validé par</small>
+          <a class="ce-lien" routerLink="/prestataire/historique-retraits">Jours précédents <i class="ri-arrow-right-s-line"></i></a></h3>
         <ul class="ce-fil">
           @for (r of service?.derniers ?? []; track r.id) {
             <li>

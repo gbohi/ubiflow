@@ -497,6 +497,9 @@ class UserSerializer(serializers.ModelSerializer):
     prestataire = serializers.PrimaryKeyRelatedField(
         queryset=Prestataire.objects.all(), required=False, allow_null=True)
     prestataire_libelle = serializers.ReadOnlyField(source='prestataire.libelle')
+    # Agent de comptoir : agences d'intervention (vide = toutes celles du prestataire)
+    agences_comptoir = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Agence.objects.all(), required=False)
     # Équipe de l'employé (parcours de commande : « Mon équipe »)
     typeequipe = serializers.PrimaryKeyRelatedField(
         queryset=TypeEquipe.objects.all(), required=False, allow_null=True)
@@ -535,7 +538,7 @@ class UserSerializer(serializers.ModelSerializer):
             'first_name', 'last_name',
             'statut', 'statut_libelle',
             'last_login', 'last_logout', 'is_active', 'is_superuser',
-            'groups', 'roles', 'prestataire', 'prestataire_libelle',
+            'groups', 'roles', 'prestataire', 'prestataire_libelle', 'agences_comptoir',
             # Équipe de l'employé (facultative)
             'typeequipe', 'typeequipe_libelle',
             # Listes complètes
@@ -672,6 +675,18 @@ class UserSerializer(serializers.ModelSerializer):
         elif prestataire is not None:
             raise serializers.ValidationError({'prestataire': (
                 "Seul un compte prestataire ou agent de comptoir peut être rattaché à un prestataire.")})
+        # Agences d'intervention : agent de comptoir seulement, agences de son prestataire
+        agences = attrs.get('agences_comptoir')
+        if agences:
+            from .permissions import ROLE_AGENT_COMPTOIR, ROLE_PRESTATAIRE
+            if ROLE_AGENT_COMPTOIR not in noms or ROLE_PRESTATAIRE in noms:
+                raise serializers.ValidationError({'agences_comptoir': (
+                    "Les agences d'intervention concernent uniquement les agents de comptoir.")})
+            from .espace_prestataire import agences_rattachees
+            hors = [a.nom_agence for a in agences if a.id not in agences_rattachees(prestataire.id)]
+            if hors:
+                raise serializers.ValidationError({'agences_comptoir': (
+                    f"Le prestataire ne dessert pas : {', '.join(hors)}.")})
 
     def validate(self, attrs):
         self._verifier_compte_prestataire(attrs)
@@ -697,6 +712,7 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data.pop('password2', None)
         password = validated_data.pop('password', None)
         groups   = validated_data.pop('groups', [])
+        agences  = validated_data.pop('agences_comptoir', None)
         user = User.objects.create(**validated_data)
         if password:
             user.set_password(password)
@@ -704,12 +720,15 @@ class UserSerializer(serializers.ModelSerializer):
         # ✅ Assigner les groupes via la relation ManyToMany
         if groups:
             user.groups.set(groups)
+        if agences:
+            user.agences_comptoir.set(agences)
         return user
 
     def update(self, instance, validated_data):
         validated_data.pop('password2', None)
         password = validated_data.pop('password', None)
         groups   = validated_data.pop('groups', None)
+        agences  = validated_data.pop('agences_comptoir', None)
         user = super().update(instance, validated_data)
         if password:
             user.set_password(password)
@@ -717,6 +736,11 @@ class UserSerializer(serializers.ModelSerializer):
         # ✅ Mettre à jour les groupes si fournis
         if groups is not None:
             user.groups.set(groups)
+        if agences is not None:
+            user.agences_comptoir.set(agences)
+        from .permissions import ROLE_AGENT_COMPTOIR
+        if not user.groups.filter(name=ROLE_AGENT_COMPTOIR).exists():
+            user.agences_comptoir.clear()
         return user
 
 

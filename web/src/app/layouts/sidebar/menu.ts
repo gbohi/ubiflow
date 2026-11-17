@@ -20,6 +20,7 @@ export const MENU: MenuItem[] = [
     { id: 303, label: 'À préparer', icon: 'ri-list-check-2', link: '/prestataire/a-preparer', roles: RESPONSABLES_PRESTATAIRE },
     { id: 304, label: 'Comptoir', icon: 'ri-qr-scan-2-line', link: '/prestataire/comptoir', roles: PRESTATAIRES },
     { id: 305, label: 'Liste du jour', icon: 'ri-file-list-3-line', link: '/prestataire/liste-du-jour', roles: PRESTATAIRES },
+    { id: 311, label: 'Historique des retraits', icon: 'ri-history-line', link: '/prestataire/historique-retraits', roles: PRESTATAIRES, isNew: '2027-01-15' },
     { id: 306, label: 'Relevés & factures', icon: 'ri-file-text-line', link: '/prestataire/releves', roles: RESPONSABLES_PRESTATAIRE },
     { id: 307, label: 'Statistiques', icon: 'ri-bar-chart-2-line', link: '/prestataire/statistiques', roles: RESPONSABLES_PRESTATAIRE },
     { id: 308, label: 'Mon compte', isTitle: true, roles: RESPONSABLES_PRESTATAIRE },

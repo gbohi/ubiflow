@@ -9,6 +9,7 @@ import { MesMenusComponent } from './mes-menus/mes-menus.component';
 import { APreparerComponent } from './a-preparer/a-preparer.component';
 import { ListeDuJourComponent } from './liste-du-jour/liste-du-jour.component';
 import { ComptoirComponent } from './comptoir/comptoir.component';
+import { HistoriqueRetraitsComponent } from './historique-retraits/historique-retraits.component';
 import { RelevesPrestataireComponent } from './releves/releves-prestataire.component';
 import { StatistiquesPrestataireComponent } from './statistiques/statistiques-prestataire.component';
 import { EquipeComponent } from './equipe/equipe.component';
@@ -26,6 +27,7 @@ const routes: Routes = [
   { path: 'a-preparer', component: APreparerComponent, canActivate: [RoleGuard], data: RESP, title: 'À préparer | Espace prestataire' },
   { path: 'liste-du-jour', component: ListeDuJourComponent, canActivate: [RoleGuard], data: TOUS, title: 'Liste du jour | Espace prestataire' },
   { path: 'comptoir', component: ComptoirComponent, canActivate: [RoleGuard], data: TOUS, title: 'Comptoir | Espace prestataire' },
+  { path: 'historique-retraits', component: HistoriqueRetraitsComponent, canActivate: [RoleGuard], data: TOUS, title: 'Historique des retraits | Espace prestataire' },
   { path: 'releves', component: RelevesPrestataireComponent, canActivate: [RoleGuard], data: RESP, title: 'Relevés & factures | Espace prestataire' },
   { path: 'statistiques', component: StatistiquesPrestataireComponent, canActivate: [RoleGuard], data: RESP, title: 'Statistiques | Espace prestataire' },
   { path: 'profil', component: ProfilPrestataireComponent, canActivate: [RoleGuard], data: RESP, title: 'Mon profil prestataire | Espace prestataire' },

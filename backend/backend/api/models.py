@@ -40,6 +40,9 @@ class User(AbstractUser):
     # le prestataire auquel le compte appartient (vide pour les comptes UbiPharm).
     prestataire = models.ForeignKey('Prestataire', on_delete=models.PROTECT, null=True, blank=True,
                                     related_name='comptes')
+    # Agent de comptoir : agences où il intervient (comptoir, liste du jour,
+    # historique). Vide : toutes les agences desservies par son prestataire.
+    agences_comptoir = models.ManyToManyField('Agence', blank=True, related_name='agents_comptoir')
     # Mode de paiement proposé par défaut à la commande (modifiable par l'employé,
     # web et mobile) : « compte » (compte repas, si le solde couvre le repas,
     # sinon retenue) ou « retenue » (retenue sur salaire)

@@ -23,7 +23,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import mixins, serializers, status, viewsets
@@ -44,7 +44,7 @@ from .models import (
 )
 from .permissions import (
     LIBELLES_ROLES, ROLE_AGENT_COMPTOIR, ROLE_PRESTATAIRE, IsAgentComptoir, IsPrestataireResponsable,
-    agences_prestataire, get_roles, is_prestataire_responsable,
+    agences_intervention, agences_prestataire, get_roles, is_prestataire_responsable,
 )
 from .prestataires import (
     equipes_horaires_json, filtre_menus_prestataire, historique_json, horaires_menus, horaires_service,
@@ -119,6 +119,9 @@ def _agence_demandee(request, valeur=None):
     agence = _entier(valeur if valeur is not None else request.query_params.get('agence'), 'agence')
     if agence is not None and agence not in agences_rattachees(request.user.prestataire_id):
         raise PermissionDenied("Votre prestataire ne dessert pas cette agence.")
+    limite = agences_intervention(request.user)
+    if agence is not None and limite is not None and agence not in limite:
+        raise PermissionDenied("Vous n'intervenez pas dans cette agence.")
     return agence
 
 
@@ -864,6 +867,8 @@ class ListeDuJourView(APIView):
               .select_related('user', 'plat', 'menu__agence'))
         if agence is not None:
             qs = qs.filter(menu__agence_id=agence)
+        elif agences_intervention(request.user) is not None:
+            qs = qs.filter(menu__agence_id__in=agences_intervention(request.user))
         from .parcours_commande import agences_origine, filtrer_commandes_origine, lire_origine, origine_json
         origine = lire_origine(request)
         # Une ligne par repas ; le dessert (supplément) est affiché avec son plat
@@ -1118,6 +1123,9 @@ class ComptoirValiderView(APIView):
         menu = menus_du_prestataire(request.user.prestataire_id).filter(pk=menu_id).first()
         if menu is None:
             raise PermissionDenied("Ce menu n'est pas servi par votre prestataire.")
+        limite = agences_intervention(request.user)
+        if limite is not None and menu.agence_id not in limite:
+            raise PermissionDenied("Vous n'intervenez pas dans cette agence.")
         if menu.id not in {m.id for m in _menus_du_jour(request, menu.agence_id)}:
             raise ValidationError("Le retrait n'est possible que le jour du menu "
                                   "(jusqu'à la fin du retrait le lendemain pour une équipe de nuit).")
@@ -1166,6 +1174,86 @@ class ComptoirAnnulerView(APIView):
 # ══════════════════════════════════════════════════════════════
 # RELEVÉS (lecture seule ; les PDF passent par les routes de facturation)
 # ══════════════════════════════════════════════════════════════
+
+class ComptoirHistoriqueView(APIView):
+    """
+    GET /prestataire/comptoir/historique/?debut=&fin=&agence=&valide_par=ID|moi&mode=&search=
+                                         &page=1&page_size=20 (export=1 : toutes les lignes)
+    Retraits validés des jours précédents (et du jour) dans les agences du
+    prestataire — pour un agent de comptoir : ses agences d'intervention.
+    Défaut : le mois en cours ; un an au plus.
+    """
+    permission_classes = [IsAgentComptoir]
+
+    def get(self, request):
+        from django.db.models import Value
+        from django.db.models.functions import Concat
+        q = request.query_params
+        aujourdhui = timezone.localdate()
+        debut = _date(q.get('debut'), aujourdhui.replace(day=1))
+        fin = _date(q.get('fin'), aujourdhui)
+        if fin < debut:
+            raise ValidationError("La date de début doit être antérieure ou égale à la date de fin.")
+        if (fin - debut).days > 366:
+            raise ValidationError("Période trop longue (un an au plus).")
+        agence = _agence_demandee(request)
+        qs = (Retrait.objects.filter(filtre_menus_prestataire(request.user.prestataire_id, 'menu__'))
+              .filter(date_retrait__date__gte=debut, date_retrait__date__lte=fin)
+              .select_related('user', 'menu__agence', 'valide_par__prestataire'))
+        if agence is not None:
+            qs = qs.filter(menu__agence_id=agence)
+        elif agences_intervention(request.user) is not None:
+            qs = qs.filter(menu__agence_id__in=agences_intervention(request.user))
+        base = qs
+        vp = q.get('valide_par')
+        if vp == 'moi':
+            qs = qs.filter(valide_par=request.user)
+        elif vp:
+            qs = qs.filter(valide_par_id=_entier(vp, 'valide_par'))
+        if q.get('mode') in ('scan', 'saisie', 'badge'):
+            qs = qs.filter(mode=q['mode'])
+        terme = (q.get('search') or '').strip()
+        if terme:
+            plats = Commande.objects.filter(menu_id=OuterRef('menu_id'), user_id=OuterRef('user_id'),
+                                            plat__nom__icontains=terme)
+            qs = (qs.annotate(_nom=Concat('user__nom', Value(' '), 'user__prenom'))
+                  .filter(Q(_nom__icontains=terme) | Q(user__prenom__icontains=terme)
+                          | Q(user__username__icontains=terme) | Exists(plats)))
+        qs = qs.order_by('-date_retrait', '-id')
+        total = qs.count()
+        if q.get('export') in ('1', 'true'):
+            page, taille, lignes = 1, total, list(qs[:5000])
+        else:
+            taille = min(max(_entier(q.get('page_size'), 'page_size') or 20, 5), 100)
+            page = max(_entier(q.get('page'), 'page') or 1, 1)
+            lignes = list(qs[(page - 1) * taille: page * taille])
+        # Plats retirés (plat puis dessert) de chaque retrait de la page
+        plats = defaultdict(list)
+        for c in (Commande.objects.filter(statut='retiree', menu_id__in={r.menu_id for r in lignes},
+                                          user_id__in={r.user_id for r in lignes})
+                  .select_related('plat').order_by('commande_principale_id', 'id')):
+            plats[(c.menu_id, c.user_id)].append({'commande_id': c.id, 'plat': c.plat.nom,
+                                                   'supplement': bool(c.commande_principale_id)})
+        valideurs = (base.exclude(valide_par__isnull=True).values('valide_par_id', 'valide_par__nom',
+                                                                   'valide_par__prenom').distinct())
+        return Response({
+            'debut': debut.isoformat(), 'fin': fin.isoformat(), 'agence': agence,
+            'total': total, 'page': page, 'page_size': taille,
+            'nb_pages': max(1, -(-total // taille)) if taille else 1,
+            'kpis': {'retraits': total, 'par_badge': qs.filter(mode='badge').count(),
+                     'par_moi': qs.filter(valide_par=request.user).count(),
+                     'jours': qs.dates('date_retrait', 'day').count()},
+            'valideurs': sorted(({'id': v['valide_par_id'],
+                                  'nom': f"{v['valide_par__nom'] or ''} {v['valide_par__prenom'] or ''}".strip()}
+                                 for v in valideurs), key=lambda v: v['nom']),
+            'resultats': [{
+                **_retrait_json(r, request.user, plats.get((r.menu_id, r.user_id), [])),
+                'date': timezone.localtime(r.date_retrait).date().isoformat(),
+                'agence': r.menu.agence.nom_agence if r.menu.agence_id else '',
+                'date_menu': r.menu.date_menu.isoformat(),
+            } for r in lignes],
+        })
+
 
 def releves_du_prestataire(prestataire, nb_mois=12):
     """
@@ -1392,27 +1480,139 @@ class StatistiquesPrestataireView(APIView):
 
 
 class EquipeView(APIView):
-    """GET /prestataire/equipe/ : comptes du prestataire (création par UbiPharm)."""
+    """
+    GET  /prestataire/equipe/ : comptes du prestataire (responsables et agents de comptoir).
+    POST /prestataire/equipe/ : nouvel agent de comptoir
+         { nom, prenom, username, contact?, email?, password, password2, agences: [ids] }
+    Le responsable gère ses agents de comptoir (UbiPharm peut aussi le faire
+    depuis Paramètres › Utilisateurs). Agences : celles que dessert le prestataire ;
+    l'agent ne voit que celles-ci au comptoir, dans la liste du jour et l'historique.
+    """
     permission_classes = [IsPrestataireResponsable]
 
     def get(self, request):
         aujourdhui = timezone.localdate()
         debut_mois = aujourdhui.replace(day=1)
-        comptes = User.objects.filter(prestataire_id=request.user.prestataire_id).prefetch_related('groups') \
-            .order_by('nom', 'prenom')
-        resultat = []
-        for u in comptes:
-            roles = {g.name for g in u.groups.all()}
-            role = ROLE_PRESTATAIRE if ROLE_PRESTATAIRE in roles else ROLE_AGENT_COMPTOIR
-            rs = Retrait.objects.filter(valide_par=u)
-            resultat.append({
-                'id': u.id, 'username': u.username, 'nom': u.nom, 'prenom': u.prenom,
-                'nom_complet': nom_complet(u), 'role': role, 'role_libelle': LIBELLES_ROLES[role],
-                'is_active': u.is_active, 'last_login': u.last_login.isoformat() if u.last_login else None,
-                'retraits_aujourdhui': rs.filter(date_retrait__date=aujourdhui).count(),
-                'retraits_mois': rs.filter(date_retrait__date__gte=debut_mois).count(),
-            })
-        return Response(resultat)
+        comptes = (User.objects.filter(prestataire_id=request.user.prestataire_id)
+                   .prefetch_related('groups', 'agences_comptoir').order_by('nom', 'prenom'))
+        return Response([membre_json(u, aujourdhui, debut_mois) for u in comptes])
+
+    def post(self, request):
+        p = request.user.prestataire
+        d = request.data
+        agences = _agences_equipe(p, d.get('agences'))
+        for champ, libelle in (('nom', 'Le nom'), ('prenom', 'Le prénom'), ('username', "L'identifiant")):
+            if not str(d.get(champ) or '').strip():
+                raise ValidationError({champ: f"{libelle} est obligatoire."})
+        username = str(d['username']).strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError({'username': "Cet identifiant est déjà utilisé."})
+        mot_de_passe = _mot_de_passe(d)
+        from django.contrib.auth.models import Group
+        from .models import Statut
+        statut = Statut.objects.filter(libelle_statut__iexact='Actif').first() or Statut.objects.first()
+        with transaction.atomic():
+            u = User(username=username, nom=str(d['nom']).strip(), prenom=str(d['prenom']).strip(),
+                     contact=str(d.get('contact') or '').strip(), email=str(d.get('email') or '').strip(),
+                     prestataire=p, statut=statut, is_active=True)
+            u.set_password(mot_de_passe)
+            u.save()
+            u.groups.set([Group.objects.get_or_create(name=ROLE_AGENT_COMPTOIR)[0]])
+            u.agences_comptoir.set(agences)
+        aujourdhui = timezone.localdate()
+        return Response(membre_json(u, aujourdhui, aujourdhui.replace(day=1)), status=status.HTTP_201_CREATED)
+
+
+def _agences_equipe(prestataire, valeur):
+    """Agences d'intervention demandées : au moins une, desservies par le prestataire."""
+    if not isinstance(valeur, list) or not valeur:
+        raise ValidationError({'agences': "Cochez au moins une agence d'intervention."})
+    try:
+        ids = {int(v) for v in valeur}
+    except (TypeError, ValueError):
+        raise ValidationError({'agences': "Agences invalides."})
+    hors = ids - agences_rattachees(prestataire.id)
+    if hors:
+        raise ValidationError({'agences': "Votre prestataire ne dessert pas toutes ces agences."})
+    return list(Agence.objects.filter(id__in=ids))
+
+
+def _mot_de_passe(d):
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    from .serializers import validate_password_custom
+    mdp, mdp2 = d.get('password') or '', d.get('password2') or ''
+    if not mdp:
+        raise ValidationError({'password': "Le mot de passe est obligatoire."})
+    if mdp != mdp2:
+        raise ValidationError({'password': "Les mots de passe ne correspondent pas."})
+    try:
+        validate_password_custom(mdp)
+    except DjangoValidationError as e:
+        raise ValidationError({'password': e.messages})
+    return mdp
+
+
+def membre_json(u, aujourdhui, debut_mois):
+    roles = {g.name for g in u.groups.all()}
+    role = ROLE_PRESTATAIRE if ROLE_PRESTATAIRE in roles else ROLE_AGENT_COMPTOIR
+    rs = Retrait.objects.filter(valide_par=u)
+    agences = sorted(u.agences_comptoir.all(), key=lambda a: a.nom_agence) if role == ROLE_AGENT_COMPTOIR else []
+    return {
+        'id': u.id, 'username': u.username, 'nom': u.nom, 'prenom': u.prenom,
+        'contact': u.contact, 'email': u.email,
+        'nom_complet': nom_complet(u), 'role': role, 'role_libelle': LIBELLES_ROLES[role],
+        'is_active': u.is_active, 'last_login': u.last_login.isoformat() if u.last_login else None,
+        # Agences d'intervention (agent de comptoir) ; vide : toutes les agences du prestataire
+        'agences': [{'id': a.id, 'nom': a.nom_agence} for a in agences],
+        'modifiable': role == ROLE_AGENT_COMPTOIR,
+        'retraits_aujourdhui': rs.filter(date_retrait__date=aujourdhui).count(),
+        'retraits_mois': rs.filter(date_retrait__date__gte=debut_mois).count(),
+    }
+
+
+class EquipeMembreView(APIView):
+    """
+    PATCH /prestataire/equipe/{id}/ { nom?, prenom?, contact?, email?, agences?, is_active? }
+    POST  /prestataire/equipe/{id}/mot-de-passe/ { password, password2 }
+    Agents de comptoir du prestataire seulement (pas les responsables).
+    """
+    permission_classes = [IsPrestataireResponsable]
+    mot_de_passe = False
+
+    def _agent(self, request, pk):
+        u = get_object_or_404(User.objects.prefetch_related('groups'), pk=pk,
+                              prestataire_id=request.user.prestataire_id)
+        roles = {g.name for g in u.groups.all()}
+        if ROLE_PRESTATAIRE in roles or ROLE_AGENT_COMPTOIR not in roles:
+            raise PermissionDenied("Seuls les comptes des agents de comptoir sont modifiables ici. "
+                                   "Pour un responsable, contactez UbiPharm.")
+        return u
+
+    def patch(self, request, pk):
+        u = self._agent(request, pk)
+        d = request.data
+        for champ in ('nom', 'prenom', 'contact', 'email'):
+            if champ in d:
+                valeur = str(d.get(champ) or '').strip()
+                if champ in ('nom', 'prenom') and not valeur:
+                    raise ValidationError({champ: "Ce champ est obligatoire."})
+                setattr(u, champ, valeur)
+        if 'is_active' in d:
+            u.is_active = d.get('is_active') in (True, 'true', '1', 1)
+        with transaction.atomic():
+            u.save()
+            if 'agences' in d:
+                u.agences_comptoir.set(_agences_equipe(request.user.prestataire, d.get('agences')))
+        aujourdhui = timezone.localdate()
+        return Response(membre_json(u, aujourdhui, aujourdhui.replace(day=1)))
+
+    def post(self, request, pk):
+        if not self.mot_de_passe:
+            raise PermissionDenied()
+        u = self._agent(request, pk)
+        u.set_password(_mot_de_passe(request.data))
+        u.save(update_fields=['password'])
+        return Response({'detail': f"Mot de passe de {nom_complet(u)} modifié."})
 
 
 # ══════════════════════════════════════════════════════════════

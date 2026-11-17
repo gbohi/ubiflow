@@ -266,9 +266,14 @@ export interface MembreEquipe {
   username: string;
   nom: string;
   prenom: string;
+  contact?: string;
+  email?: string;
   nom_complet: string;
   role: string;
   role_libelle: string;
+  /** Agences d'intervention (agent de comptoir) ; vide : toutes */
+  agences?: { id: number; nom: string }[];
+  modifiable?: boolean;
   is_active: boolean;
   last_login: string | null;
   retraits_aujourdhui: number;
@@ -423,6 +428,39 @@ export class EspacePrestataireService {
   equipe(): Observable<MembreEquipe[]> {
     return this.http.get<MembreEquipe[]>(`${this.url}/equipe/`);
   }
+
+  creerAgent(donnees: { nom: string; prenom: string; username: string; contact?: string; email?: string;
+                        password: string; password2: string; agences: number[] }): Observable<MembreEquipe> {
+    return this.http.post<MembreEquipe>(`${this.url}/equipe/`, donnees);
+  }
+
+  modifierAgent(id: number, donnees: Partial<{ nom: string; prenom: string; contact: string; email: string;
+                                              agences: number[]; is_active: boolean }>): Observable<MembreEquipe> {
+    return this.http.patch<MembreEquipe>(`${this.url}/equipe/${id}/`, donnees);
+  }
+
+  motDePasseAgent(id: number, password: string, password2: string): Observable<{ detail: string }> {
+    return this.http.post<{ detail: string }>(`${this.url}/equipe/${id}/mot-de-passe/`, { password, password2 });
+  }
+
+  historiqueRetraits(filtres: { debut?: string; fin?: string; agence?: any; valide_par?: any; mode?: string;
+                                search?: string; page?: number; page_size?: number; export?: number }): Observable<HistoriqueRetraits> {
+    return this.http.get<HistoriqueRetraits>(`${this.url}/comptoir/historique/`, { params: params(filtres) });
+  }
+}
+
+export interface RetraitHistorique {
+  id: number; user_id: number; user_nom: string; matricule: string; menu_id: number; date_retrait: string;
+  heure: string; date: string; date_menu: string; agence: string;
+  plats: { commande_id: number; plat: string; supplement?: boolean }[];
+  valide_par_id: number | null; valide_par_nom: string | null; mode: string;
+}
+
+export interface HistoriqueRetraits {
+  debut: string; fin: string; agence: number | null; total: number; page: number; page_size: number; nb_pages: number;
+  kpis: { retraits: number; par_badge: number; par_moi: number; jours: number };
+  valideurs: { id: number; nom: string }[];
+  resultats: RetraitHistorique[];
 }
 
 // ── Petits utilitaires d'affichage partagés par les pages ────────

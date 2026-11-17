@@ -23,6 +23,7 @@ import { ProfilPrestataireComponent } from './profil/profil-prestataire.componen
  * (+ gabarits communs _listes.scss et _cantine-ecrans.scss).
  */
 import { SuiviServicesComponent } from './suivi-services/suivi-services.component';
+import { HistoriqueRetraitsComponent } from './historique-retraits/historique-retraits.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import { SuiviServicesComponent } from './suivi-services/suivi-services.componen
     EquipeComponent,
     ProfilPrestataireComponent,
     SuiviServicesComponent,
+    HistoriqueRetraitsComponent,
   ],
   imports: [
     CommonModule,

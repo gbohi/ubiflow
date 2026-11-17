@@ -223,6 +223,8 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       groups:          [[]],
       // Espace prestataire : prestataire du compte (rôles prestataire / agent_comptoir)
       prestataire:     [null],
+      // Agent de comptoir : agences d'intervention (vide = toutes celles du prestataire)
+      agences_comptoir: [[]],
       // Équipe de l'employé (facultative) : présélectionnée quand il commande
       typeequipe:      [null],
     }, { validators: passwordMatchValidator });
@@ -280,7 +282,10 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
     this.store.select(selectAllTypeequipeWithoutPagination).pipe(takeUntil(this.destroy$)).subscribe(d => this.typeequipes = d ?? []);
 
     this.http.get<any[]>(`${environment.apiUrl}/api/api/allnopagin/prestataires/`).pipe(catchError(() => of([])), takeUntil(this.destroy$))
-      .subscribe(d => this.prestataires = (d ?? []).map(p => ({ id: p.id, libelle: p.libelle })));
+      .subscribe(d => this.prestataires = (d ?? []).map(p => ({
+        id: p.id, libelle: p.libelle,
+        agences: [...new Map((p.agence_prestataires ?? []).map((ap: any) => [Number(ap.agence), { id: Number(ap.agence), nom: ap.agence_libelle }])).values()] as { id: number; nom: string }[],
+      })));
 
     this.roleService.getAllRolesNoPaginate().pipe(takeUntil(this.destroy$)).subscribe(data => {
       this.groupes = data ?? [];
@@ -701,7 +706,28 @@ getDerniereCategorie(user: any): any | null {
   }
 
   /** Prestataires (rattachement des comptes de l'espace prestataire) */
-  prestataires: { id: number; libelle: string }[] = [];
+  prestataires: { id: number; libelle: string; agences?: { id: number; nom: string }[] }[] = [];
+
+  /** Le compte édité est un agent de comptoir (agences d'intervention) */
+  get estAgentComptoir(): boolean {
+    const id = this.groupes.find(g => g.name === 'agent_comptoir')?.id;
+    return id != null && (this.userForm?.get('groups')?.value || []).map(Number).includes(Number(id));
+  }
+
+  /** Agences desservies par le prestataire choisi */
+  get agencesDuPrestataire(): { id: number; nom: string }[] {
+    const p = this.prestataires.find(x => x.id === Number(this.userForm?.get('prestataire')?.value));
+    return p?.agences ?? [];
+  }
+
+  agenceComptoirCochee(id: number): boolean {
+    return (this.userForm.get('agences_comptoir')?.value || []).map(Number).includes(id);
+  }
+
+  basculerAgenceComptoir(id: number): void {
+    const v: number[] = (this.userForm.get('agences_comptoir')?.value || []).map(Number);
+    this.userForm.get('agences_comptoir')?.setValue(v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
+  }
 
   private get idsRolesPrestataire(): number[] {
     return this.groupes.filter(g => g.name === 'prestataire' || g.name === 'agent_comptoir').map(g => Number(g.id));
@@ -815,7 +841,7 @@ getDerniereCategorie(user: any): any | null {
     this.lastActiveElement = document.activeElement as HTMLElement;
     this.currentUserId = null; this._resetAllLignes();
     this.submitted = false; this.userForm.reset();
-    this.userForm.patchValue({ is_active: true, groups: [], prestataire: null, typeequipe: null });
+    this.userForm.patchValue({ is_active: true, groups: [], prestataire: null, typeequipe: null, agences_comptoir: [] });
     this._motDePasseObligatoire(true);
     this.etape = 'identite';
     this.setModalTitle('Ajouter un utilisateur'); this.setModalBtn('Enregistrer'); this.addUser?.show();
@@ -831,7 +857,7 @@ getDerniereCategorie(user: any): any | null {
     const editData = this.users.find(u => u.id === id);
     if (!editData) return;
     this.currentUserId = id; this._resetAllLignes(); this.submitted = false;
-    this.userForm.patchValue({ ...editData, password: '', password2: '', groups: (editData.groups || []).map(Number), prestataire: editData.prestataire ?? null, typeequipe: editData.typeequipe ?? null });
+    this.userForm.patchValue({ ...editData, password: '', password2: '', groups: (editData.groups || []).map(Number), prestataire: editData.prestataire ?? null, typeequipe: editData.typeequipe ?? null, agences_comptoir: (editData.agences_comptoir || []).map(Number) });
     this._motDePasseObligatoire(false);
     this.etape = 'identite';
     this._chargerHistorique(editData);
@@ -926,6 +952,10 @@ getDerniereCategorie(user: any): any | null {
     if (!formValue.password) { delete formValue.password; delete formValue.password2; }
     formValue.groups = (formValue.groups || []).map(Number);
     formValue.prestataire = this.estRolePrestataire && formValue.prestataire ? Number(formValue.prestataire) : null;
+    // Agences d'intervention : agent de comptoir seulement, parmi celles de son prestataire
+    const desservies = this.agencesDuPrestataire.map(a => a.id);
+    formValue.agences_comptoir = this.estAgentComptoir
+      ? (formValue.agences_comptoir || []).map(Number).filter((a: number) => desservies.includes(a)) : [];
     // Compte prestataire : pas d'équipe (il ne commande pas)
     formValue.typeequipe = !this.estRolePrestataire && formValue.typeequipe ? Number(formValue.typeequipe) : null;
     formValue.email = formValue.email || '';

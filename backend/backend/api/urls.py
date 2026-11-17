@@ -163,6 +163,8 @@ urlpatterns = [
          name='prestataire-comptoir-valider'),
     path('api/prestataire/comptoir/retraits/<int:pk>/annuler/', presta.ComptoirAnnulerView.as_view(),
          name='prestataire-comptoir-annuler'),
+    path('api/prestataire/comptoir/historique/', presta.ComptoirHistoriqueView.as_view(),
+         name='prestataire-comptoir-historique'),
     path('api/prestataire/releves/', presta.RelevesView.as_view(), name='prestataire-releves'),
     # Suivi des factures prestataires (api/suivi_factures.py) : côté prestataire
     path('api/prestataire/factures/', suivi.PrestaFacturesView.as_view(), name='prestataire-factures'),
@@ -183,6 +185,9 @@ urlpatterns = [
     path('api/prestataire/statistiques/', presta.StatistiquesPrestataireView.as_view(),
          name='prestataire-statistiques'),
     path('api/prestataire/equipe/', presta.EquipeView.as_view(), name='prestataire-equipe'),
+    path('api/prestataire/equipe/<int:pk>/', presta.EquipeMembreView.as_view(), name='prestataire-equipe-membre'),
+    path('api/prestataire/equipe/<int:pk>/mot-de-passe/', presta.EquipeMembreView.as_view(mot_de_passe=True),
+         name='prestataire-equipe-mot-de-passe'),
     path('api/prestataire/profil/', presta.ProfilPrestataireView.as_view(), name='prestataire-profil'),
     # Parcours de commande des employés : agence → prestataire → équipe → jour
     path('api/commander/agences/', parcours.CommanderAgencesView.as_view(), name='commander-agences'),

@@ -139,6 +139,19 @@ def is_acces_caisse(user):
     return is_caissier(user) or is_comptabilite(user)
 
 
+def agences_intervention(user):
+    """
+    Agences d'intervention d'un agent de comptoir (ensemble d'ids), ou None :
+    pas de restriction (responsable, compte UbiPharm, agent sans agence cochée).
+    """
+    if not is_compte_prestataire(user) or ROLE_PRESTATAIRE in get_roles(user):
+        return None
+    if not hasattr(user, '_agences_intervention'):
+        ids = set(user.agences_comptoir.values_list('id', flat=True)) if user.pk else set()
+        user._agences_intervention = ids or None
+    return user._agences_intervention
+
+
 def agences_prestataire(user, a_date=None):
     """
     Agences que le prestataire du compte dessert à la date donnée (aujourd'hui
@@ -158,7 +171,9 @@ def agences_prestataire(user, a_date=None):
         par_agence = {}
         for ap in AgencePrestataire.objects.filter(prestataire_id=user.prestataire_id):
             par_agence.setdefault(ap.agence_id, []).append(ap)
-        setattr(user, cle, {a for a, lignes in par_agence.items() if ligne_active(lignes, d)})
+        desservies = {a for a, lignes in par_agence.items() if ligne_active(lignes, d)}
+        limite = agences_intervention(user)
+        setattr(user, cle, desservies & limite if limite is not None else desservies)
     return getattr(user, cle)
 
 
