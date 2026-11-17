@@ -60,16 +60,24 @@ def _nom(u):
 # Lignes normalisées
 # ══════════════════════════════════════════════════════════════
 
-def _ligne(date_menu, plat, agence, montant, statut, user, source, type_plat='', offert=False):
+def _ligne(date_menu, plat, agence, montant, statut, user, source, type_plat='', offert=False, supplement=False):
     return {'date_menu': date_menu, 'plat': plat, 'agence': agence or '—', 'montant': montant,
-            'statut': statut, 'user': user, 'source': source, 'type_plat': type_plat or '', 'offert': offert}
+            'statut': statut, 'user': user, 'source': source, 'type_plat': type_plat or '', 'offert': offert,
+            # Supplément (dessert…) : compté à part, jamais comme un repas
+            'supplement': supplement}
+
+
+def _repas(lignes):
+    """Repas (plats principaux) : les suppléments ne sont pas des repas."""
+    return [l for l in lignes if not l.get('supplement')]
 
 
 def lignes_du_prestataire(lignes_prest, prestataire_id):
     """Lignes de facturation.lignes_prestataires attribuées à ce prestataire."""
     return [
         _ligne(l['date_menu'], l['plat'], l['agence_menu'], l['montant'], l['statut'],
-               l['commande'].user, l['source'], l.get('type_plat', ''), l.get('offert', False))
+               l['commande'].user, l['source'], l.get('type_plat', ''), l.get('offert', False),
+               l.get('supplement', False))
         for l in lignes_prest
         if l['prestataire'] is not None and l['prestataire'].id == prestataire_id
     ]
@@ -81,7 +89,8 @@ def lignes_de_facture(facture):
         _ligne(l.date_menu, l.plat_nom, l.agence_nom, l.montant,
                l.commande.statut if l.commande_id and l.commande else None, l.user, 'facture',
                l.commande.plat.type_plat.libelle if l.commande_id and l.commande and l.commande.plat.type_plat_id else '',
-               bool(l.commande_id and l.commande and l.commande.mode_paiement == 'offert'))
+               bool(l.commande_id and l.commande and l.commande.mode_paiement == 'offert'),
+               bool(l.commande_id and l.commande and l.commande.commande_principale_id))
         for l in facture.lignes.select_related('commande__plat__type_plat', 'user').order_by('date_menu', 'id')
     ]
 
@@ -104,7 +113,7 @@ def par_plat(lignes):
     for l in lignes:
         g = groupes.setdefault((l['plat'], l.get('type_plat', ''), l['montant']), {
             'plat': l['plat'], 'type_plat': l.get('type_plat', ''), 'pu': l['montant'], 'nb_repas': 0,
-            'retires': 0, 'offerts': 0, 'montant': Decimal('0')})
+            'retires': 0, 'offerts': 0, 'montant': Decimal('0'), 'supplement': bool(l.get('supplement'))})
         g['nb_repas'] += 1
         g['retires'] += l['statut'] == 'retiree'
         g['offerts'] += bool(l.get('offert'))
@@ -123,7 +132,7 @@ def par_type(lignes):
     for l in lignes:
         g = groupes.setdefault((l.get('type_plat', ''), l['montant']), {
             'type_plat': l.get('type_plat') or 'Tous types', 'pu': l['montant'], 'nb_repas': 0,
-            'payants': 0, 'offerts': 0, 'montant': Decimal('0')})
+            'payants': 0, 'offerts': 0, 'montant': Decimal('0'), 'supplement': bool(l.get('supplement'))})
         g['nb_repas'] += 1
         g['offerts' if l.get('offert') else 'payants'] += 1
         if l['montant'] is not None:
@@ -136,20 +145,21 @@ def par_jour(lignes, plats_ordre):
     jours = OrderedDict()
     for l in sorted(lignes, key=lambda l: l['date_menu']):
         j = jours.setdefault(l['date_menu'], {'date': l['date_menu'], 'plats': defaultdict(int),
-                                              'nb_repas': 0, 'montant': Decimal('0')})
+                                              'nb_repas': 0, 'nb_supplements': 0, 'montant': Decimal('0')})
         j['plats'][l['plat']] += 1
-        j['nb_repas'] += 1
+        j['nb_supplements' if l.get('supplement') else 'nb_repas'] += 1
         if l['montant'] is not None:
             j['montant'] += l['montant']
     semaines = OrderedDict()
     for j in jours.values():
         lundi = j['date'] - timedelta(days=j['date'].weekday())
         s = semaines.setdefault(lundi, {'jours': [], 'plats': defaultdict(int), 'nb_repas': 0,
-                                        'montant': Decimal('0')})
+                                        'nb_supplements': 0, 'montant': Decimal('0')})
         s['jours'].append(j)
         for p, n in j['plats'].items():
             s['plats'][p] += n
         s['nb_repas'] += j['nb_repas']
+        s['nb_supplements'] += j['nb_supplements']
         s['montant'] += j['montant']
     rang = {p: i for i, p in enumerate(plats_ordre)}
     resultat = []
@@ -159,7 +169,8 @@ def par_jour(lignes, plats_ordre):
             'numero': numero,
             'libelle': f"Semaine du {premier:%d/%m} au {dernier:%d/%m}",
             'debut': premier, 'fin': dernier, 'nb_jours': len(s['jours']),
-            'plats': dict(s['plats']), 'nb_repas': s['nb_repas'], 'montant': s['montant'],
+            'plats': dict(s['plats']), 'nb_repas': s['nb_repas'], 'nb_supplements': s['nb_supplements'],
+            'montant': s['montant'],
             'jours': [{**j, 'plats': sorted(j['plats'].items(), key=lambda x: (-x[1], rang.get(x[0], 0)))}
                       for j in s['jours']],
         })
@@ -169,8 +180,9 @@ def par_jour(lignes, plats_ordre):
 def par_agence(lignes):
     groupes = OrderedDict()
     for l in sorted(lignes, key=lambda l: l['agence']):
-        g = groupes.setdefault(l['agence'], {'agence': l['agence'], 'nb_repas': 0, 'montant': Decimal('0')})
-        g['nb_repas'] += 1
+        g = groupes.setdefault(l['agence'], {'agence': l['agence'], 'nb_repas': 0, 'nb_supplements': 0,
+                                             'montant': Decimal('0')})
+        g['nb_supplements' if l.get('supplement') else 'nb_repas'] += 1
         if l['montant'] is not None:
             g['montant'] += l['montant']
     return sorted(groupes.values(), key=lambda g: -g['nb_repas'])
@@ -183,9 +195,10 @@ def par_agent(lignes):
         cle = u.id if u else None
         g = groupes.setdefault(cle, {
             'user_id': cle, 'username': u.username if u else '—', 'nom_prenom': _nom(u) or '—',
-            'agence': l['agence'], 'nb_repas': 0, 'retires': 0, 'montant': Decimal('0'), 'lignes': []})
-        g['nb_repas'] += 1
-        g['retires'] += l['statut'] == 'retiree'
+            'agence': l['agence'], 'nb_repas': 0, 'nb_supplements': 0, 'retires': 0, 'montant': Decimal('0'),
+            'lignes': []})
+        g['nb_supplements' if l.get('supplement') else 'nb_repas'] += 1
+        g['retires'] += l['statut'] == 'retiree' and not l.get('supplement')
         if l['montant'] is not None:
             g['montant'] += l['montant']
         g['lignes'].append(l)
@@ -198,13 +211,16 @@ def synthese(lignes, debut, fin):
     ordre = list(OrderedDict.fromkeys(p['plat'] for p in plats))
     jours = par_jour(lignes, ordre)
     nb_jours = sum(s['nb_jours'] for s in jours)
-    nb = len(lignes)
+    repas = _repas(lignes)
+    nb = len(repas)
     sources = {l['source'] for l in lignes}
     return {
         'debut': debut, 'fin': fin, 'periode': libelle_periode(debut, fin),
         'nb_repas': nb,
-        'retires': sum(l['statut'] == 'retiree' for l in lignes),
-        'non_retires': sum(l['statut'] != 'retiree' for l in lignes),
+        'nb_supplements': len(lignes) - nb,
+        'montant_supplements': _somme([l for l in lignes if l.get('supplement')]),
+        'retires': sum(l['statut'] == 'retiree' for l in repas),
+        'non_retires': sum(l['statut'] != 'retiree' for l in repas),
         'repas_sans_tarif': sum(l['montant'] is None for l in lignes),
         'montant': _somme(lignes),
         'jours_servis': nb_jours,
@@ -213,7 +229,7 @@ def synthese(lignes, debut, fin):
         'plats_ordre': ordre,
         'par_plat': plats,
         'par_type': par_type(lignes),
-        'nb_offerts': sum(bool(l.get('offert')) for l in lignes),
+        'nb_offerts': sum(bool(l.get('offert')) for l in repas),
         'semaines': jours,
         'par_agence': par_agence(lignes),
         'agences': sorted({l['agence'] for l in lignes}),
@@ -314,7 +330,7 @@ def releve_prestataire(prestataire, debut, fin, agences_gerees_ids=None, agence=
         if p is None:
             continue
         t = totaux.setdefault(p.id, {'id': p.id, 'libelle': p.libelle, 'nb_repas': 0, 'montant': Decimal('0')})
-        t['nb_repas'] += 1
+        t['nb_repas'] += not l.get('supplement')
         if l['montant'] is not None:
             t['montant'] += l['montant']
     rattaches = AgencePrestataire.objects.select_related('prestataire')
@@ -336,7 +352,7 @@ def releve_prestataire(prestataire, debut, fin, agences_gerees_ids=None, agence=
         plats_prec = defaultdict(int)
         for l in prec:
             plats_prec[l['plat']] += 1
-        s['precedent'] = {'annee': a, 'mois': mo, 'libelle': MOIS[mo - 1], 'nb_repas': len(prec),
+        s['precedent'] = {'annee': a, 'mois': mo, 'libelle': MOIS[mo - 1], 'nb_repas': len(_repas(prec)),
                           'montant': _somme(prec), 'plats': dict(plats_prec)}
     return s, lignes
 

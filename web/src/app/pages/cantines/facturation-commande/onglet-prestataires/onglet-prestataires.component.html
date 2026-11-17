@@ -118,7 +118,7 @@
                   }
                   <tr class="ce-total">
                     <td>Total · {{ releve.par_plat.length }} plat{{ releve.par_plat.length > 1 ? 's' : '' }}</td>
-                    <td class="ce-n">{{ c.nb_repas }}</td><td class="ce-hide-m"></td>
+                    <td class="ce-n">{{ c.nb_repas }}@if (c.nb_supplements) { <small class="d-block ce-muted">+ {{ c.nb_supplements }} dessert{{ c.nb_supplements > 1 ? 's' : '' }}</small> }</td><td class="ce-hide-m"></td>
                     <td class="ce-n">{{ f(c.montant) }} F</td>
                     @if (c.precedent; as p) { <td class="ce-n ce-hide-m"><span class="ce-ev" [class.ce-ev-up]="p.ecart_repas > 0" [class.ce-ev-dn]="p.ecart_repas < 0">{{ p.ecart_repas > 0 ? '+' : '' }}{{ p.ecart_repas }}</span></td> }
                     <td class="ce-hide-m"></td>
@@ -162,7 +162,7 @@
                       <td colspan="4"><button type="button" class="ce-lien-plus"><i class="ri-arrow-up-s-line"></i>Replier</button></td>
                     </tr>
                   }
-                  <tr class="ce-total"><td colspan="2">Total {{ releve.periode }}</td><td class="ce-n">{{ c.nb_repas }}</td><td class="ce-n">{{ f(c.montant) }} F</td></tr>
+                  <tr class="ce-total"><td colspan="2">Total {{ releve.periode }}</td><td class="ce-n">{{ c.nb_repas }}@if (c.nb_supplements) { <small class="d-block ce-muted">+ {{ c.nb_supplements }} desserts</small> }</td><td class="ce-n">{{ f(c.montant) }} F</td></tr>
                 </tbody>
               </table>
             </div>

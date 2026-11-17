@@ -205,7 +205,7 @@
                 <tr>
                   <td><b>{{ r.libelle }}</b></td>
                   <td>{{ r.numero || '—' }}</td>
-                  <td class="n">{{ nombreFr(r.nb_repas) }}</td>
+                  <td class="n">{{ nombreFr(r.nb_repas) }}@if (r.nb_supplements) { <small class="d-block ep-dessert">+ {{ nombreFr(r.nb_supplements) }} desserts</small> }</td>
                   <td class="n"><b>{{ montantFr(r.montant) }}</b></td>
                   <td><span class="lst-tag" [ngClass]="classeEtat(r)">{{ libelleEtat(r) }}</span></td>
                 </tr>

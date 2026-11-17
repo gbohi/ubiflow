@@ -1564,7 +1564,7 @@ class FacturePrestataireSerializer(serializers.ModelSerializer):
     class Meta:
         model  = FacturePrestataire
         fields = ['id', 'numero', 'prestataire', 'prestataire_libelle', 'annee', 'mois',
-                  'nb_repas', 'montant_total', 'cloturee_le', 'lignes']
+                  'nb_repas', 'nb_supplements', 'montant_total', 'cloturee_le', 'lignes']
 
 
 class ParametresSocieteSerializer(serializers.ModelSerializer):

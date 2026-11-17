@@ -15,7 +15,7 @@ from .tests import API, _synchrone
 from .tests_tarifs_offerts import _TarifsBase
 
 
-class SupplementsTests(_TarifsBase):
+class _SupplementsBase(_TarifsBase):
 
     def setUp(self):
         super().setUp()
@@ -45,6 +45,10 @@ class SupplementsTests(_TarifsBase):
             donnees['supplements'] = [p.id for p in supplements]
         with patch('api.signals._en_arriere_plan', _synchrone):
             return self.client_pour(user or self.employe).post(f'{API}/commandes/', donnees, format='json')
+
+
+
+class SupplementsTests(_SupplementsBase):
 
     def test_plat_et_dessert_inclus_compte_debite_du_plat_seulement(self):
         cr.recharger(self.employe, D('5000'), self.admin)
@@ -165,3 +169,65 @@ class SupplementsTests(_TarifsBase):
         self.assertEqual({(s['nom'], s['choisi']) for s in r.data['supplements']},
                          {('Banane flambée', False), ('Salade de fruits', True)})
         self.assertEqual(self.client_pour(self.employe2).get(f'{API}/commandes/{cid}/supplement/').status_code, 403)
+
+
+class SupplementsComptesAPartTests(_SupplementsBase):
+    """Un plat + son dessert = 1 repas et 1 supplément (relevés, clôture, statistiques, liste du jour)."""
+
+    def _mois_passe(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from .models import Menu
+        jour = timezone.localdate().replace(day=1) - timedelta(days=3)
+        m = Menu.objects.create(date_menu=jour, agence=self.agence, typeequipe=self.typeequipe,
+                                prestataire=self.presta_a)
+        for p in (self.plat_a, self.salade):
+            MenuPlat.objects.create(menu=m, plat=p)
+        c = Commande.objects.create(user=self.employe, menu=m, plat=self.plat_a, statut='retiree',
+                                    mode_paiement='retenue')
+        Commande.objects.create(user=self.employe, menu=m, plat=self.salade, statut='retiree',
+                                mode_paiement='offert', commande_principale=c)
+        return jour
+
+    def test_cloture_et_releve(self):
+        from .models import FacturePrestataire
+        jour = self._mois_passe()
+        cloture = fact.cloturer_mois(jour.year, jour.month, self.admin)
+        self.assertEqual(cloture.nb_repas, 1)                         # facture employé : le plat seul
+        f = FacturePrestataire.objects.get(prestataire=self.presta_a)
+        self.assertEqual((f.nb_repas, f.nb_supplements, f.montant_total), (1, 1, D('1200')))
+        rel = self.client_pour(self.resp_a).get(f'{API}/prestataire/releves/').data
+        ligne = next(r for r in rel if r['etat'] == 'cloture')
+        self.assertEqual((ligne['nb_repas'], ligne['nb_supplements']), (1, 1))
+
+    def test_statistiques_prestataire(self):
+        jour = self._mois_passe()
+        debut = jour.replace(day=1).isoformat()
+        r = self.client_pour(self.resp_a).get(f'{API}/prestataire/statistiques/',
+                                              {'debut': debut, 'fin': jour.isoformat()}).data
+        self.assertEqual((r['kpis']['commandes'], r['kpis']['supplements']), (1, 1))
+        self.assertEqual([p['plat'] for p in r['par_plat']], [self.plat_a.nom])
+        self.assertEqual([p['plat'] for p in r['par_supplement']], ['Salade de fruits'])
+
+    def test_liste_du_jour_une_ligne_par_repas(self):
+        from . import supplements as sp
+        m = self.menu_du_jour(plats=[self.plat_a, self.salade])
+        principal = Commande.objects.create(user=self.employe, menu=m, plat=self.plat_a)
+        sp.ajouter(principal, self.salade, self.employe, verifier_delai=False)
+        r = self.client_pour(self.agent_a).get(f'{API}/prestataire/liste-du-jour/').data
+        self.assertEqual(r['total'], 1)
+        self.assertEqual(r['lignes'][0]['supplements'], ['Salade de fruits'])
+
+    def test_apercu_avant_cloture(self):
+        jour = self._mois_passe()
+        url = f'{API}/facturation/clotures/apercu/'
+        self.assertEqual(self.client_pour(self.gestionnaire).get(url, {'annee': jour.year, 'mois': jour.month})
+                         .status_code, 403)
+        a = self.client_pour(self.admin).get(url, {'annee': jour.year, 'mois': jour.month}).data
+        self.assertTrue(a['cloturable'], a['obstacles'])
+        self.assertEqual((a['nb_repas'], a['nb_supplements'], a['nb_employes']), (1, 1, 1))
+        self.assertEqual((a['montant_employes'], a['montant_prestataires']), (1000.0, 1200.0))
+        self.assertEqual(a['prestataires'][0]['nb_supplements'], 1)
+        fact.cloturer_mois(jour.year, jour.month, self.admin)
+        a = self.client_pour(self.admin).get(url, {'annee': jour.year, 'mois': jour.month}).data
+        self.assertEqual((a['deja_cloture'], a['cloturable']), (True, False))

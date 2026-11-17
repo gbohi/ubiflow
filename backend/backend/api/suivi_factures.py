@@ -233,7 +233,7 @@ def releve_json(f, user, detail=False):
     d = {
         'id': f.id, 'numero': f.numero, 'annee': f.annee, 'mois': f.mois, 'libelle': libelle_mois(f),
         'prestataire': {'id': f.prestataire_id, 'libelle': f.prestataire_libelle},
-        'nb_repas': f.nb_repas, 'montant': _f(f.montant_total),
+        'nb_repas': f.nb_repas, 'nb_supplements': f.nb_supplements, 'montant': _f(f.montant_total),
         'statut': f.statut, 'statut_libelle': f.get_statut_display(),
         'etape': ETAPE_DU_STATUT.get(f.statut, 2) if f.statut != 'payee' else 6,
         'etapes': etapes(f, depot),
@@ -314,7 +314,8 @@ def releve_emis(releve, par_user):
         releve=releve, action='emis', user=par_user,
         donnees={'numero': releve.numero or '', 'montant': str(releve.montant_total)})
     notifier(releve, 'prestataire', '📄 Relevé de prestations émis',
-             f"Votre relevé {_ref(releve)} est émis : {releve.nb_repas} repas, "
+             f"Votre relevé {_ref(releve)} est émis : {releve.nb_repas} repas"
+             f"{f' + {releve.nb_supplements} supplément(s)' if releve.nb_supplements else ''}, "
              f"{fcfa_texte(releve.montant_total)}. Donnez votre bon pour accord, puis déposez votre facture "
              "dans « Relevés & factures ».")
 

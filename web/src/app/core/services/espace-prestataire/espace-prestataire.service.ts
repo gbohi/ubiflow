@@ -126,7 +126,7 @@ export interface APreparer {
   date_fin: string;
   agences: AgencePresta[];
   jours: JourAPreparer[];
-  semaine: { debut: string; fin: string; nb_repas: number; tarif: number | null; montant_estime: number | null };
+  semaine: { debut: string; fin: string; nb_repas: number; nb_supplements?: number; tarif: number | null; montant_estime: number | null };
 }
 
 export interface LigneListeJour extends OrigineCommande {
@@ -141,6 +141,7 @@ export interface LigneListeJour extends OrigineCommande {
   agence_id: number;
   plat_id: number;
   plat: string;
+  supplements?: string[];
   statut: 'a_servir' | 'retire' | 'non_retire' | string;
   heure_retrait: string | null;
   valide_par_nom: string | null;
@@ -217,6 +218,7 @@ export interface ReleveMois {
   releve_id: number | null;
   numero: string | null;
   nb_repas: number;
+  nb_supplements?: number;
   montant: number;
   cloturee_le: string | null;
   /** Suivi du relevé officiel (étape 3) : null avant la clôture */
@@ -252,9 +254,12 @@ export interface StatsPresta {
   fin: string;
   agence: number | null;
   en_cours: boolean;
-  kpis: { commandes: number; servis: number; a_servir: number; non_retires: number; annulees: number; taux_retrait: number | null; note_moyenne: number | null; nb_avis: number };
-  par_plat: { plat_id: number; plat: string; agences: string[]; commandes: number; servis: number; a_servir: number; non_retires: number; annulees: number; taux_retrait: number | null; note: number | null; nb_avis: number }[];
+  kpis: { commandes: number; servis: number; a_servir: number; non_retires: number; annulees: number; taux_retrait: number | null; note_moyenne: number | null; nb_avis: number; supplements?: number; part_supplements?: number | null };
+  par_plat: LigneStatPresta[];
+  par_supplement?: LigneStatPresta[];
 }
+
+export interface LigneStatPresta { plat_id: number; plat: string; agences: string[]; commandes: number; servis: number; a_servir: number; non_retires: number; annulees: number; taux_retrait: number | null; note: number | null; nb_avis: number }
 
 export interface MembreEquipe {
   id: number;

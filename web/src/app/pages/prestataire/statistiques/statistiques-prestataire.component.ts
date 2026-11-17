@@ -62,13 +62,18 @@ export class StatistiquesPrestataireComponent implements OnInit {
     });
   }
 
+  /** Plats (repas) ou suppléments (desserts…) */
+  vue: 'plats' | 'supplements' = 'plats';
+
+  get lignesVue() { return (this.vue === 'plats' ? this.stats?.par_plat : this.stats?.par_supplement) ?? []; }
+
   get plats() {
-    const l = [...(this.stats?.par_plat ?? [])];
+    const l = [...this.lignesVue];
     return l.sort((a, b) => (Number(b[this.tri]) || 0) - (Number(a[this.tri]) || 0));
   }
 
   get maxCommandes(): number {
-    return Math.max(1, ...(this.stats?.par_plat ?? []).map(p => p.commandes));
+    return Math.max(1, ...this.lignesVue.map(p => p.commandes));
   }
 
   pct(n: number, max: number): number { return max ? Math.round(100 * n / max) : 0; }
@@ -78,6 +83,9 @@ export class StatistiquesPrestataireComponent implements OnInit {
     if (!s) return;
     const lignes = [['Plat', 'Agences', 'Commandés', 'Servis', 'À servir', 'Non retirés', 'Annulés', 'Taux de retrait (%)', 'Note', 'Avis'],
       ...s.par_plat.map(p => [p.plat, p.agences.join(', '), p.commandes, p.servis, p.a_servir, p.non_retires, p.annulees, p.taux_retrait, p.note, p.nb_avis])];
-    exporterExcel(nomFichier('statistiques-plats', s.debut, s.fin) + '.xlsx', [{ nom: 'Par plat', lignes }]);
+    const desserts = [['Dessert / supplément', 'Agences', 'Choisis', 'Servis', 'À servir', 'Non retirés', 'Annulés'],
+      ...(s.par_supplement ?? []).map(p => [p.plat, p.agences.join(', '), p.commandes, p.servis, p.a_servir, p.non_retires, p.annulees])];
+    exporterExcel(nomFichier('statistiques-plats', s.debut, s.fin) + '.xlsx',
+                  [{ nom: 'Par plat', lignes }, { nom: 'Desserts', lignes: desserts }]);
   }
 }

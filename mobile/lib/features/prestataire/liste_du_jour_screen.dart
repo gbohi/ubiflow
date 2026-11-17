@@ -241,9 +241,12 @@ class LigneListeDuJourTuile extends StatelessWidget {
                     .bodyLarge
                     ?.copyWith(fontSize: 13, fontWeight: FontWeight.w700)),
             Text(
-                [ligne.matricule, ligne.plat]
-                    .where((s) => s.isNotEmpty)
-                    .join(' · '),
+                [
+                  ligne.matricule,
+                  ligne.plat,
+                  if (ligne.supplements.isNotEmpty)
+                    '+ ${ligne.supplements.join(', ')}'
+                ].where((s) => s.isNotEmpty).join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11.5, color: gris)),

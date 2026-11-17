@@ -53,7 +53,7 @@
             <tr>
               <td class="lst-c-principal"><b>{{ l.nom_complet }}</b><small class="d-block">{{ l.matricule }}</small>
                 @if (l.externe) { <span class="ubi-externe"><i class="ri-building-line"></i>Employé d'une autre agence · {{ l.agence_origine }}</span> }</td>
-              <td data-label="Plat">{{ l.plat }}</td>
+              <td data-label="Plat">{{ l.plat }}@if (l.supplements?.length) { <small class="d-block ep-dessert"><i class="ri-cake-3-line"></i> {{ l.supplements!.join(', ') }}</small> }</td>
               <td data-label="Agence"><span class="lst-tag t-bl">{{ l.agence }}</span></td>
               <td data-label="Statut"><span class="lst-tag" [ngClass]="statutLigne(l.statut).classe">{{ statutLigne(l.statut).libelle }}@if (l.heure_retrait) { · {{ l.heure_retrait }} }</span></td>
               <td data-label="Validé par">{{ l.valide_par_nom || '' }}</td>

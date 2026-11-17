@@ -54,7 +54,7 @@ export interface Releve {
   tarif: { montant: number; date_debut: string } | null;
   tarifs_appliques: number[];
   chiffres: {
-    nb_repas: number; retires: number; non_retires: number; repas_sans_tarif: number; montant: number;
+    nb_repas: number; nb_supplements?: number; retires: number; non_retires: number; repas_sans_tarif: number; montant: number;
     jours_servis: number; moyenne_jour: number;
     precedent: { annee: number; mois: number; libelle: string; nb_repas: number; montant: number;
                  ecart_montant: number; ecart_repas: number; ecart_pct: number | null } | null;
@@ -85,6 +85,8 @@ export class OngletPrestatairesComponent implements OnChanges {
   @Output() infos = new EventEmitter<InfosReleve>();
   /** Un mois vient d'être clôturé depuis cet onglet (la page recharge ses clôtures) */
   @Output() cloture = new EventEmitter<void>();
+  /** Demande d'ouverture de la fenêtre de clôture (AAAA-MM) */
+  @Output() demandeCloture = new EventEmitter<string>();
 
   releve: Releve | null = null;
   chargement = false;
@@ -287,32 +289,15 @@ export class OngletPrestatairesComponent implements OnChanges {
   // CLÔTURE (même action que l'onglet Agents : fige agents et prestataires)
   // ══════════════════════════════════════════════════════════
 
+  /** Ouvre la fenêtre de clôture de la page (récapitulatif puis confirmation) */
   cloturer(): void {
     const c = this.releve?.cloture;
     if (!c?.annee || !c.mois) return;
-    const libelle = new Date(c.annee, c.mois - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    if (!confirm(`Clôturer définitivement la facturation de ${libelle} ?\n` +
-                 'Les montants des agents et des prestataires de ce mois ne pourront plus être modifiés, ' +
-                 'et chaque prestataire recevra un relevé officiel numéroté.')) {
-      return;
-    }
-    this.isCloturing = true;
-    this.clotureErreur = null;
-    this.http.post<any>(`${this.apiUrl}/facturation/clotures/cloturer/`, { annee: c.annee, mois: c.mois })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.isCloturing = false;
-          this.cloture.emit();
-          this.charger();
-          this.clotureMessage = `${libelle} clôturé : le relevé officiel est disponible.`;
-        },
-        error: err => {
-          this.isCloturing = false;
-          this.clotureErreur = typeof err === 'string' ? err : 'Clôture impossible';
-        },
-      });
+    this.demandeCloture.emit(`${c.annee}-${String(c.mois).padStart(2, '0')}`);
   }
+
+  /** Appelé par la page après une clôture réussie */
+  apresCloture(): void { this.charger(); }
 
   // ══════════════════════════════════════════════════════════
   // DOCUMENTS

@@ -110,7 +110,7 @@
   <!-- ══ ONGLET PRESTATAIRES ═══════════════════════════════════ -->
   @if (onglet === 'prestataires') {
     <app-onglet-prestataires [periode]="periode" [prestataireId]="prestataireId" [agence]="agencePresta" [estAdmin]="estAdmin"
-                             (infos)="recevoirInfosPresta($event)" (cloture)="chargerClotures(); rechercher()"></app-onglet-prestataires>
+                             (infos)="recevoirInfosPresta($event)" (cloture)="chargerClotures(); rechercher()" (demandeCloture)="cloturer($event)"></app-onglet-prestataires>
   }
 
   <!-- ══ ONGLET AGENTS ═════════════════════════════════════════ -->
@@ -409,4 +409,90 @@
       </div>
     </div>
   }
+</div>
+
+
+<!-- ── Clôture d'un mois : récapitulatif puis confirmation ─────────── -->
+<div bsModal #clotureModal="bs-modal" class="modal fade" tabindex="-1" aria-labelledby="clotureTitre" [config]="{ backdrop: 'static' }">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content ce-modal fc-cloture">
+      <div class="modal-header">
+        <span class="fc-cl-ic" [class.fc-cl-ko]="apercu && !apercu.cloturable"><i [class]="apercu && !apercu.cloturable ? 'ri-error-warning-line' : 'ri-lock-2-line'"></i></span>
+        <div class="me-auto">
+          <h5 class="modal-title" id="clotureTitre">Clôturer {{ libelleMoisEnCloture }}</h5>
+          <small class="ce-muted">
+            @if (!apercu) { Calcul du récapitulatif… }
+            @else if (apercu.deja_cloture) { Ce mois est déjà clôturé }
+            @else if (!apercu.termine) { Le mois n'est pas terminé }
+            @else if (!apercu.cloturable) { Clôture impossible pour l'instant }
+            @else { Facturation figée : action définitive }
+          </small>
+        </div>
+        <button type="button" class="btn-close" (click)="fermerCloture()" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        @if (apercuChargement) {
+          <div class="text-center py-4"><span class="spinner-border" role="status"></span></div>
+        }
+        @if (apercu; as a) {
+          <div class="fc-cl-kpis">
+            <div><small>Repas facturés</small><b>{{ formatMontant(a.nb_repas) }}</b>
+              <span>@if (a.nb_supplements) { + {{ formatMontant(a.nb_supplements) }} dessert{{ a.nb_supplements > 1 ? 's' : '' }} } @else { repas des employés }</span></div>
+            <div><small>Employés</small><b>{{ formatMontant(a.nb_employes) }}</b><span>{{ a.nb_employes }} facture{{ a.nb_employes > 1 ? 's' : '' }}</span></div>
+            <div><small>Prestataires</small><b>{{ a.prestataires.length }}</b><span>{{ a.prestataires.length }} relevé{{ a.prestataires.length > 1 ? 's' : '' }} numéroté{{ a.prestataires.length > 1 ? 's' : '' }}</span></div>
+          </div>
+
+          <div class="fc-cl-sec">Facturé aux employés</div>
+          <div class="fc-cl-ln"><span>Compte repas (déjà payé) · {{ a.nb_repas_compte }} repas</span><b>{{ formatMontant(a.montant_compte) }} F</b></div>
+          @if (a.nb_repas_caisse) {
+            <div class="fc-cl-ln"><span>Caisse · {{ a.nb_repas_caisse }} repas</span><b>{{ formatMontant(a.montant_caisse) }} F</b></div>
+          }
+          <div class="fc-cl-ln"><span>Retenue sur salaire · {{ a.nb_repas_retenue }} repas</span><b>{{ formatMontant(a.montant_retenue) }} F</b></div>
+          @if (a.nb_repas_offerts) {
+            <div class="fc-cl-ln"><span>Repas offerts · {{ a.nb_repas_offerts }} repas</span><b>0 F</b></div>
+          }
+          <div class="fc-cl-ln fc-cl-tot"><span>Total employés</span><b>{{ formatMontant(a.montant_employes) }} F</b></div>
+
+          <div class="fc-cl-sec">Dû aux prestataires</div>
+          @for (p of a.prestataires; track p.prestataire_id) {
+            <div class="fc-cl-ln"><span>{{ p.prestataire }} · {{ p.nb_repas }} repas@if (p.nb_supplements) { + {{ p.nb_supplements }} dessert{{ p.nb_supplements > 1 ? 's' : '' }} }</span><b>{{ formatMontant(p.montant) }} F</b></div>
+          } @empty {
+            <div class="fc-cl-ln ce-muted"><span>Aucun repas à payer aux prestataires</span><b>—</b></div>
+          }
+          <div class="fc-cl-ln fc-cl-tot"><span>Total prestataires</span><b>{{ formatMontant(a.montant_prestataires) }} F</b></div>
+
+          @if (a.obstacles.length) {
+            <div class="ce-alerte ce-alerte-ro mt-3"><i class="ri-error-warning-line"></i>
+              <div><b>{{ a.obstacles.length }} anomalie{{ a.obstacles.length > 1 ? 's' : '' }} à corriger avant de clôturer</b>
+                <ul class="fc-cl-obs">
+                  @for (o of a.obstacles.slice(0, 8); track o) { <li>{{ o }}</li> }
+                  @if (a.obstacles.length > 8) { <li>… et {{ a.obstacles.length - 8 }} autre(s)</li> }
+                </ul>
+                <small>Complétez les catégories, les tarifs et les prestataires des agences, puis rouvrez cette fenêtre.</small>
+              </div>
+            </div>
+          } @else if (a.cloturable) {
+            <div class="ce-alerte ce-alerte-ve mt-3"><i class="ri-checkbox-circle-line"></i><div>Tous les repas ont un tarif : la clôture est possible.</div></div>
+            <label class="fc-cl-chk">
+              <input type="checkbox" class="form-check-input" [(ngModel)]="clotureComprise">
+              Je comprends que les montants de {{ libelleMoisEnCloture }} ne pourront plus être modifiés
+              et que chaque prestataire recevra un relevé officiel numéroté.
+            </label>
+          }
+        }
+        @if (apercuErreur) {
+          <div class="ce-alerte ce-alerte-ro mt-3"><i class="ri-error-warning-line"></i><div>{{ apercuErreur }}</div></div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="ce-btn" (click)="fermerCloture()">{{ apercu?.cloturable ? 'Annuler' : 'Fermer' }}</button>
+        @if (apercu?.cloturable) {
+          <button type="button" class="ce-btn ce-btn-navy" [disabled]="!clotureComprise || isCloturing" (click)="confirmerCloture()">
+            @if (isCloturing) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="ri-lock-2-line"></i> }
+            Clôturer {{ libelleMoisEnCloture }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
 </div>

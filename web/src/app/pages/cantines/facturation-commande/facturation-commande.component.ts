@@ -25,7 +25,18 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
+import { ModalDirective } from 'ngx-bootstrap/modal';
 import { InfosReleve, OngletPrestatairesComponent } from './onglet-prestataires/onglet-prestataires.component';
+
+/** Récapitulatif d'un mois avant sa clôture (GET facturation/clotures/apercu/) */
+export interface ApercuCloture {
+  annee: number; mois: number; termine: boolean; deja_cloture: boolean; cloturable: boolean;
+  nb_employes: number; nb_repas: number; nb_repas_offerts: number; nb_supplements: number;
+  montant_employes: number; nb_repas_compte: number; montant_compte: number; nb_repas_caisse: number;
+  montant_caisse: number; nb_repas_retenue: number; montant_retenue: number;
+  prestataires: { prestataire_id: number; prestataire: string; nb_repas: number; nb_supplements: number; montant: number }[];
+  montant_prestataires: number; obstacles: string[];
+}
 
 export type EtatFacture = 'cloturee' | 'provisoire' | 'partielle';
 
@@ -107,6 +118,14 @@ export class FacturationCommandeComponent implements OnInit {
 
   // ── Onglet Prestataires : choix dans la barre, contenu dans <app-onglet-prestataires> ──
   @ViewChild(OngletPrestatairesComponent) ongletPrestataires?: OngletPrestatairesComponent;
+  @ViewChild('clotureModal', { static: false }) clotureModal?: ModalDirective;
+
+  // Fenêtre de clôture : récapitulatif puis confirmation
+  apercu: ApercuCloture | null = null;
+  apercuChargement = false;
+  apercuErreur: string | null = null;
+  clotureComprise = false;
+  private moisEnCloture = '';
   prestataireId: number | null = null;
   agencePresta = '';
   infosPresta: InfosReleve | null = null;
@@ -408,13 +427,38 @@ export class FacturationCommandeComponent implements OnInit {
     return new Date(annee, mois - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   }
 
+  /** Ouvre la fenêtre de clôture avec le récapitulatif calculé par le serveur */
   cloturer(moisAAAAMM: string = this.moisACloturer): void {
     if (!moisAAAAMM) return;
     const [annee, mois] = moisAAAAMM.split('-').map(Number);
-    if (!confirm(`Clôturer définitivement la facturation de ${this.libelleMois(annee, mois)} ?\n` +
-                 'Les montants de ce mois ne pourront plus être modifiés.')) {
-      return;
-    }
+    this.moisEnCloture = moisAAAAMM;
+    this.apercu = null;
+    this.apercuErreur = null;
+    this.clotureComprise = false;
+    this.apercuChargement = true;
+    this.clotureModal?.show();
+    this.http.get<ApercuCloture>(`${this.apiUrl}/facturation/clotures/apercu/`, { params: { annee, mois } })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: a => { this.apercu = a; this.apercuChargement = false; },
+        error: err => {
+          this.apercuChargement = false;
+          this.apercuErreur = typeof err === 'string' ? err : 'Le récapitulatif n\'a pas pu être calculé.';
+        },
+      });
+  }
+
+  get libelleMoisEnCloture(): string {
+    if (!this.moisEnCloture) return '';
+    const [a, m] = this.moisEnCloture.split('-').map(Number);
+    return this.libelleMois(a, m);
+  }
+
+  fermerCloture(): void { this.clotureModal?.hide(); }
+
+  confirmerCloture(): void {
+    if (!this.apercu?.cloturable || !this.clotureComprise || this.isCloturing) return;
+    const { annee, mois } = this.apercu;
     this.isCloturing    = true;
     this.clotureMessage = null;
     this.clotureErreur  = null;
@@ -424,16 +468,18 @@ export class FacturationCommandeComponent implements OnInit {
       .subscribe({
         next: c => {
           this.isCloturing = false;
+          this.clotureModal?.hide();
           this.clotureMessage =
             `${this.libelleMois(c.annee, c.mois)} clôturé : ${c.nb_factures} facture(s), ` +
             `${c.nb_repas} repas, ${this.formatMontant(Number(c.montant_total))} FCFA facturés aux agents, ` +
             `${this.formatMontant(Number(c.montant_total_prestataires))} FCFA dus aux prestataires.`;
           this.chargerClotures();
           if (this.hasSearched) this.rechercher();
+          this.ongletPrestataires?.apresCloture();
         },
         error: err => {
           this.isCloturing = false;
-          this.clotureErreur = typeof err === 'string' ? err : 'Clôture impossible';
+          this.apercuErreur = typeof err === 'string' ? err : 'Clôture impossible';
         },
       });
   }

@@ -30,7 +30,7 @@
 
   @if (stats; as s) {
     <div class="ep-kpis-ligne ep-kpis-4" [class.ep-attente]="chargement">
-      <div class="ep-carte ep-kpi"><span class="ep-kpi-ic bl"><i class="ri-shopping-basket-2-line"></i></span><div><small>Repas commandés</small><b>{{ nombreFr(s.kpis.commandes) }}</b><span>{{ nombreFr(s.kpis.annulees) }} annulés en plus</span></div></div>
+      <div class="ep-carte ep-kpi"><span class="ep-kpi-ic bl"><i class="ri-shopping-basket-2-line"></i></span><div><small>Repas commandés</small><b>{{ nombreFr(s.kpis.commandes) }}</b><span>plats · {{ nombreFr(s.kpis.annulees) }} annulés en plus@if (s.kpis.supplements) { · + {{ nombreFr(s.kpis.supplements) }} desserts }</span></div></div>
       <div class="ep-carte ep-kpi"><span class="ep-kpi-ic ve"><i class="ri-check-double-line"></i></span><div><small>Servis</small><b>{{ nombreFr(s.kpis.servis) }}</b><span>{{ nombreFr(s.kpis.a_servir) }} encore à servir</span></div></div>
       <div class="ep-carte ep-kpi"><span class="ep-kpi-ic or"><i class="ri-percent-line"></i></span><div><small>Taux de retrait</small><b>{{ pourcentFr(s.kpis.taux_retrait) }}</b><span>{{ nombreFr(s.kpis.non_retires) }} non retirés</span></div></div>
       <div class="ep-carte ep-kpi"><span class="ep-kpi-ic bl"><i class="ri-star-line"></i></span><div><small>Note des employés</small><b>{{ noteFr(s.kpis.note_moyenne) }} / 5</b><span>{{ nombreFr(s.kpis.nb_avis) }} avis</span></div></div>
@@ -38,8 +38,12 @@
 
     <div class="lst-carte">
       <div class="lst-barre bord">
-        <b class="ep-titre-carte"><i class="ri-restaurant-2-line"></i>Par plat</b>
+        <b class="ep-titre-carte"><i class="ri-restaurant-2-line"></i>{{ vue === 'plats' ? 'Par plat' : 'Desserts et suppléments' }}</b>
         <div class="lst-filtres">
+          <div class="lst-chips" role="group" aria-label="Plats ou desserts">
+            <button type="button" class="lst-chip" [class.on]="vue === 'plats'" (click)="vue = 'plats'">Plats</button>
+            <button type="button" class="lst-chip" [class.on]="vue === 'supplements'" (click)="vue = 'supplements'">Desserts@if (s.par_supplement?.length) { ({{ s.par_supplement!.length }}) }</button>
+          </div>
           <select class="form-select" [(ngModel)]="tri" aria-label="Trier par">
             <option value="commandes">Trier : commandés</option>
             <option value="servis">Trier : servis</option>
@@ -63,7 +67,7 @@
                 <td data-label="Note" class="text-end">@if (p.nb_avis) { <i class="ri-star-fill ep-etoile"></i>{{ noteFr(p.note) }} <small>({{ p.nb_avis }})</small> } @else { — }</td>
               </tr>
             }
-            @if (!s.par_plat.length) {
+            @if (!lignesVue.length) {
               <tr class="lst-l-vide"><td colspan="7" class="lst-c-plein"><div class="lst-vide"><i class="ri-bar-chart-2-line"></i><h5>Aucune commande sur la période</h5></div></td></tr>
             }
           </tbody>

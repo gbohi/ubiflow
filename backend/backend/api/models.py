@@ -765,6 +765,8 @@ class FacturePrestataire(models.Model):
     annee               = models.PositiveSmallIntegerField()
     mois                = models.PositiveSmallIntegerField()
     nb_repas            = models.PositiveIntegerField()
+    # Suppléments (desserts…) payés au prestataire, comptés à part des repas
+    nb_supplements      = models.PositiveIntegerField(default=0)
     montant_total       = models.DecimalField(max_digits=14, decimal_places=2)
 
     # Suivi du relevé jusqu'au paiement (api/suivi_factures.py) :

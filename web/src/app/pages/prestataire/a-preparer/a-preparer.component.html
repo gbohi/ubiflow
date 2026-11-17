@@ -120,9 +120,9 @@
         <section class="ep-carte">
           <div class="ep-carte-hd"><b><i class="ri-bar-chart-box-line"></i>Semaine en cours</b><small class="ms-auto">{{ d.semaine.debut | date: 'dd/MM' }} → {{ d.semaine.fin | date: 'dd/MM' }}</small></div>
           <div class="ep-kpis2">
-            <div><small>Repas commandés</small><b>{{ nombreFr(d.semaine.nb_repas) }}</b><span>lun. → dim. (estimé)</span></div>
+            <div><small>Repas commandés</small><b>{{ nombreFr(d.semaine.nb_repas) }}</b><span>lun. → dim. (estimé)@if (d.semaine.nb_supplements) { · + {{ nombreFr(d.semaine.nb_supplements) }} desserts }</span></div>
             <div><small>Montant estimé</small><b>{{ d.semaine.montant_estime != null ? montantFr(d.semaine.montant_estime) : '—' }}</b>
-              <span>@if (d.semaine.tarif) { {{ nombreFr(d.semaine.nb_repas) }} × {{ montantFr(d.semaine.tarif) }} }</span></div>
+              <span>@if (d.semaine.tarif) { {{ nombreFr(d.semaine.nb_repas) }} × {{ montantFr(d.semaine.tarif) }}@if (d.semaine.nb_supplements) { + desserts } }</span></div>
           </div>
         </section>
       </div>

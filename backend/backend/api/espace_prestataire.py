@@ -20,6 +20,7 @@ Périmètre (jamais au-delà) :
 
 from collections import OrderedDict, defaultdict
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.db.models import Avg, Count, Q
@@ -821,15 +822,20 @@ class APreparerView(APIView):
                                                    menu__date_menu__lte=dimanche)
         if agence is not None:
             sem = sem.filter(menu__agence_id=agence)
-        nb = sem.count()
+        nb = sem.filter(commande_principale__isnull=True).count()
+        nb_sup = sem.count() - nb
         tarif = rel.tarif_en_vigueur(request.user.prestataire, aujourdhui)
+        # Montant estimé au tarif de chaque type (plats et suppléments)
+        lignes_sem = fact.lignes_prestataires(sem) if (nb or nb_sup) else []
+        estime = sum((l['montant'] for l in lignes_sem if l['montant'] is not None), Decimal('0'))
         return Response({
             'date_debut': debut.isoformat(), 'date_fin': fin.isoformat(), 'origine': origine,
             'agences': _agences_json(agences),
             'jours': jours,
             'semaine': {'debut': lundi.isoformat(), 'fin': dimanche.isoformat(), 'nb_repas': nb,
+                        'nb_supplements': nb_sup,
                         'tarif': float(tarif.montant) if tarif else None,
-                        'montant_estime': float(tarif.montant * nb) if tarif else None},
+                        'montant_estime': float(estime) if (tarif or estime) else None},
         })
 
 
@@ -860,7 +866,11 @@ class ListeDuJourView(APIView):
             qs = qs.filter(menu__agence_id=agence)
         from .parcours_commande import agences_origine, filtrer_commandes_origine, lire_origine, origine_json
         origine = lire_origine(request)
-        commandes = list(qs)
+        # Une ligne par repas ; le dessert (supplément) est affiché avec son plat
+        desserts = defaultdict(list)
+        for sp in qs.filter(commande_principale__isnull=False).select_related('plat'):
+            desserts[sp.commande_principale_id].append(sp.plat.nom)
+        commandes = list(qs.filter(commande_principale__isnull=True))
         origines = agences_origine({c.user_id for c in commandes})
         commandes, _ = filtrer_commandes_origine(commandes, origine, origines)
         retraits = {(r.menu_id, r.user_id): r for r in Retrait.objects.filter(
@@ -879,6 +889,7 @@ class ListeDuJourView(APIView):
                 **{k: v for k, v in _employe_json(c.user, c.menu.agence.nom_agence).items() if k != 'id'},
                 'user_id': c.user_id, 'agence_id': c.menu.agence_id,
                 'plat_id': c.plat_id, 'plat': c.plat.nom, 'statut': statut(c),
+                'supplements': desserts.get(c.id, []),
                 'heure_retrait': _heure(r.date_retrait) if r and c.statut == 'retiree' else None,
                 'valide_par_nom': nom_complet(r.valide_par) if r and r.valide_par_id else None,
                 **origine_json(origines.get(c.user_id), c.menu.agence_id),
@@ -890,7 +901,8 @@ class ListeDuJourView(APIView):
             lignes = [l for l in lignes if l['statut'] == filtre]
         terme = (request.query_params.get('search') or '').strip().lower()
         if terme:
-            lignes = [l for l in lignes if terme in f"{l['nom_complet']} {l['matricule']} {l['plat']}".lower()]
+            lignes = [l for l in lignes if terme in
+                      f"{l['nom_complet']} {l['matricule']} {l['plat']} {' '.join(l['supplements'])}".lower()]
         lignes.sort(key=lambda l: (l['nom_complet'].upper(), l['matricule']))
         return Response({'date': d.isoformat(), 'agence': agence, 'origine': origine, 'total': total,
                          'retires': retires, 'a_servir': total - retires, 'externes': externes,
@@ -1173,6 +1185,7 @@ def releves_du_prestataire(prestataire, nb_mois=12):
                  'date_debut': debut.isoformat(), 'date_fin': fin.isoformat()}
         if f is not None:
             ligne.update({'etat': 'cloture', 'releve_id': f.id, 'numero': f.numero, 'nb_repas': f.nb_repas,
+                          'nb_supplements': f.nb_supplements,
                           'montant': float(f.montant_total), 'cloturee_le': f.cloture.cloturee_le.isoformat(),
                           # Suivi jusqu'au paiement (suivi_factures.py) : étape en cours et statut
                           'statut': f.statut, 'statut_libelle': f.get_statut_display(),
@@ -1183,7 +1196,8 @@ def releves_du_prestataire(prestataire, nb_mois=12):
             synth, _ = rel.releve_prestataire(prestataire, debut, fin)
             if synth['nb_repas'] or (a, m) == (aujourdhui.year, aujourdhui.month):
                 ligne.update({'etat': 'en_cours' if fin >= aujourdhui else 'a_cloturer', 'releve_id': None,
-                              'numero': None, 'nb_repas': synth['nb_repas'], 'montant': float(synth['montant']),
+                              'numero': None, 'nb_repas': synth['nb_repas'],
+                              'nb_supplements': synth['nb_supplements'], 'montant': float(synth['montant']),
                               'cloturee_le': None, 'statut': None, 'statut_libelle': None, 'etape': 0})
             else:
                 ligne = None
@@ -1361,11 +1375,19 @@ class StatistiquesPrestataireView(APIView):
             menu__date_menu__gte=debut, menu__date_menu__lte=fin)
         if agence is not None:
             qs = qs.filter(menu__agence_id=agence)
+        # Repas = plats principaux ; suppléments (desserts…) à part
+        repas = qs.filter(commande_principale__isnull=True)
+        sups = qs.filter(commande_principale__isnull=False)
+        kpis = stats.kpis(repas, aujourdhui)
+        nb_sup = sups.filter(statut__in=ACTIVES).count()
+        kpis['supplements'] = nb_sup
+        kpis['part_supplements'] = round(nb_sup / kpis['commandes'] * 100, 1) if kpis['commandes'] else None
         return Response({
             'debut': debut.isoformat(), 'fin': fin.isoformat(), 'agence': agence,
             'en_cours': fin >= aujourdhui,
-            'kpis': stats.kpis(qs, aujourdhui),
-            'par_plat': stats.par_repas(qs, aujourdhui),
+            'kpis': kpis,
+            'par_plat': stats.par_repas(repas, aujourdhui),
+            'par_supplement': stats.par_repas(sups, aujourdhui),
         })
 
 

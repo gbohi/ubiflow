@@ -2774,6 +2774,24 @@ class ClotureMensuelleViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsGestionnaireRole]
     pagination_class = None
 
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminRole])
+    def apercu(self, request):
+        """GET /facturation/clotures/apercu/?annee=&mois= : récapitulatif avant clôture."""
+        try:
+            annee = int(request.query_params.get('annee'))
+            mois = int(request.query_params.get('mois'))
+            if not 1 <= mois <= 12:
+                raise ValueError
+        except (TypeError, ValueError):
+            return Response({'error': 'Paramètres annee et mois (1-12) requis.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        a = fact.apercu_cloture(annee, mois)
+        def num(v):
+            return float(v) if isinstance(v, Decimal) else v
+        return Response({**{k: num(v) for k, v in a.items() if k != 'prestataires'},
+                         'date_debut': a['date_debut'].isoformat(), 'date_fin': a['date_fin'].isoformat(),
+                         'prestataires': [{k: num(v) for k, v in p.items()} for p in a['prestataires']]})
+
     @action(detail=False, methods=['post'], permission_classes=[IsAdminRole])
     def cloturer(self, request):
         try:
@@ -2873,6 +2891,7 @@ class FacturationPrestataireView(APIView):
             'date_debut':    debut.isoformat(),
             'date_fin':      fin.isoformat(),
             'total_repas':   sum(p['nb_repas'] for p in prestataires),
+            'total_supplements': sum(p['nb_supplements'] for p in prestataires),
             'total_montant': float(sum((p['total'] for p in prestataires), Decimal('0'))),
             # Repas qui ne peuvent être attribués / tarifés (toutes agences de la période)
             'anomalies':     anomalies,
@@ -3027,8 +3046,11 @@ class RelevePrestataireView(APIView):
             total_plat = sum(x['nb_repas'] for x in s['par_plat'] if x['plat'] == l['plat'])
             par_plat.append({
                 'plat': l['plat'], 'nb_repas': l['nb_repas'], 'retires': l['retires'],
+                'supplement': l['supplement'], 'type_plat': l['type_plat'],
                 'pu': _f(l['pu']), 'montant': _f(l['montant']) if l['pu'] is not None else None,
-                'part': round(l['nb_repas'] / s['nb_repas'] * 100, 1) if s['nb_repas'] else 0,
+                # Part parmi les repas (plats) ou parmi les suppléments
+                'part': (round(l['nb_repas'] / base * 100, 1)
+                         if (base := s['nb_supplements' if l['supplement'] else 'nb_repas']) else 0),
                 # Écart de quantité au mois précédent (sur la première ligne du plat)
                 'ecart': (total_plat - plats_prec.get(l['plat'], 0)) if prec and premier else None,
             })
@@ -3054,6 +3076,7 @@ class RelevePrestataireView(APIView):
             'tarifs_appliques': [_f(t) for t in s['tarifs']],
             'chiffres': {
                 'nb_repas': s['nb_repas'], 'retires': s['retires'], 'non_retires': s['non_retires'],
+                'nb_supplements': s['nb_supplements'], 'montant_supplements': _f(s['montant_supplements']),
                 'repas_sans_tarif': s['repas_sans_tarif'], 'montant': _f(s['montant']),
                 'jours_servis': s['jours_servis'], 'moyenne_jour': s['moyenne_jour'],
                 'precedent': prec and {
@@ -3068,10 +3091,12 @@ class RelevePrestataireView(APIView):
             'par_plat': par_plat,
             'semaines': [{
                 'numero': w['numero'], 'libelle': w['libelle'], 'nb_jours': w['nb_jours'],
-                'nb_repas': w['nb_repas'], 'montant': _f(w['montant']), 'plats': w['plats'],
+                'nb_repas': w['nb_repas'], 'nb_supplements': w['nb_supplements'], 'montant': _f(w['montant']),
+                'plats': w['plats'],
                 'jours': [{'date': j['date'].isoformat(), 'libelle': releves.libelle_jour(j['date']),
                            'plats': [{'plat': n, 'nb': q} for n, q in j['plats']],
-                           'nb_repas': j['nb_repas'], 'montant': _f(j['montant'])} for j in w['jours']],
+                           'nb_repas': j['nb_repas'], 'nb_supplements': j['nb_supplements'],
+                           'montant': _f(j['montant'])} for j in w['jours']],
             } for w in s['semaines']],
             'par_agence': [{**a, 'montant': _f(a['montant'])} for a in s['par_agence']],
             'agences_sans_prestataire': s['agences_sans_prestataire'],
@@ -3089,7 +3114,7 @@ class RelevePrestataireView(APIView):
             },
             'releves': [{
                 'id': r.id, 'numero': r.numero, 'annee': r.annee, 'mois': r.mois,
-                'nb_repas': r.nb_repas, 'montant_total': _f(r.montant_total),
+                'nb_repas': r.nb_repas, 'nb_supplements': r.nb_supplements, 'montant_total': _f(r.montant_total),
                 'cloturee_le': r.cloture.cloturee_le.isoformat(),
             } for r in (releves.factures_visibles(ctx['geres']).filter(prestataire=p)
                         .order_by('-annee', '-mois')[:12] if p else [])],
@@ -3105,7 +3130,8 @@ class RelevePrestataireView(APIView):
                 [a['user_id'] for a in releves.par_agent(ctx['lignes']) if a['user_id']])
             reponse['agents'] = [{
                 'user_id': a['user_id'], 'username': a['username'], 'nom_prenom': a['nom_prenom'],
-                'agence': a['agence'], 'nb_repas': a['nb_repas'], 'retires': a['retires'],
+                'agence': a['agence'], 'nb_repas': a['nb_repas'], 'nb_supplements': a['nb_supplements'],
+                'retires': a['retires'],
                 'montant': _f(a['montant']), **{k: v for k, v in infos.get(a['user_id'], {}).items()},
                 'lignes': [{'date_menu': l['date_menu'].isoformat(), 'plat': l['plat'], 'statut': l['statut'],
                             'montant': _f(l['montant']), 'source': l['source']} for l in a['lignes']],

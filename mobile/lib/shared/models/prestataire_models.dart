@@ -417,6 +417,9 @@ class LigneListeDuJour {
   final String matricule;
   final String agence;
   final String plat;
+
+  /// Desserts (suppléments) remis avec le plat
+  final List<String> supplements;
   final String statut; // a_servir | retire | non_retire
   final String? heureRetrait;
   final String? valideParNom;
@@ -428,6 +431,7 @@ class LigneListeDuJour {
     this.matricule = '',
     this.agence = '',
     this.plat = '',
+    this.supplements = const [],
     this.statut = '',
     this.heureRetrait,
     this.valideParNom,
@@ -445,6 +449,9 @@ class LigneListeDuJour {
         matricule: _str(j['matricule']),
         agence: _str(j['agence']),
         plat: _str(j['plat']),
+        supplements: (j['supplements'] is List)
+            ? (j['supplements'] as List).map((e) => '$e').toList()
+            : const [],
         statut: _str(j['statut']),
         heureRetrait: _strOuNull(j['heure_retrait']),
         valideParNom: _strOuNull(j['valide_par_nom']),

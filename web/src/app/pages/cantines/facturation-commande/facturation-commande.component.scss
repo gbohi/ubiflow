@@ -1,0 +1,18 @@
+
+// Fenêtre de clôture d'un mois
+.fc-cloture {
+  .modal-header { gap: 12px; align-items: center; }
+  .fc-cl-ic { width: 42px; height: 42px; border-radius: 12px; background: #FFF2DA; color: #B26A00; display: flex; align-items: center; justify-content: center; font-size: 21px; flex: none; }
+  .fc-cl-ic.fc-cl-ko { background: #FDE8E4; color: #C4381F; }
+  .fc-cl-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;
+    > div { border: 1px solid #E2EAF4; border-radius: 12px; padding: 10px 12px; }
+    small { display: block; color: #5A7090; font-size: 11.5px; }
+    b { display: block; font-size: 20px; color: #092440; }
+    span { display: block; font-size: 11.5px; color: #5A7090; } }
+  .fc-cl-sec { font-size: 11px; font-weight: 700; letter-spacing: .6px; color: #5A7090; text-transform: uppercase; margin: 14px 0 4px; }
+  .fc-cl-ln { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed #E2EAF4; font-size: 13px; }
+  .fc-cl-tot { font-weight: 700; border-bottom: 0; font-size: 13.5px; }
+  .fc-cl-obs { margin: 4px 0; padding-left: 18px; font-size: 12.5px; }
+  .fc-cl-chk { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: 13px; cursor: pointer; input { margin-top: 2px; flex: none; } }
+  @media (max-width: 575px) { .fc-cl-kpis { grid-template-columns: 1fr; } }
+}

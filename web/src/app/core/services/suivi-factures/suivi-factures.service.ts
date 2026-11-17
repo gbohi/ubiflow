@@ -38,7 +38,7 @@ export interface HistoriqueReleve {
 export interface ReleveSuivi {
   id: number; numero: string | null; annee: number; mois: number; libelle: string;
   prestataire: { id: number; libelle: string };
-  nb_repas: number; montant: number;
+  nb_repas: number; nb_supplements?: number; montant: number;
   statut: StatutReleve; statut_libelle: string;
   /** Étape en cours (2 à 5) ; 6 : terminé (payé) */
   etape: number;

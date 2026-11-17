@@ -547,8 +547,9 @@ def generer_releve_prestations(synth, prestataire, societe, numero=None, cloture
         donnees.append([str(i), Paragraph(escape(libelle), st['cellule']), str(l['nb_repas']),
                         fcfa(l['pu']) if l['pu'] is not None else 'sans tarif',
                         fcfa(l['montant']) if l['pu'] is not None else '—'])
-    nb = synth['nb_repas']
-    donnees.append(['', f"TOTAL — {nb} repas", str(nb), '', fcfa(synth['montant'])])
+    nb, ns = synth['nb_repas'], synth.get('nb_supplements', 0)
+    donnees.append(['', f"TOTAL — {nb} repas" + (f" + {ns} supplément{'s' if ns > 1 else ''}" if ns else ''),
+                    str(nb + ns), '', fcfa(synth['montant'])])
     t = Table(donnees, colWidths=[10 * mm, UTILE - 98 * mm, 24 * mm, 30 * mm, 34 * mm], repeatRows=1)
     style = _style_tableau(len(donnees), 2)
     style += [('ALIGN', (0, 0), (0, -1), 'LEFT')]

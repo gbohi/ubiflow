@@ -359,6 +359,8 @@ def lignes_prestataires(commandes_qs):
             # Type de plat (tarif) et repas offert à l'employé (payé au prestataire)
             'type_plat': c.plat.type_plat.libelle if c.plat.type_plat_id else '',
             'offert': c.mode_paiement == 'offert',
+            # Supplément (dessert…) : payé au prestataire, compté à part des repas
+            'supplement': bool(c.commande_principale_id),
         })
     return lignes
 
@@ -377,10 +379,14 @@ def synthese_par_prestataire(lignes):
             continue
         e = par_prest.setdefault(p.id, {
             'prestataire_id': p.id, 'prestataire': p.libelle,
-            'nb_repas': 0, 'total': Decimal('0'), 'repas_sans_tarif': 0,
+            'nb_repas': 0, 'nb_supplements': 0, 'montant_supplements': Decimal('0'),
+            'total': Decimal('0'), 'repas_sans_tarif': 0,
             '_sources': set(), 'agents': {},
         })
-        e['nb_repas'] += 1
+        sup = bool(l.get('supplement'))
+        e['nb_supplements' if sup else 'nb_repas'] += 1
+        if sup and l['montant'] is not None:
+            e['montant_supplements'] += l['montant']
         e['_sources'].add(l['source'])
         if l['montant'] is None:
             e['repas_sans_tarif'] += 1
@@ -391,11 +397,12 @@ def synthese_par_prestataire(lignes):
             'user_id': u.id, 'username': u.username,
             'nom_prenom': f"{u.nom or ''} {u.prenom or ''}".strip() or u.username,
             'agence_menu': l['agence_menu'], 'equipe': l['equipe'],
-            'nb_repas': 0, 'total': Decimal('0'),
+            'nb_repas': 0, 'nb_supplements': 0, 'total': Decimal('0'),
             'statuts': {'en_attente': 0, 'retiree': 0}, 'lignes': [],
         })
-        a['nb_repas'] += 1
-        a['statuts'][l['statut']] += 1
+        a['nb_supplements' if sup else 'nb_repas'] += 1
+        if not sup:
+            a['statuts'][l['statut']] += 1
         if l['montant'] is not None:
             a['total'] += l['montant']
         a['lignes'].append(l)
@@ -470,6 +477,45 @@ def obstacles_cloture(annee, mois):
     return employes, prest
 
 
+def apercu_cloture(annee, mois):
+    """
+    Récapitulatif d'un mois AVANT sa clôture (rien n'est écrit) : repas,
+    employés, montants par mode de règlement, relevés des prestataires
+    (repas et suppléments à part), et anomalies qui bloqueraient la clôture.
+    """
+    debut, fin = bornes_mois(annee, mois)
+    commandes_mois = Commande.objects.filter(menu__date_menu__gte=debut, menu__date_menu__lte=fin)
+    lignes = lignes_facturation(commandes_mois)
+    lignes_prest = lignes_prestataires(commandes_mois)
+    employes = synthese_par_employe(lignes)
+    prestataires = synthese_par_prestataire(lignes_prest)
+    offerts = commandes_mois.filter(statut__in=STATUTS_FACTURES, mode_paiement='offert',
+                                    commande_principale__isnull=True).count()
+
+    def somme(cle):
+        return sum((e[cle] for e in employes), Decimal('0') if cle.startswith('montant') else 0)
+
+    termine = fin < timezone.localdate()
+    deja = mois_cloture(annee, mois)
+    obstacles = _obstacles_cloture(lignes, lignes_prest)
+    return {
+        'annee': annee, 'mois': mois, 'date_debut': debut, 'date_fin': fin,
+        'termine': termine, 'deja_cloture': deja,
+        'cloturable': termine and not deja and not obstacles,
+        'nb_employes': len(employes),
+        'nb_repas': sum(e['nb_repas'] for e in employes),
+        'nb_repas_offerts': offerts,
+        'nb_supplements': sum(p['nb_supplements'] for p in prestataires),
+        'montant_employes': sum((e['total'] for e in employes), Decimal('0')),
+        **{cle: somme(cle) for cle in CHAMPS_REGLEMENT},
+        'prestataires': [{'prestataire_id': p['prestataire_id'], 'prestataire': p['prestataire'],
+                          'nb_repas': p['nb_repas'], 'nb_supplements': p['nb_supplements'],
+                          'montant': p['total']} for p in prestataires],
+        'montant_prestataires': sum((p['total'] for p in prestataires), Decimal('0')),
+        'obstacles': obstacles,
+    }
+
+
 CHAMPS_REGLEMENT = ('nb_repas_compte', 'montant_compte', 'nb_repas_caisse', 'montant_caisse',
                     'nb_repas_retenue', 'montant_retenue')
 
@@ -537,7 +583,7 @@ def cloturer_mois(annee, mois, par_user):
                     cloture=cloture, prestataire_id=p['prestataire_id'],
                     prestataire_libelle=p['prestataire'], annee=annee, mois=mois,
                     numero=numero_releve(annee, rang),
-                    nb_repas=p['nb_repas'], montant_total=p['total'],
+                    nb_repas=p['nb_repas'], nb_supplements=p['nb_supplements'], montant_total=p['total'],
                 )
                 LigneFacturePrestataire.objects.bulk_create([
                     LigneFacturePrestataire(
