@@ -82,7 +82,12 @@
     <div class="ep-onglets-stats" role="tablist">
       <button type="button" [class.on]="bloc === 'popularite'" (click)="bloc = 'popularite'"><i class="ri-fire-line"></i>Popularité des plats</button>
       <button type="button" [class.on]="bloc === 'montants'" (click)="bloc = 'montants'"><i class="ri-money-cny-circle-line"></i>Montants</button>
+      <button type="button" [class.on]="bloc === 'suivi'" (click)="bloc = 'suivi'"><i class="ri-time-line"></i>Desserts, affluence &amp; contestations</button>
     </div>
-    <app-indicateurs-plats source="prestataire" [vue]="bloc === 'popularite' ? 'plats' : 'montants'" [debut]="stats.debut" [fin]="stats.fin" [agence]="agence || null"></app-indicateurs-plats>
+    @if (bloc === 'suivi') {
+      <app-stats-complements source="prestataire" [debut]="stats.debut" [fin]="stats.fin" [agence]="agence || null"></app-stats-complements>
+    } @else {
+      <app-indicateurs-plats source="prestataire" [vue]="bloc === 'popularite' ? 'plats' : 'montants'" [debut]="stats.debut" [fin]="stats.fin" [agence]="agence || null"></app-indicateurs-plats>
+    }
   }
 </div>

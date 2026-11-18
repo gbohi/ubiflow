@@ -4,6 +4,7 @@
 // et par plat, quantités à préparer pour le prochain jour de service,
 // alertes. Plats, menus, relevés et statistiques restent sur le web.
 
+import '../statistiques/statistiques_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -56,6 +57,14 @@ class _AccueilPrestataireScreenState extends State<AccueilPrestataireScreen> {
         if ((a?.heure ?? '').isNotEmpty) a!.heure,
       ].join(' · '),
       actions: [
+        EnTeteBouton(
+          icone: Icons.bar_chart_rounded,
+          tooltip: 'Statistiques',
+          onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const StatistiquesScreen(prestataire: true))),
+        ),
         EnTeteBouton(
           icone: Icons.refresh_rounded,
           tooltip: 'Actualiser',

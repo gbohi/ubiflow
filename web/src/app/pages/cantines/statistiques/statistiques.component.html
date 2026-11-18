@@ -16,6 +16,8 @@
           <i class="ri-file-pdf-line st-c-rouge"></i><span><b>Rapport PDF complet</b><small>Chiffres clés + tous les graphiques et tableaux</small></span></button></li>
         <li><button type="button" class="dropdown-item" (click)="exporterClasseur()">
           <i class="ri-file-excel-2-line st-c-vert"></i><span><b>Classeur Excel (une feuille par bloc)</b><small>Commandes, repas & catégories, plats & avis, fréquentation</small></span></button></li>
+        <li><button type="button" class="dropdown-item" (click)="telechargerRapportMensuel()">
+          <i class="ri-file-chart-line st-c-rouge"></i><span><b>Rapport du mois (PDF)</b><small>Synthèse pour la direction · {{ libelleMoisRapport }}</small></span></button></li>
         <li class="st-menu-pied"><i class="ri-information-line"></i>{{ filtresTexte }}</li>
       </ul>
     </div>
@@ -355,6 +357,10 @@
         <div class="st-sec" id="st-montants">
           <div class="st-sec-titre">Montants <span class="st-nouveau">Nouveau</span></div>
           <app-indicateurs-plats source="ubipharm" vue="montants" [debut]="f.debut" [fin]="f.fin" [agence]="f.agence ?? null" [typeequipe]="f.typeequipe ?? null"></app-indicateurs-plats>
+        </div>
+        <div class="st-sec" id="st-suivi">
+          <div class="st-sec-titre">Participation &amp; suivi <span class="st-nouveau">Nouveau</span></div>
+          <app-stats-complements source="ubipharm" [debut]="f.debut" [fin]="f.fin" [agence]="f.agence ?? null" [typeequipe]="f.typeequipe ?? null"></app-stats-complements>
         </div>
       }
 

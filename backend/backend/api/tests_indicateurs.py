@@ -13,7 +13,7 @@ from .tests import API
 from .tests_supplements import _SupplementsBase
 
 
-class IndicateursTests(_SupplementsBase):
+class _IndicateursBase(_SupplementsBase):
 
     def setUp(self):
         super().setUp()
@@ -29,6 +29,10 @@ class IndicateursTests(_SupplementsBase):
         Commande.objects.create(user=self.employe2, menu=m, plat=self.plat_c, statut='retiree',
                                 mode_paiement='retenue')
         self.params = {'debut': self.jour.replace(day=1).isoformat(), 'fin': self.jour.isoformat()}
+
+
+
+class IndicateursTests(_IndicateursBase):
 
     def test_ubipharm(self):
         r = self.client_pour(self.admin).get(f'{API}/statistiques/indicateurs/', self.params)
@@ -59,3 +63,55 @@ class IndicateursTests(_SupplementsBase):
                                                            self.params).data['kpis']['nb_repas'], 0)
         self.assertEqual(self.client_pour(self.agent_a).get(f'{API}/prestataire/statistiques/indicateurs/')
                          .status_code, 403)
+
+
+class ComplementsTests(_IndicateursBase):
+    """Statistiques complémentaires sur le même jeu de données (2 repas, 1 dessert)."""
+
+    def test_ubipharm_complements(self):
+        from .models import Retrait, UserAgence
+        m = Commande.objects.filter(commande_principale__isnull=True).first().menu
+        Retrait.objects.create(user=self.employe, menu=m, badge_matricule='x', mode='badge',
+                               date_retrait=timezone.make_aware(timezone.datetime.combine(self.jour,
+                                                                                         timezone.datetime.min.time()))
+                               + timedelta(hours=12, minutes=20))
+        r = self.client_pour(self.admin).get(f'{API}/statistiques/complements/', self.params)
+        self.assertEqual(r.status_code, 200, r.data)
+        d = r.data
+        self.assertEqual((d['desserts']['nb_repas'], d['desserts']['repas_avec_dessert']), (2, 1))
+        self.assertEqual(d['desserts']['part_avec_dessert'], 50.0)
+        self.assertEqual(d['desserts']['cout_offerts'], 300.0)
+        self.assertEqual(d['affluence']['pointe']['tranche'], '12:15')
+        self.assertTrue(d['participation']['effectif'] >= 2)
+        self.assertEqual(d['prestataires'][0]['repas'], 2)
+        self.assertIn('par_mois', d['comptes_repas'])
+        self.assertEqual(d['controle']['contestations'], 0)
+        self.assertEqual(d['jeux']['parties'], 0)
+        self.assertEqual(self.client_pour(self.employe).get(f'{API}/statistiques/complements/').status_code, 403)
+
+    def test_prestataire_complements(self):
+        r = self.client_pour(self.resp_a).get(f'{API}/prestataire/statistiques/indicateurs/', self.params).data
+        self.assertEqual(r['complements']['desserts']['nb_desserts'], 1)
+        self.assertIn('tranches', r['complements']['affluence'])
+
+
+class RapportMensuelTests(_IndicateursBase):
+
+    def test_pdf_et_notification(self):
+        from unittest.mock import patch
+        from .models import Notification
+        from .pdf_rapport import notifier_rapport_mensuel
+        r = self.client_pour(self.admin).get(f'{API}/statistiques/rapport-mensuel/',
+                                             {'annee': self.jour.year, 'mois': self.jour.month})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertTrue(r.content.startswith(b'%PDF'))
+        self.assertEqual(self.client_pour(self.employe).get(f'{API}/statistiques/rapport-mensuel/').status_code, 403)
+        premier = timezone.localtime().replace(day=1, hour=8)
+        with patch('api.pdf_rapport.timezone.localtime', return_value=premier), \
+                patch('api.fcm_service.messaging', create=True):
+            n1 = notifier_rapport_mensuel()
+            n2 = notifier_rapport_mensuel()
+        self.assertGreaterEqual(n1, 1)
+        self.assertEqual(n2, 0)                       # une seule fois par mois
+        self.assertTrue(Notification.objects.filter(user=self.admin, donnees__has_key='rapport_mensuel').exists())

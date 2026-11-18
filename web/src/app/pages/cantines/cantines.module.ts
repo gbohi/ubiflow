@@ -65,6 +65,7 @@ import { ActionsJeuComponent } from './gestion-jeux/onglets/actions-jeu.componen
 // Graphiques (page Statistiques)
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { IndicateursPlatsComponent } from 'src/app/shared/indicateurs-plats/indicateurs-plats.component';
+import { StatsComplementsComponent } from 'src/app/shared/stats-complements/stats-complements.component';
 
 // Aucun envoi par Dropzone : les fichiers sont collectés côté composant puis
 // envoyés au backend avec le formulaire (FormData). L'URL n'est qu'un placeholder.
@@ -119,6 +120,7 @@ const DEFAULT_DROPZONE_CONFIG: DropzoneConfigInterface = {
     NgSelectModule,
     NgApexchartsModule,
     IndicateursPlatsComponent,
+    StatsComplementsComponent,
     StatBlocComponent,
     BadgeEmployeComponent
   ],

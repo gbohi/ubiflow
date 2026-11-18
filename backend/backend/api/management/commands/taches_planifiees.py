@@ -19,3 +19,5 @@ class Command(BaseCommand):
         from api.defis import taches_defis
         from api.pronostics import taches_pronostics
         self.stdout.write(f"Défis : {taches_defis()} ; pronostics : {taches_pronostics()}")
+        from api.pdf_rapport import notifier_rapport_mensuel
+        self.stdout.write(f"Rapport mensuel : {notifier_rapport_mensuel()} notification(s)")

@@ -18,6 +18,7 @@ from .planning_equipes import (
 )
 from .statistiques import DetailServiceView, RepasCategoriesView, StatistiquesView
 from .indicateurs import IndicateursView
+from .statistiques_plus import ComplementsView, RapportMensuelView
 from .controle import AnomalieVerifierView, ContestationRetraitViewSet, ControleRetraitsView
 from . import espace_prestataire as presta
 from . import caisse
@@ -138,6 +139,8 @@ urlpatterns = [
     path('api/statistiques/repas-categories/', RepasCategoriesView.as_view(), name='statistiques-repas-categories'),
     path('api/statistiques/detail/', DetailServiceView.as_view(), name='statistiques-detail'),
     path('api/statistiques/indicateurs/', IndicateursView.as_view(), name='statistiques-indicateurs'),
+    path('api/statistiques/complements/', ComplementsView.as_view(), name='statistiques-complements'),
+    path('api/statistiques/rapport-mensuel/', RapportMensuelView.as_view(), name='statistiques-rapport-mensuel'),
     path('api/facturation/', FacturationView.as_view(), name='facturation'),
     path('api/facturation/prestataires/', FacturationPrestataireView.as_view(), name='facturation-prestataires'),
     path('api/facturation/prestataires/releve/', RelevePrestataireView.as_view(), name='facturation-prestataires-releve'),

@@ -1,11 +1,13 @@
 // lib/features/dashboard/dashboard_screen.dart
 
+import '../statistiques/statistiques_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../shared/models/suivi_models.dart';
 import '../suivi/suivi_widgets.dart' show FriseSuivi;
-import '../jeux/jeux_screen.dart' show BandeauJeuAccueil, BandeauJeuAccueilState;
+import '../jeux/jeux_screen.dart'
+    show BandeauJeuAccueil, BandeauJeuAccueilState;
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../shared/theme/app_theme.dart';
@@ -164,13 +166,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _BannerSlider(key: _bannerKey),
             // Ses propres commandes : seulement s'il en a (la maquette
             // s'arrête aux chiffres)
-            if (peutCommander) Consumer<CommandeProvider>(
-              builder: (_, cmdProv, __) => cmdProv.mesCommandes.isEmpty
-                  ? const SizedBox.shrink()
-                  : Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: marges(recentes)),
-            ),
+            if (peutCommander)
+              Consumer<CommandeProvider>(
+                builder: (_, cmdProv, __) => cmdProv.mesCommandes.isEmpty
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: marges(recentes)),
+              ),
           ]
         : !peutCommander
             ? [
@@ -180,24 +183,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     key: Key('accueil-sans-role-employe'),
                     icone: Icons.info_outline_rounded,
                     ton: TonPastille.bleu,
-                    texte: "Votre compte n'a pas le rôle « Employé » : la commande de repas et les jeux "
+                    texte:
+                        "Votre compte n'a pas le rôle « Employé » : la commande de repas et les jeux "
                         "ne vous sont pas ouverts. Demandez-le à un administrateur si vous mangez à la cantine.")),
               ]
-        : [
-            _BannerSlider(key: _bannerKey),
-            const SizedBox(height: 8),
-            marges(repasDuJour),
-            const SizedBox(height: 12),
-            marges(BandeauJeuAccueil(key: _jeuKey)),
-            marges(_BlocEmploye(
-              onMenu: ({int? menuId, DateTime? date}) =>
-                  _goMenu(context, menuId: menuId, date: date),
-              onCommandes: () => _goCommandes(context),
-              onFactures: () => _goFactures(context),
-            )),
-            const SizedBox(height: 24),
-            marges(recentes),
-          ];
+            : [
+                _BannerSlider(key: _bannerKey),
+                const SizedBox(height: 8),
+                marges(repasDuJour),
+                const SizedBox(height: 12),
+                marges(BandeauJeuAccueil(key: _jeuKey)),
+                marges(_BlocEmploye(
+                  onMenu: ({int? menuId, DateTime? date}) =>
+                      _goMenu(context, menuId: menuId, date: date),
+                  onCommandes: () => _goCommandes(context),
+                  onFactures: () => _goFactures(context),
+                )),
+                const SizedBox(height: 24),
+                marges(recentes),
+              ];
 
     return Scaffold(
       body: RefreshIndicator(
@@ -495,6 +499,23 @@ class _BlocGestion extends StatelessWidget {
               onGestion: onGestion,
             ),
           ],
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              key: const Key('ouvrir-statistiques'),
+              leading: const Icon(Icons.bar_chart_rounded),
+              title: const Text('Statistiques',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text(
+                  'Repas, montants, plats, participation, affluence'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const StatistiquesScreen())),
+            ),
+          ),
           const SizedBox(height: 4),
         ]);
       },
@@ -721,7 +742,9 @@ class _RepasDuJourCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-              colors: retard ? const [_orangeFonce, _orange] : const [_vertFonce, _vert],
+              colors: retard
+                  ? const [_orangeFonce, _orange]
+                  : const [_vertFonce, _vert],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(20),
@@ -759,7 +782,9 @@ class _RepasDuJourCard extends StatelessWidget {
                   child: Text(
                       retire
                           ? 'Retiré'
-                          : (s != null && s.statutLibelle.isNotEmpty ? s.statutLibelle : 'À retirer'),
+                          : (s != null && s.statutLibelle.isNotEmpty
+                              ? s.statutLibelle
+                              : 'À retirer'),
                       key: const Key('statut-repas-du-jour'),
                       style: TextStyle(
                           color: fonce,
@@ -847,25 +872,37 @@ class _RepasDuJourCard extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(14)),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  FriseSuivi(etapes: s.etapes, surFondColore: true, couleurFond: fonce),
-                  if (s.message.isNotEmpty) ...[
-                    Divider(color: Colors.white.withOpacity(0.25), height: 16),
-                    Row(children: [
-                      Icon(retard ? Icons.schedule_rounded : Icons.info_outline_rounded,
-                          color: Colors.white, size: 15),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                            [
-                              s.message,
-                              if (s.incident?.message.isNotEmpty ?? false) '« ${s.incident!.message} »',
-                            ].join(' '),
-                            style: const TextStyle(color: Colors.white, fontSize: 11.5)),
-                      ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FriseSuivi(
+                          etapes: s.etapes,
+                          surFondColore: true,
+                          couleurFond: fonce),
+                      if (s.message.isNotEmpty) ...[
+                        Divider(
+                            color: Colors.white.withOpacity(0.25), height: 16),
+                        Row(children: [
+                          Icon(
+                              retard
+                                  ? Icons.schedule_rounded
+                                  : Icons.info_outline_rounded,
+                              color: Colors.white,
+                              size: 15),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                                [
+                                  s.message,
+                                  if (s.incident?.message.isNotEmpty ?? false)
+                                    '« ${s.incident!.message} »',
+                                ].join(' '),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 11.5)),
+                          ),
+                        ]),
+                      ],
                     ]),
-                  ],
-                ]),
               ),
             ],
             const SizedBox(height: 14),

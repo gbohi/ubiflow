@@ -5,6 +5,7 @@ import { ModalModule } from 'ngx-bootstrap/modal';
 
 import { SharedModule } from 'src/app/shared/shared.module';
 import { IndicateursPlatsComponent } from 'src/app/shared/indicateurs-plats/indicateurs-plats.component';
+import { StatsComplementsComponent } from 'src/app/shared/stats-complements/stats-complements.component';
 import { PrestataireRoutingModule } from './prestataire-routing.module';
 
 import { AccueilPrestataireComponent } from './accueil/accueil-prestataire.component';
@@ -46,6 +47,7 @@ import { HistoriqueRetraitsComponent } from './historique-retraits/historique-re
     FormsModule,
     SharedModule,
     IndicateursPlatsComponent,
+    StatsComplementsComponent,
     ModalModule.forRoot(),
     PrestataireRoutingModule,
   ],

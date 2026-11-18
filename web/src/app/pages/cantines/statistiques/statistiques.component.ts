@@ -10,6 +10,8 @@
 
 import { Component, DestroyRef, HostListener, OnInit, ViewChild, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { ChartComponent } from 'ng-apexcharts';
@@ -34,7 +36,7 @@ import {
 import { DetailServiceComponent } from 'src/app/shared/detail-service/detail-service.component';
 
 type Periode = 'mois' | 'mois_dernier' | 'trois_mois' | 'annee' | 'perso';
-type Section = 'commandes' | 'repas' | 'plats' | 'frequentation' | 'popularite' | 'montants';
+type Section = 'commandes' | 'repas' | 'plats' | 'frequentation' | 'popularite' | 'montants' | 'suivi';
 export type Bloc = 'mois' | 'agence' | 'evolution' | 'detail_mensuel' | 'repas' | 'categorie' | 'top'
   | 'type' | 'classement' | 'non_retires' | 'annulations' | 'jours';
 
@@ -56,6 +58,7 @@ export class StatistiquesComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private modal = inject(BsModalService);
   private toastr = inject(ToastrService);
+  private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   private userConnecte = inject(TokenStorageService).getUser();
 
@@ -88,6 +91,7 @@ export class StatistiquesComponent implements OnInit {
     { id: 'frequentation', libelle: 'Fréquentation', icone: 'ri-group-line', nouveau: true },
     { id: 'popularite', libelle: 'Popularité des plats', icone: 'ri-fire-line', nouveau: true },
     { id: 'montants', libelle: 'Montants', icone: 'ri-money-cny-circle-line', nouveau: true },
+    { id: 'suivi', libelle: 'Participation & suivi', icone: 'ri-team-line', nouveau: true },
   ];
   /** Filtres du dernier chargement (blocs « Popularité » et « Montants ») */
   filtresCharges: FiltresStats | null = null;
@@ -609,6 +613,33 @@ export class StatistiquesComponent implements OnInit {
   private get suffixeFichier(): string {
     const p = this.d!.periode;
     return `${p.debut}_${p.fin}`;
+  }
+
+  /** Mois du rapport mensuel : celui de la période s'il s'agit d'un mois, sinon le mois écoulé */
+  private get moisRapport(): { annee: number; mois: number } {
+    const { debut, fin } = this.bornes(this.periode);
+    if (debut && fin && debut.slice(0, 7) === fin.slice(0, 7)) return { annee: +debut.slice(0, 4), mois: +debut.slice(5, 7) };
+    const a = new Date(); const p = new Date(a.getFullYear(), a.getMonth() - 1, 1);
+    return { annee: p.getFullYear(), mois: p.getMonth() + 1 };
+  }
+
+  get libelleMoisRapport(): string {
+    const { annee, mois } = this.moisRapport;
+    return new Date(annee, mois - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  }
+
+  telechargerRapportMensuel(): void {
+    const { annee, mois } = this.moisRapport;
+    this.http.get(`${environment.apiUrl}/api/api/statistiques/rapport-mensuel/`, { params: { annee, mois }, responseType: 'blob' })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: b => {
+          const url = URL.createObjectURL(b);
+          const a = document.createElement('a');
+          a.href = url; a.download = `rapport-cantine-${annee}-${String(mois).padStart(2, '0')}.pdf`; a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        },
+        error: () => this.toastr.error('Le rapport mensuel n\'a pas pu être généré.'),
+      });
   }
 
   get filtresTexte(): string {

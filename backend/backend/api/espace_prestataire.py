@@ -1559,9 +1559,23 @@ class IndicateursPrestataireView(APIView):
             menu__date_menu__gte=debut, menu__date_menu__lte=fin)
         if agence is not None:
             qs = qs.filter(menu__agence_id=agence)
+        from . import statistiques_plus as plus
+        pid = request.user.prestataire_id
+        menus_q = filtre_menus_prestataire(pid, 'menu__')
+        if agence is not None:
+            menus_q &= Q(menu__agence_id=agence)
+        # Desserts, affluence au comptoir et contestations de ses retraits
+        complements = {
+            'desserts': plus.desserts(qs, pid),
+            'affluence': plus.affluence(Retrait.objects.filter(menu__in=qs.values('menu_id'))),
+            'controle': plus.controle(debut, fin, menus_q),
+        }
+        if request.query_params.get('complements') == 'seuls':
+            return Response({'debut': debut.isoformat(), 'fin': fin.isoformat(), **complements})
         return Response({'debut': debut.isoformat(), 'fin': fin.isoformat(),
                          **ind.plats(qs, debut, fin),
-                         'montants': ind.montants(qs, debut, fin, request.user.prestataire_id, avec_employes=False)})
+                         'montants': ind.montants(qs, debut, fin, pid, avec_employes=False),
+                         'complements': complements})
 
 
 class EquipeView(APIView):

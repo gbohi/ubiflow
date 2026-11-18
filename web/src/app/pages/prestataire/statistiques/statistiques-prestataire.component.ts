@@ -63,7 +63,7 @@ export class StatistiquesPrestataireComponent implements OnInit {
   }
 
   /** Bloc d'indicateurs affiché sous le tableau */
-  bloc: 'popularite' | 'montants' = 'popularite';
+  bloc: 'popularite' | 'montants' | 'suivi' = 'popularite';
 
   /** Plats (repas) ou suppléments (desserts…) */
   vue: 'plats' | 'supplements' = 'plats';
