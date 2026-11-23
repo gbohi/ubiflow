@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/providers/app_provider.dart';
 import '../../core/widgets/common_widgets.dart';
+import '../../core/services/auth_service.dart';
 import 'change_password_screen.dart';
 
 class ProfilScreen extends StatefulWidget {
@@ -21,6 +22,13 @@ class _ProfilScreenState extends State<ProfilScreen> {
   final Future<PackageInfo> _version = PackageInfo.fromPlatform().catchError(
       (Object _) => PackageInfo(
           appName: 'UbiFlow', packageName: '', version: '', buildNumber: ''));
+
+  /// N+1 du jour (null si indisponible : hors ligne, introuvable)
+  final Future<String?> _nPlus1 = authService.monOrganisation().then((o) {
+    final n1 = o['n_plus_1'] as Map?;
+    final personne = n1?['personne'] as Map?;
+    return personne == null ? null : personne['nom_complet'] as String?;
+  }).catchError((Object _) => null);
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +166,15 @@ class _ProfilScreenState extends State<ProfilScreen> {
                           icone: Icons.work_outline_rounded,
                           titre: 'Poste',
                           valeur: user!.dernierPoste!),
+                    FutureBuilder<String?>(
+                      future: _nPlus1,
+                      builder: (_, snap) => _Ligne(
+                          icone: Icons.supervisor_account_outlined,
+                          titre: 'Mon responsable (N+1)',
+                          valeur: snap.connectionState != ConnectionState.done
+                              ? '…'
+                              : (snap.data ?? 'Non déterminé')),
+                    ),
                     _Ligne(
                       icone: Icons.lock_outline_rounded,
                       titre: 'Modifier le mot de passe',

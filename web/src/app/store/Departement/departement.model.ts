@@ -3,6 +3,10 @@
 export interface DepartementlistModel {
   id?:               any;
   libelle_service?:  string;   // champ du modèle Django Service renommé Departement
+  code?:             string;
+  parent?:           number | null;
+  parent_libelle?:   string | null;
+  chemin?:           string;
 }
 
 export interface ApiResponse<T> {

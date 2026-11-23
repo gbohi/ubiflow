@@ -92,6 +92,7 @@ export class AgenceComponent implements OnInit, AfterViewInit {
     this.agenceForm = this.fb.group({
       id:           [''],
       nom_agence: ['', [Validators.required]],
+      code: [''],
     });
 
     this.store.select(selectLoading).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(loading => {

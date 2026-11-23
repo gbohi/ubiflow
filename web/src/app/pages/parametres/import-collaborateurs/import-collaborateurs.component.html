@@ -1,0 +1,93 @@
+<div class="lst">
+  <app-page-entete titre="Import des collaborateurs" icone="ri-file-excel-2-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Utilisateurs & accès'}]"
+                   sousTitre="Création et mise à jour des collaborateurs depuis un fichier Excel">
+    <button type="button" class="btn-ubi" (click)="telechargerModele()"><i class="ri-download-2-line"></i><span class="pe-lib">Modèle de fichier</span></button>
+  </app-page-entete>
+
+  <div class="lst-carte p-3 mb-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label" for="imp-fichier">Fichier Excel (.xlsx)</label>
+        <input #champFichier id="imp-fichier" type="file" class="form-control" accept=".xlsx" (change)="choisir($event)">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="imp-date">Date d'effet des affectations</label>
+        <input id="imp-date" type="date" class="form-control" [(ngModel)]="dateEffet">
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary flex-fill" [disabled]="!fichier || enCours" (click)="lancer(true)">
+          <i class="ri-search-eye-line me-1"></i>Simuler
+        </button>
+        <button type="button" class="btn btn-primary flex-fill" [disabled]="!fichier || enCours" (click)="lancer(false)">
+          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> } @else { <i class="ri-upload-2-line me-1"></i> }Importer
+        </button>
+      </div>
+    </div>
+    <p class="text-muted small mt-3 mb-0">
+      <i class="ri-information-line me-1"></i>Le matricule identifie le collaborateur : connu, il est mis à jour ; inconnu, il est créé
+      (rôle Employé, mot de passe à définir). Une cellule vide ne modifie rien. Une affectation modifiée ferme l'ancienne la veille
+      de la date d'effet. Commencez par une simulation : elle contrôle tout sans rien enregistrer.
+    </p>
+  </div>
+
+  @if (resultat) {
+    <div class="lst-carte p-3 mb-3">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <h6 class="mb-0 me-2">
+          {{ resultat.simulation ? 'Simulation' : 'Import' }} « {{ resultat.fichier_nom }} »
+          <small class="text-muted">— effet au {{ resultat.date_effet | date:'dd/MM/yyyy' }}</small>
+        </h6>
+        @if (resultat.simulation) { <span class="lst-tag t-or"><i class="ri-eye-line"></i>Rien n'a été enregistré</span> }
+        <div class="ms-auto d-flex flex-wrap gap-1">
+          <button type="button" class="btn btn-sm" [class.btn-primary]="filtre === ''" [class.btn-light]="filtre !== ''" (click)="filtre = ''">Toutes ({{ resultat.nb_lignes }})</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="filtre === 'cree'" [class.btn-light]="filtre !== 'cree'" (click)="filtre = 'cree'">Créés ({{ resultat.nb_crees }})</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="filtre === 'mis_a_jour'" [class.btn-light]="filtre !== 'mis_a_jour'" (click)="filtre = 'mis_a_jour'">Mis à jour ({{ resultat.nb_mis_a_jour }})</button>
+          <button type="button" class="btn btn-sm" [class.btn-primary]="filtre === 'inchange'" [class.btn-light]="filtre !== 'inchange'" (click)="filtre = 'inchange'">Inchangés ({{ resultat.nb_inchanges }})</button>
+          <button type="button" class="btn btn-sm" [class.btn-danger]="filtre === 'rejete'" [class.btn-light]="filtre !== 'rejete'" (click)="filtre = 'rejete'">Rejetés ({{ resultat.nb_rejetes }})</button>
+        </div>
+      </div>
+      <div class="table-responsive border rounded">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light"><tr><th>Ligne</th><th>Matricule</th><th>Résultat</th><th>Détail</th></tr></thead>
+          <tbody>
+            @for (l of lignes; track l.ligne) {
+              <tr>
+                <td>{{ l.ligne }}</td>
+                <td><b>{{ l.matricule || '—' }}</b></td>
+                <td><span class="lst-tag" [ngClass]="classes[l.resultat]">{{ libelles[l.resultat] }}</span>
+                  @if (l.avertissement) { <i class="ri-error-warning-line text-warning ms-1" title="Avertissement"></i> }</td>
+                <td class="small">@for (m of l.messages; track $index) { <div>{{ m }}</div> } @empty { — }</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4" class="text-center text-muted py-3">Aucune ligne.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <div class="lst-carte p-3">
+    <h6 class="mb-3">Derniers imports</h6>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>Date</th><th>Fichier</th><th>Par</th><th>Type</th><th>Résultat</th><th></th></tr></thead>
+        <tbody>
+          @for (h of historique; track h.id) {
+            <tr>
+              <td>{{ h.cree_le | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ h.fichier_nom }}</td>
+              <td>{{ h.auteur_nom || '—' }}</td>
+              <td>{{ h.simulation ? 'Simulation' : 'Import' }}</td>
+              <td class="small">{{ h.nb_crees }} créé(s) · {{ h.nb_mis_a_jour }} mis à jour · {{ h.nb_rejetes }} rejeté(s)</td>
+              <td class="text-end"><button type="button" class="btn btn-link btn-sm" (click)="voir(h)">Voir le rapport</button></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="text-center text-muted py-3">Aucun import pour le moment.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

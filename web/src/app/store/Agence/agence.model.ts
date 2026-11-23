@@ -1,6 +1,7 @@
 export interface AgencelistModel {
     id?: any;
     nom_agence?: any;
+    code?: string;
 }
 
 

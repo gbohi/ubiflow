@@ -265,7 +265,7 @@
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Ajouter un utilisateur</h5>
+        <h5 class="modal-title">{{ f['id'].value ? "Modifier l'utilisateur" : 'Ajouter un utilisateur' }}</h5>
         <button type="button" class="btn-close" (click)="closeAddModal()"></button>
       </div>
       <form (ngSubmit)="saveProperty()" [formGroup]="userForm" novalidate autocomplete="off">
@@ -477,6 +477,12 @@
 
           }
 
+          @if (etape === 'hierarchie' && f['id'].value) {
+            <p class="small text-muted mb-3"><i class="ri-information-line me-1"></i>Ces informations sont enregistrées immédiatement,
+              indépendamment du bouton « Enregistrer ».</p>
+            <app-organisation-collaborateur [userId]="f['id'].value"></app-organisation-collaborateur>
+          }
+
           @if (etape === 'recap') {
             <h6 class="text-muted text-uppercase mb-3 small"><i class="ri-file-list-3-line me-1"></i>Récapitulatif</h6>
             <dl class="uw-recap">
@@ -634,6 +640,13 @@
           <div class="col-md-2"><label class="form-label fw-medium">État :</label><p>@if(selectedUser?.is_active){<span class="badge bg-success-subtle text-success">Actif</span>}@else{<span class="badge bg-danger-subtle text-danger">Inactif</span>}</p></div>
           <div class="col-12"><label class="form-label fw-medium">Rôle(s) :</label><p class="mb-0">@if(selectedUser?.groups&&selectedUser.groups.length>0){@for(gid of selectedUser.groups;track gid){<span class="badge bg-secondary-subtle text-secondary me-1"><i class="ri-shield-check-line me-1"></i>{{getGroupeName(gid)}}</span>}}@else{<span class="text-muted small">Aucun</span>}</p></div>
         </div>
+
+        <!-- Hiérarchie et véhicule -->
+        @if (selectedUser?.id) {
+          <div class="border-top pt-3 mb-3">
+            <app-organisation-collaborateur [userId]="selectedUser.id" [lectureSeule]="true"></app-organisation-collaborateur>
+          </div>
+        }
 
         <!-- Départements -->
         <h6 class="text-muted text-uppercase mb-2 small"><i class="ri-building-line me-1"></i>Départements</h6>

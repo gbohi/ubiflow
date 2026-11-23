@@ -27,6 +27,7 @@
               <div class="form-check"><input class="form-check-input" type="checkbox" aria-label="Tout sélectionner" [(ngModel)]="masterSelected" (change)="checkUncheckAll($event)"></div>
             </th>
             <th class="tri" [class.actif]="tri.estActif('nom_agence')" (click)="onSort('nom_agence')">Nom<i class="ms-1" [ngClass]="tri.icone('nom_agence')"></i></th>
+            <th>Code</th>
             <th class="lst-c-act"><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -39,6 +40,7 @@
               <td class="lst-c-principal">
                 <div class="lst-qui"><span class="lst-av carre"><i class="ri-map-pin-line"></i></span><b>{{ data.nom_agence }}</b></div>
               </td>
+              <td data-label="Code">{{ data.code || '—' }}</td>
               <td class="lst-c-act">
                 <div class="lst-act">
                   <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="editList(data.id)"><i class="ri-pencil-line"></i></button>
@@ -57,7 +59,7 @@
           }
           @if (agences.length === 0 && !isLoading) {
             <tr class="lst-l-vide">
-              <td colspan="3" class="lst-c-plein">
+              <td colspan="4" class="lst-c-plein">
                 <div class="lst-vide">
                   @if (term) {
                     <i class="ri-search-line"></i>
@@ -114,6 +116,11 @@
                 }
               </div>
             }
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Code <small class="text-muted">(facultatif)</small></label>
+            <input type="text" class="form-control" formControlName="code" placeholder="Ex. : ABJ" maxlength="30">
           </div>
         </div>
 
@@ -207,6 +214,10 @@
         <div class="mb-3">
           <label class="form-label fw-medium">Nom :</label>
           <p>{{ selectedAgence?.nom_agence }}</p>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-medium">Code :</label>
+          <p>{{ selectedAgence?.code || '—' }}</p>
         </div>
       </div>
 

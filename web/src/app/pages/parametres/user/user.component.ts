@@ -127,6 +127,8 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       { cle: 'roles', titre: 'Rôle(s)' },
       ...(creation ? [{ cle: 'mdp', titre: 'Mot de passe' }] : []),
       { cle: 'affectations', titre: 'Affectations' },
+      // N+1 et véhicule : une fois le compte créé (enregistrés immédiatement)
+      ...(creation ? [] : [{ cle: 'hierarchie', titre: 'Hiérarchie & véhicule' }]),
       { cle: 'recap', titre: 'Récapitulatif' },
     ];
   }
@@ -312,7 +314,7 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
     this.addUser?.onHidden.subscribe(() => {
       this.userForm.reset(); this._resetAllLignes(); this.currentUserId = null;
       this.submitted = false;
-      this.setModalTitle('Ajouter un utilisateur'); this.setModalBtn('Enregistrer');
+      this.setModalBtn('Enregistrer');
     });
     this.deleteRecordModal?.onHidden.subscribe(() => { this.deleteID = null; });
   }
@@ -746,12 +748,12 @@ getDerniereCategorie(user: any): any | null {
     this.userForm.patchValue({ is_active: true, groups: [] });
     this._motDePasseObligatoire(true);
     this.etape = 'identite';
-    this.setModalTitle('Ajouter un utilisateur'); this.setModalBtn('Enregistrer'); this.addUser?.show();
+    this.setModalBtn('Enregistrer'); this.addUser?.show();
   }
 
   closeAddModal(): void {
     this.lastActiveElement?.focus();
-    setTimeout(() => { this.addUser?.hide(); this.setModalTitle('Ajouter un utilisateur'); this.setModalBtn('Enregistrer'); }, 10);
+    setTimeout(() => { this.addUser?.hide(); this.setModalBtn('Enregistrer'); }, 10);
   }
 
   editList(id: any): void {
@@ -763,7 +765,7 @@ getDerniereCategorie(user: any): any | null {
     this._motDePasseObligatoire(false);
     this.etape = 'identite';
     this._chargerHistorique(editData);
-    this.setModalTitle('Modifier l\'utilisateur'); this.setModalBtn('Enregistrer'); this.addUser?.show();
+    this.setModalBtn('Enregistrer'); this.addUser?.show();
   }
 
   // ── Tableaux dynamiques ────────────────────────────────────
@@ -985,6 +987,5 @@ getDerniereCategorie(user: any): any | null {
 
   pageChanged(event: PageChangedEvent): void { this.loadData(event.page); }
 
-  private setModalTitle(t: string): void { const el = document.querySelector('.modal-title') as HTMLElement; if (el) el.innerHTML = t; }
   private setModalBtn(l: string): void { const el = document.getElementById('add-btn') as HTMLElement; if (el) el.innerHTML = l; }
 }

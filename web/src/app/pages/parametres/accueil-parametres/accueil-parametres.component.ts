@@ -45,6 +45,8 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
         lien: '/parametres/role', roles: ADMINS, compte: 'groups/', motsCles: 'droits accès groupe' },
       { titre: 'Statuts', description: 'Statuts des comptes et des affectations', icone: 'ri-checkbox-circle-line',
         lien: '/parametres/statut', roles: ADMINS, compte: 'statuts/' },
+      { titre: 'Import Excel', description: 'Créer ou mettre à jour les collaborateurs depuis un fichier', icone: 'ri-file-excel-2-line',
+        lien: '/parametres/import-collaborateurs', roles: ADMINS, motsCles: 'excel import fichier rh synchronisation' },
     ],
   },
   {
@@ -52,8 +54,12 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
     cartes: [
       { titre: 'Agences', description: "Sites de l'entreprise", icone: 'ri-map-pin-line',
         lien: '/parametres/agence', roles: GESTIONNAIRES, compte: 'agences/', motsCles: 'site siège' },
-      { titre: 'Départements', description: 'Départements de rattachement des agents', icone: 'ri-organization-chart',
+      { titre: 'Organigramme', description: 'Départements et responsables à une date', icone: 'ri-node-tree',
+        lien: '/parametres/organigramme', roles: GESTIONNAIRES, motsCles: 'arbre hiérarchie responsable n+1' },
+      { titre: 'Départements', description: 'Départements et leur rattachement (département parent)', icone: 'ri-organization-chart',
         lien: '/parametres/departement', roles: ADMINS, compte: 'services/', motsCles: 'service direction' },
+      { titre: 'Responsabilités', description: 'DG, DAF, responsables de département… et leurs titulaires', icone: 'ri-shield-star-line',
+        lien: '/parametres/responsabilite', roles: ADMINS, compte: 'responsabilites/', motsCles: 'valideur dg daf chef comptable responsable titulaire' },
       { titre: 'Postes', description: 'Postes occupés, par fonction et département', icone: 'ri-briefcase-4-line',
         lien: '/parametres/poste', roles: ADMINS, compte: 'postes/', motsCles: 'emploi métier' },
       { titre: 'Fonctions', description: 'Fonctions exercées par les agents', icone: 'ri-user-star-line',

@@ -1,0 +1,54 @@
+<div class="lst">
+  <app-page-entete titre="Organigramme" icone="ri-organization-chart"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Organisation'}]"
+                   sousTitre="Départements et responsables à la date choisie">
+    <div class="d-flex align-items-center gap-2">
+      <label class="small text-muted mb-0" for="org-date">Au</label>
+      <input id="org-date" type="date" class="form-control form-control-sm" [(ngModel)]="date" (change)="charger()">
+    </div>
+  </app-page-entete>
+
+  <div class="lst-carte p-3">
+    @if (!chargement && sansResponsable > 0) {
+      <div class="alert alert-warning small">
+        <i class="ri-error-warning-line me-1"></i>{{ sansResponsable }} département(s) sans responsable à cette date :
+        leurs collaborateurs auront pour N+1 le responsable du département parent.
+        Les responsables se nomment dans <a routerLink="/parametres/responsabilite">Responsabilités</a>
+        (« Responsable de département »).
+      </div>
+    }
+    @if (chargement) {
+      <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+    } @else {
+      <ng-template #noeuds let-liste>
+        <ul class="org-arbre">
+          @for (n of liste; track n.id) {
+            <li>
+              <div class="org-noeud">
+                <span class="org-ic"><i class="ri-building-2-line"></i></span>
+                <span><b>{{ n.libelle }}</b>@if (n.code) { <small class="text-muted ms-1">{{ n.code }}</small> }</span>
+                <span class="org-resp">
+                  @if (n.responsable) {
+                    <i class="ri-user-star-line me-1"></i>{{ n.responsable.nom_complet }}
+                    <small class="text-muted ms-1">{{ n.responsable.matricule }}</small>
+                  } @else {
+                    <span class="org-manque"><i class="ri-user-unfollow-line me-1"></i>Sans responsable</span>
+                  }
+                </span>
+              </div>
+              @if (n.enfants.length) {
+                <ng-container [ngTemplateOutlet]="noeuds" [ngTemplateOutletContext]="{ $implicit: n.enfants }"></ng-container>
+              }
+            </li>
+          }
+        </ul>
+      </ng-template>
+      @if (arbre.length) {
+        <ng-container [ngTemplateOutlet]="noeuds" [ngTemplateOutletContext]="{ $implicit: arbre }"></ng-container>
+      } @else {
+        <div class="lst-vide"><i class="ri-organization-chart"></i><h5>Aucun département</h5>
+          <p>Créez les départements dans <a routerLink="/parametres/departement">Départements</a>.</p></div>
+      }
+    }
+  </div>
+</div>

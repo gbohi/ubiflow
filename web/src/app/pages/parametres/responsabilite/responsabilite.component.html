@@ -1,0 +1,226 @@
+<!-- Responsabilités de validation et leurs titulaires -->
+<div class="lst">
+  <app-page-entete titre="Responsabilités" icone="ri-shield-star-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Organisation'}]"
+                   [compte]="responsabilites.length" unite="responsabilité|responsabilités">
+    <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle responsabilité</span></button>
+  </app-page-entete>
+
+  <div class="lst-carte">
+    <div class="lst-barre">
+      <div class="lst-recherche">
+        <i class="ri-search-line"></i>
+        <input type="search" placeholder="Rechercher…" aria-label="Rechercher" [(ngModel)]="recherche" (ngModelChange)="rechercher()">
+      </div>
+      <p class="text-muted small mb-0 ms-auto d-none d-md-block">Les responsabilités désignent les valideurs des circuits (DG, DAF…).</p>
+    </div>
+    <div class="lst-table-wrap lst-cartes-wrap">
+      <table class="lst-table lst-cartes">
+        <thead>
+          <tr>
+            <th>Responsabilité</th>
+            <th>Code</th>
+            <th>Portée</th>
+            <th>Titulaires</th>
+            <th>État</th>
+            <th class="lst-c-act"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of responsabilites; track r.id) {
+            <tr>
+              <td class="lst-c-principal">
+                <div class="lst-qui"><span class="lst-av carre"><i class="ri-shield-star-line"></i></span>
+                  <span><b>{{ r.libelle }}</b>@if (r.systeme) { <small class="d-block">Utilisée par l'application</small> }</span></div>
+              </td>
+              <td data-label="Code"><code>{{ r.code }}</code></td>
+              <td data-label="Portée">{{ libellePortee(r.portee) }}</td>
+              <td data-label="Titulaires">
+                <button type="button" class="btn btn-link btn-sm p-0" (click)="ouvrirTitulaires(r)">
+                  {{ r.nb_titulaires || 0 }} en cours<span class="text-muted"> · {{ r.multiple ? 'plusieurs possibles' : 'un seul' }}</span>
+                </button>
+              </td>
+              <td data-label="État">@if (r.actif) { <span class="lst-etat ok">Active</span> } @else { <span class="lst-etat ko">Désactivée</span> }</td>
+              <td class="lst-c-act">
+                <div class="lst-act">
+                  <button type="button" class="lst-ic" title="Titulaires" aria-label="Titulaires" (click)="ouvrirTitulaires(r)"><i class="ri-team-line"></i></button>
+                  <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="modifier(r)"><i class="ri-pencil-line"></i></button>
+                  @if (!r.systeme) {
+                    <button type="button" class="lst-ic" title="Supprimer" aria-label="Supprimer" (click)="demanderSuppression(r)"><i class="ri-delete-bin-6-line"></i></button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+          @if (responsabilites.length === 0 && !chargement) {
+            <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein">
+              <div class="lst-vide"><i class="ri-shield-star-line"></i><h5>Aucune responsabilité</h5></div>
+            </td></tr>
+          }
+        </tbody>
+      </table>
+      @if (chargement) {
+        <div class="lst-charge"><div class="spinner-border" role="status"><span class="visually-hidden">Chargement...</span></div></div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Fiche -->
+<div bsModal #ficheModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ fiche.id ? 'Modifier la responsabilité' : 'Nouvelle responsabilité' }}</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="ficheModal.hide()"></button>
+      </div>
+      <form (ngSubmit)="enregistrer()" autocomplete="off">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="resp-libelle">Libellé <span class="text-danger">*</span></label>
+            <input id="resp-libelle" class="form-control" name="libelle" [(ngModel)]="fiche.libelle" required placeholder="Ex. : Responsable des achats">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="resp-code">Code <span class="text-danger">*</span></label>
+            <input id="resp-code" class="form-control" name="code" [(ngModel)]="fiche.code" required [disabled]="!!fiche.systeme" placeholder="Ex. : RESP_ACHATS">
+            <div class="form-text">Identifiant stable utilisé par les circuits de validation.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="resp-portee">Portée</label>
+            <select id="resp-portee" class="form-select" name="portee" [(ngModel)]="fiche.portee" [disabled]="!!fiche.systeme">
+              @for (p of portees; track p.valeur) { <option [value]="p.valeur">{{ p.libelle }}</option> }
+            </select>
+            <div class="form-text">« Un département » : un titulaire par département (ex. responsable de département).</div>
+          </div>
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="resp-multiple" name="multiple" [(ngModel)]="fiche.multiple">
+            <label class="form-check-label" for="resp-multiple">Plusieurs titulaires en même temps</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="resp-actif" name="actif" [(ngModel)]="fiche.actif" [disabled]="!!fiche.systeme">
+            <label class="form-check-label" for="resp-actif">Active</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" (click)="ficheModal.hide()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="enregistrement || !fiche.code || !fiche.libelle">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Suppression -->
+<div bsModal #suppressionModal="bs-modal" class="modal fade">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body p-4 text-center">
+        <i class="ri-delete-bin-6-line display-5 text-danger"></i>
+        <h4 class="mt-3">Supprimer « {{ aSupprimer?.libelle }} » ?</h4>
+        <p class="text-muted">Impossible si des titulaires y ont été affectés : désactivez-la plutôt.</p>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+          <button type="button" class="btn btn-light" (click)="suppressionModal.hide()">Annuler</button>
+          <button type="button" class="btn btn-danger" (click)="supprimer()">Oui, supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Titulaires -->
+<div bsModal #titulairesModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Titulaires — {{ courante?.libelle }}</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="titulairesModal.hide()"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Historique complet. Pour remplacer un titulaire, renseignez la date de fin de l'actuel puis ajoutez le nouveau.
+          @if (!courante?.multiple) { Un seul titulaire à la fois{{ courante?.portee !== 'globale' ? ' par périmètre' : '' }}. }</p>
+
+        @if (chargementTitulaires) {
+          <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        } @else {
+          <div class="table-responsive border rounded mb-3">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light"><tr>
+                <th>Collaborateur</th><th>Périmètre</th><th>Début</th><th>Fin</th><th>Motif</th><th></th>
+              </tr></thead>
+              <tbody>
+                @for (a of affectations; track a.id) {
+                  <tr [class.table-success]="estEnCours(a)">
+                    <td><b>{{ a.user_nom }}</b> <small class="text-muted ms-1">{{ a.user_matricule }}</small></td>
+                    <td>{{ perimetre(a) }}</td>
+                    <td>{{ a.date_debut | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ a.date_fin ? (a.date_fin | date:'dd/MM/yyyy') : 'En cours' }}</td>
+                    <td class="small">{{ a.motif || '—' }}</td>
+                    <td class="text-end text-nowrap">
+                      <button type="button" class="btn btn-subtle-primary btn-icon btn-sm" title="Modifier" (click)="modifierLigne(a)"><i class="ri-pencil-line"></i></button>
+                      <button type="button" class="btn btn-subtle-danger btn-icon btn-sm ms-1" title="Supprimer" (click)="supprimerLigne(a)"><i class="ri-delete-bin-6-line"></i></button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="6" class="text-center text-muted py-3">Aucun titulaire pour le moment.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (ligne) {
+          <div class="border rounded p-3 bg-light-subtle">
+            <h6 class="mb-3">{{ ligne.id ? 'Modifier la ligne' : 'Nouveau titulaire' }}</h6>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <label class="form-label small">Collaborateur *</label>
+                <ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="ligne.user"
+                           [disabled]="!!ligne.id" placeholder="Rechercher…" notFoundText="Aucun collaborateur"></ng-select>
+              </div>
+              @if (courante?.portee === 'departement') {
+                <div class="col-md-3">
+                  <label class="form-label small">Département *</label>
+                  <select class="form-select" [(ngModel)]="ligne.departement">
+                    <option [ngValue]="null">—</option>
+                    @for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.chemin || d.libelle_service }}</option> }
+                  </select>
+                </div>
+              }
+              @if (courante?.portee === 'agence') {
+                <div class="col-md-3">
+                  <label class="form-label small">Agence *</label>
+                  <select class="form-select" [(ngModel)]="ligne.agence">
+                    <option [ngValue]="null">—</option>
+                    @for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }
+                  </select>
+                </div>
+              }
+              <div class="col-md-2">
+                <label class="form-label small">Début *</label>
+                <input type="date" class="form-control" [(ngModel)]="ligne.date_debut">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">Fin</label>
+                <input type="date" class="form-control" [(ngModel)]="ligne.date_fin">
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Motif / référence (note de service…)</label>
+                <input type="text" class="form-control" [(ngModel)]="ligne.motif" maxlength="255">
+              </div>
+            </div>
+            <div class="d-flex gap-2 justify-content-end mt-3">
+              <button type="button" class="btn btn-light btn-sm" (click)="ligne = null">Annuler</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="enregistrerLigne()">Enregistrer</button>
+            </div>
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        @if (!ligne) {
+          <button type="button" class="btn btn-subtle-primary me-auto" (click)="nouvelleLigne()"><i class="ri-add-line me-1"></i>Ajouter un titulaire</button>
+        }
+        <button type="button" class="btn btn-secondary" (click)="titulairesModal.hide()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

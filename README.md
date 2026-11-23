@@ -36,8 +36,9 @@ Les rôles sont des groupes Django, créés par la migration
 |----------------|--------|
 | `super_admin`  | Tout, y compris gérer les autres administrateurs et attribuer `super_admin` |
 | `admin`        | Administration : utilisateurs, rôles, paramètres |
-| `gestionnaire` | Consultation des paramètres (agences) |
+| `gestionnaire` | Consultation des paramètres (agences, organigramme) |
 | `employe`      | Utilisateur standard : son profil, sa photo, son mot de passe |
+| `admin_workflow`, `admin_finances`, `comptable`, `direction`, `controleur` | Rôles métier créés dès le lot 1, utilisés par les lots suivants |
 
 Le backend applique ces règles sur chaque endpoint ; le web et le mobile
 masquent en plus les écrans non autorisés.
@@ -49,11 +50,21 @@ masquent en plus les écrans non autorisés.
 | Utilisateurs           | `users/`, `user-agences/`, `user-services/`, `user-postes/`, `user-categoriesalaries/` | `User` + affectations historisées |
 | Rôles                  | `groups/`                     | `Group` (Django)  |
 | Statuts                | `statuts/`                    | `Statut`          |
+| Responsabilités        | `responsabilites/`, `affectations-responsabilite/` | `Responsabilite`, `AffectationResponsabilite` |
+| N+1 (historique)       | `affectations-hierarchiques/`, `collaborateurs/{id}/reaffecter-n-plus-1/` | `AffectationHierarchique` |
+| Véhicule personnel     | `situations-vehicule/`        | `SituationVehicule` |
+| Situation à une date   | `collaborateurs/{id}/organisation/?date=`, `collaborateurs/moi/organisation/` | — |
+| Organigramme           | `departements/arbre/?date=`   | — |
+| Import Excel           | `imports-collaborateurs/` (+ `modele/`) | `ImportCollaborateurs` |
 | Agences                | `agences/`                    | `Agence`          |
 | Départements           | `services/`                   | `Service`         |
 | Postes                 | `postes/`                     | `Poste` (département + fonction) |
 | Fonctions              | `fonctions/`                  | `Fonction`        |
 | Catégories de salarié  | `categoriesalaries/`          | `Categoriesalarie`|
+
+Les règles d'organisation (N+1, titulaires, affectations à une date) sont
+dans `backend/backend/api/organisation.py` ; l'import Excel dans
+`api/import_collaborateurs.py`. Voir `docs/conception.md` (§3.1 et §17).
 
 Chaque enregistrement garde ses dates et auteurs de création / modification
 (`BaseModel`). Un élément de paramètre encore utilisé ne peut pas être

@@ -12,6 +12,9 @@ import { UserComponent } from './user/user.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
 import { PosteComponent } from './poste/poste.component';
+import { ResponsabiliteComponent } from './responsabilite/responsabilite.component';
+import { OrganigrammeComponent } from './organigramme/organigramme.component';
+import { ImportCollaborateursComponent } from './import-collaborateurs/import-collaborateurs.component';
 
 
 const routes: Routes = [
@@ -28,6 +31,12 @@ const routes: Routes = [
   { path: 'poste', component: PosteComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
   { path: 'fonction', component: FonctionComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
   { path: 'categorie-salarie', component: CategoriesalarieComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'responsabilite', component: ResponsabiliteComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
+    title: 'Responsabilités | UbiFlow' },
+  { path: 'organigramme', component: OrganigrammeComponent, canActivate: [RoleGuard], data: { roles: GESTIONNAIRES },
+    title: 'Organigramme | UbiFlow' },
+  { path: 'import-collaborateurs', component: ImportCollaborateursComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
+    title: 'Import des collaborateurs | UbiFlow' },
 ];
 
 @NgModule({

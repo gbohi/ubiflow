@@ -18,6 +18,7 @@ import {
 } from 'src/app/store/Departement/departement.action';
 import { selectdepartementData, selectTotalItems, selectLoading, selectCurrentPage } from 'src/app/store/Departement/departement-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { OrganisationService } from 'src/app/core/services/organisation/organisation.service';
 
 @Component({
   selector: 'app-departement',
@@ -28,10 +29,14 @@ import { TriServeur } from 'src/app/shared/tri-serveur';
 export class DepartementComponent implements OnInit, AfterViewInit {
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
-  readonly tri = new TriServeur({ id: 'id', libelle_service: 'libelle_service' });
+  readonly tri = new TriServeur({ id: 'id', libelle_service: 'libelle_service', code: 'code' });
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly actions$ = inject(Actions);
+  private readonly organisation = inject(OrganisationService);
+
+  /** Tous les départements (choix du département parent) */
+  tousDepartements: any[] = [];
 
   // bread crumb items
   breadCrumbItems!: Array<{}>;
@@ -75,7 +80,9 @@ export class DepartementComponent implements OnInit, AfterViewInit {
 
     this.departementForm = this.formBuilder.group({
       id: [''],
-      libelle_service: ['', [Validators.required]]
+      libelle_service: ['', [Validators.required]],
+      code: [''],
+      parent: [null],
     });
 
     this.store.select(selectLoading)
@@ -95,6 +102,8 @@ export class DepartementComponent implements OnInit, AfterViewInit {
       .subscribe(data => {
         if (data) {
           this.departements = data.map(item => ({ ...item, state: false }));
+          // Liste modifiée (ajout, modification, suppression) : choix du parent à jour
+          this.chargerTousDepartements();
           // Nouvelles données (changement de page, rechargement) : la sélection ne vaut plus
           this.masterSelected = false;
           this.checkedValGet = [];
@@ -199,6 +208,25 @@ export class DepartementComponent implements OnInit, AfterViewInit {
     setTimeout(() => this.addDepartement?.hide(), 10);
   }
 
+  private chargerTousDepartements(): void {
+    this.organisation.departementsTous().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(d => this.tousDepartements = d ?? []);
+  }
+
+  /** Parents possibles : tous sauf le département lui-même et ses sous-départements */
+  get parentsPossibles(): any[] {
+    const id = Number(this.departementForm?.get('id')?.value) || null;
+    if (!id) return this.tousDepartements;
+    const parentDe = new Map(this.tousDepartements.map(d => [d.id, d.parent]));
+    const descendDe = (d: number): boolean => {
+      for (let p = parentDe.get(d), n = 0; p != null && n < 100; p = parentDe.get(p), n++) {
+        if (p === id) return true;
+      }
+      return false;
+    };
+    return this.tousDepartements.filter(d => d.id !== id && !descendDe(d.id));
+  }
+
   // Edit Data
   editList(id: any) {
     const editData = this.departements.find(p => p.id === id);
@@ -209,7 +237,8 @@ export class DepartementComponent implements OnInit, AfterViewInit {
     this.lastActiveElement = document.activeElement as HTMLElement;
     this.isEdit = true;
     this.departementForm.reset();
-    this.departementForm.patchValue({ id: editData.id, libelle_service: editData.libelle_service });
+    this.departementForm.patchValue({ id: editData.id, libelle_service: editData.libelle_service,
+                                     code: editData.code ?? '', parent: editData.parent ?? null });
     this.addDepartement?.show();
   }
 
@@ -223,6 +252,8 @@ export class DepartementComponent implements OnInit, AfterViewInit {
     if (this.isSaving) return;
 
     const formValue = { ...this.departementForm.value };
+    formValue.code = (formValue.code || '').trim();
+    formValue.parent = formValue.parent ? Number(formValue.parent) : null;
     this.isSaving = true;
     if (formValue.id) {
       this.store.dispatch(updatedepartementData({ updatedData: formValue }));

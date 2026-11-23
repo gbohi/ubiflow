@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.1 — référence pour le développement. Toute évolution de règle
+Version 1.2 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -101,6 +101,13 @@ paiement et la clôture, sur le web et le mobile, avec une API unique.
 | `audit` | Journal d'activité en ajout seul |
 | `reporting` | Tableaux de bord, statistiques, exports |
 
+> **Mise en œuvre** : l'application existante `api` joue le rôle
+> d'`organisation` et d'`habilitations` (elle porte déjà `User` et les
+> référentiels ; la déplacer imposerait de changer `AUTH_USER_MODEL`).
+> Les règles y sont isolées dans des modules dédiés (`organisation.py`,
+> `import_collaborateurs.py`). Les applications des lots suivants
+> (`workflow`, `demandes`, `missions`…) seront de nouvelles applications.
+
 Les dépendances vont toujours du métier vers le socle :
 `missions → demandes → workflow → organisation`. Le moteur de workflow ne
 connaît aucun type de demande particulier : il manipule une demande
@@ -137,6 +144,9 @@ en cours) ; tous les modèles héritent des champs d'audit (`created_at`,
 - Affectations datées (existantes) : agence, département, poste, catégorie
 - **Nouveau** — `SituationVehicule` *(daté)* : `user`, `possede_vehicule`
   (oui/non), `commentaire`
+- Les dates des nouvelles lignes datées (responsabilités, N+1, véhicule)
+  sont des **dates** (jour d'effet) ; les affectations historiques
+  existantes (agence, département, poste, catégorie) restent horodatées.
 
 **Département** (`Service`, existant, enrichi)
 - `libelle`, `code`, **`parent` → Département** (arbre)
@@ -180,7 +190,7 @@ auteur, date, nombre de lignes créées / mises à jour / rejetées, rapport.
 `super_admin`, `admin`, `admin_workflow`, `admin_finances`, `comptable`,
 `direction`, `controleur`, `gestionnaire`, `employe`.
 
-**PerimetreConsultation** (nouveau) : `user`, `type` (tout, département,
+**PerimetreConsultation** (nouveau, **reporté au lot 6** avec les tableaux de bord) : `user`, `type` (tout, département,
 agence), `departement`, `agence` — limite ce qu'un profil de consultation
 (direction, contrôleur, gestionnaire) voit dans les listes et le reporting.
 
@@ -915,7 +925,7 @@ barèmes, trésorerie, reporting avancé.
 
 | Lot | Contenu | Critères de fin |
 |---|---|---|
-| **1. Organisation** | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
+| **1. Organisation** ✅ | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
 | **2. Moteur et socle** | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
 | **3. Barèmes et missions** | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |

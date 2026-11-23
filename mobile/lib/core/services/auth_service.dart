@@ -65,6 +65,12 @@ class AuthService {
   }
 
   Future<bool> isLoggedIn() => apiClient.hasToken();
+
+  /// Situation organisationnelle du jour (département, N+1, N+2…).
+  Future<Map<String, dynamic>> monOrganisation() async {
+    final res = await apiClient.get('/collaborateurs/moi/organisation/');
+    return Map<String, dynamic>.from(res.data as Map);
+  }
 }
 
 final authService = AuthService();

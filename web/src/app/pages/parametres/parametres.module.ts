@@ -23,6 +23,11 @@ import { UserComponent } from './user/user.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
 import { PosteComponent } from './poste/poste.component';
+import { ResponsabiliteComponent } from './responsabilite/responsabilite.component';
+import { OrganigrammeComponent } from './organigramme/organigramme.component';
+import { ImportCollaborateursComponent } from './import-collaborateurs/import-collaborateurs.component';
+import { OrganisationCollaborateurComponent } from './user/organisation-collaborateur/organisation-collaborateur.component';
+import { NgSelectModule } from '@ng-select/ng-select';
 
 @NgModule({
   declarations: [
@@ -35,6 +40,10 @@ import { PosteComponent } from './poste/poste.component';
     FonctionComponent,
     CategoriesalarieComponent,
     PosteComponent,
+    ResponsabiliteComponent,
+    OrganigrammeComponent,
+    ImportCollaborateursComponent,
+    OrganisationCollaborateurComponent,
   ],
   imports: [
     CommonModule,
@@ -44,6 +53,7 @@ import { PosteComponent } from './poste/poste.component';
     ReactiveFormsModule,
     ParametresRoutingModule,
     ModalModule.forRoot(),
+    NgSelectModule,
   ],
   providers: [
     DatePipe
