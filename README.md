@@ -12,6 +12,7 @@ s'y ajouter.
 | `web/`     | Back-office Angular 18                                         |
 | `mobile/`  | Application Flutter (connexion, accueil, profil)               |
 | `deploy/`  | Déploiement automatisé sur AWS EC2, sauvegardes                |
+| `docs/`    | Dossier de conception (`docs/conception.md`)                   |
 
 ---
 
