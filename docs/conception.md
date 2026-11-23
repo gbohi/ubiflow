@@ -903,7 +903,7 @@ pagination, filtres, tri.
 |---|---|
 | Organisation | `collaborateurs/`, `collaborateurs/{id}/n-plus-1/?date=`, `departements/` (arbre), `responsabilites/`, `affectations-responsabilite/`, `affectations-hierarchiques/`, `situations-vehicule/`, `imports-collaborateurs/` |
 | Workflow (admin) | `workflows/`, `workflows/{id}/versions/`, `versions/{id}/etapes/`, `versions/{id}/publier/`, `versions/{id}/dupliquer/`, `versions/{id}/simuler/` |
-| Demandes | `types-demande/`, `demandes/` (CRUD brouillon), `demandes/{id}/plan/` (prévisualisation), `demandes/{id}/soumettre/`, `/resoumettre/`, `/annuler/`, `/dupliquer/`, `/historique/`, `/versions/`, `/commentaires/`, `/documents/`, `/cloture/` |
+| Demandes | `types-demande/`, `demandes/` (CRUD brouillon), `demandes/{id}/soumettre/`, `/resoumettre/`, `/annuler/`, `/dupliquer/`, `/historique/`, `/versions/`, `/commentaires/`, `/documents/`, `/cloture/` |
 | Validation | `taches/` (mes tâches, filtres), `taches/{id}/approuver/`, `/rejeter/`, `/retourner/`, `taches/{id}/reaffecter/` (admin) |
 | Délégations | `delegations/`, `delegations/{id}/revoquer/` |
 | Missions | `missions/calculer/` (calcul à blanc pendant la saisie), `villes/`, `pays/`, `distances/` |
