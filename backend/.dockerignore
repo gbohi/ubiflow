@@ -5,7 +5,6 @@ venv/
 backend/.env
 backend/media/
 backend/staticfiles/
-backend/firebase-service-account*.json
 secrets/
 docker-compose.yml
 nginx/

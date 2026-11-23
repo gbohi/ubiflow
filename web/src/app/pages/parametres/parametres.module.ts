@@ -14,56 +14,27 @@ import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
 // component
+import { AccueilParametresComponent } from './accueil-parametres/accueil-parametres.component';
 import { AgenceComponent } from './agence/agence.component';
-import { EtatComponent } from './etat/etat.component';
-import { PrioriteComponent } from './priorite/priorite.component';
 import { StatutComponent } from './statut/statut.component';
-import { TypebesoinComponent } from './typebesoin/typebesoin.component';
 import { DepartementComponent } from './departement/departement.component';
 import { RoleComponent } from './role/role.component';
 import { UserComponent } from './user/user.component';
-import { TypeplatComponent } from './typeplat/typeplat.component';
-import { SupplementsComponent } from './supplements/supplements.component';
-import { TypeequipeComponent } from './typeequipe/typeequipe/typeequipe.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
-import { PrestataireComponent } from './prestataire/prestataire.component';
 import { PosteComponent } from './poste/poste.component';
-import { ReglagesCantineComponent } from './cantine/reglages-cantine.component';
-import { SocieteComponent } from './societe/societe.component';
-import { BannieresComponent } from './bannieres/bannieres.component';
-import { PopupConnexionComponent } from './popup-connexion/popup-connexion.component';
-import { AccueilParametresComponent } from './accueil-parametres/accueil-parametres.component';
-import { ApplicationMobileComponent } from './application-mobile/application-mobile.component';
-
-import { GrilleTarifsComponent } from './grille-tarifs/grille-tarifs.component';
-
-import { BadgeEmployeComponent } from '../cantines/badges/badge-employe.component';
 
 @NgModule({
   declarations: [
-    GrilleTarifsComponent,
     AccueilParametresComponent,
-    SocieteComponent,
-    BannieresComponent,
-    PopupConnexionComponent,
-    ApplicationMobileComponent,
     AgenceComponent,
-    EtatComponent,
-    PrioriteComponent,
     StatutComponent,
-    TypebesoinComponent,
     DepartementComponent,
     RoleComponent,
     UserComponent,
-    SupplementsComponent,
-    TypeplatComponent,
-    TypeequipeComponent,
     FonctionComponent,
     CategoriesalarieComponent,
-    PrestataireComponent,
     PosteComponent,
-    ReglagesCantineComponent,
   ],
   imports: [
     CommonModule,
@@ -73,7 +44,6 @@ import { BadgeEmployeComponent } from '../cantines/badges/badge-employe.componen
     ReactiveFormsModule,
     ParametresRoutingModule,
     ModalModule.forRoot(),
-    BadgeEmployeComponent,
   ],
   providers: [
     DatePipe

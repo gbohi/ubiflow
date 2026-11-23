@@ -1,6 +1,4 @@
-import { environment } from 'src/environments/environment';
-import { HttpClient } from '@angular/common/http';
-// src/app/pages/categoriesalarie/categoriesalarie.component.ts
+// src/app/pages/parametres/categoriesalarie/categoriesalarie.component.ts
 
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -8,24 +6,26 @@ import { DecimalPipe, DatePipe } from '@angular/common';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { ModalDirective } from 'ngx-bootstrap/modal';
-import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
+import { Actions, ofType } from '@ngrx/effects';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { Observable, Subject, concat, of } from 'rxjs';
-import {
-  catchError, debounceTime, distinctUntilChanged, filter, map,
-  switchMap, take, takeUntil, toArray,
-} from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
-// ── Categoriesalarie store ─────────────────────────────────────
 import {
+  addcategoriesalarieData,
+  addcategoriesalarieDataSuccess,
+  addcategoriesalarieDataFailure,
   deletecategoriesalarieData,
-  deletecategoriesalarieFailure,
   deletecategoriesalarieSuccess,
+  deletecategoriesalarieFailure,
   deletemultiplecategoriesalarieData,
-  deletemultiplecategoriesalarieFailure,
   deletemultiplecategoriesalarieSuccess,
+  deletemultiplecategoriesalarieFailure,
   fetchcategoriesalarieData,
+  updatecategoriesalarieData,
+  updatecategoriesalarieDataSuccess,
+  updatecategoriesalarieDataFailure,
 } from 'src/app/store/Categoriesalarie/categoriesalarie.action';
 import {
   selectcategoriesalarieData,
@@ -33,17 +33,6 @@ import {
   selectLoading,
   selectCurrentPage,
 } from 'src/app/store/Categoriesalarie/categoriesalarie-selector';
-import { CategoriesalarieService } from 'src/app/core/services/categoriesalarie/categoriesalarie.service';
-
-// ── Statut store ───────────────────────────────────────────────
-import { selectAllSatutWithoutPagination } from 'src/app/store/Statut/statut-selector';
-import { fetchstatutNoPaginateData } from 'src/app/store/Statut/statut.action';
-
-// ── PlatCategoriesalarie store ────────────────────────────────
-import * as PlatCategoriesalarieActions from 'src/app/store/PlatCategoriesalarie/plat-categoriesalarie.action';
-import { selectPlatCategoriesalarieIsLoading } from 'src/app/store/PlatCategoriesalarie/plat-categoriesalarie-selector';
-import { PlatCategoriesalarieModel } from 'src/app/store/PlatCategoriesalarie/plat-categoriesalarie.model';
-import { PlatCategoriesalarieService } from 'src/app/core/services/plat-categoriesalarie/plat-categoriesalarie.service';
 import { TriServeur } from 'src/app/shared/tri-serveur';
 
 @Component({
@@ -57,211 +46,157 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', libelle: 'libelle' });
 
+  private destroyRef = inject(DestroyRef);
+  private actions$   = inject(Actions);
+
   breadCrumbItems = [
     { label: 'Paramètres', active: false },
     { label: 'Catégories de salarié', active: true },
   ];
 
-  // ── Categoriesalarie ──────────────────────────────────────
   categoriesalaries:    any[] = [];
-  statuts:              any[] = [];
   totalItems  = 0;
   currentPage = 1;
   isLoading   = true;
 
   categoriesalarieForm!: UntypedFormGroup;
   submitted      = false;
-  isSaving       = false;
+  isEdit         = false;
+  saving         = false;
+  deleting       = false;
   masterSelected = false;
   term: any;
-  checkedValGet:             any[] = [];
-  selectedCategoriesalarie:  any   = null;
+  checkedValGet: any[] = [];
+  selectedCategoriesalarie: any   = null;
   deleteID: any;
   direction = 'asc';
 
-  modalTitle = 'Ajouter une catégorie salarié';
-  modalBtn   = 'Enregistrer';
+  /** Terme de recherche effectivement envoyé au serveur (?search=) */
+  private searchTerm = '';
+  private search$    = new Subject<string>();
 
-  // ── PlatCategoriesalarie ──────────────────────────────────
-  isTarifsLoading           = false;
-  currentCategoriesalarieId: number | null = null;
-  tarifLignes:               PlatCategoriesalarieModel[] = [];
-
-  private destroyRef = inject(DestroyRef);
-  private search$          = new Subject<string>();
-  private annulerChargement$ = new Subject<void>();
   private lastActiveElement: HTMLElement | null = null;
 
-  @ViewChild('addCategoriesalarie',  { static: false }) addCategoriesalarie?:  ModalDirective;
-  @ViewChild('deleteRecordModal',    { static: false }) deleteRecordModal?:    ModalDirective;
-  @ViewChild('viewCategoriesalarie', { static: false }) viewCategoriesalarie?: ModalDirective;
-  @ViewChild('mainContainer',        { static: false }) mainContainer?:        ElementRef;
+  @ViewChild('addCategoriesalarie',           { static: false }) addCategoriesalarie?:           ModalDirective;
+  @ViewChild('deleteRecordModal', { static: false }) deleteRecordModal?: ModalDirective;
+  @ViewChild('viewCategoriesalarie',          { static: false }) viewCategoriesalarie?:          ModalDirective;
+  @ViewChild('mainContainer',     { static: false }) mainContainer?:     ElementRef;
 
   constructor(
     private fb: UntypedFormBuilder,
     private toastService: ToastrService,
     private store: Store,
-    private actions$: Actions,
-    private categoriesalarieService: CategoriesalarieService,
-    private platCategoriesalarieService: PlatCategoriesalarieService,
   ) {}
 
-
-  /** Types de plat (tarif par type ; vide = « tous types ») */
-  typesPlat: { id: number; libelle: string }[] = [];
-  private httpTypes = inject(HttpClient);
-
   ngOnInit(): void {
-    this.httpTypes.get<any[]>(`${environment.apiUrl}/api/api/allnopagin/typeplats/`)
-      .subscribe({ next: t => this.typesPlat = (t ?? []).map(x => ({ id: x.id, libelle: x.libelle })), error: () => this.typesPlat = [] });
-
     this.categoriesalarieForm = this.fb.group({
-      id:      [''],
+      id:           [''],
       libelle: ['', [Validators.required]],
     });
 
-    // ── Categoriesalarie selectors ─────────────────────────
-    this.store.select(selectLoading)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => this.isLoading = v);
+    this.store.select(selectLoading).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(loading => {
+      this.isLoading = loading;
+    });
 
-    this.store.select(selectTotalItems)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => this.totalItems = v ?? 0);
+    this.store.select(selectTotalItems).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(total => {
+      this.totalItems = total ?? 0;
+    });
 
-    this.store.select(selectCurrentPage)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => this.currentPage = v ?? 1);
+    this.store.select(selectCurrentPage).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(page => {
+      this.currentPage = page ?? 1;
+    });
 
-    this.store.select(selectcategoriesalarieData)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(data => {
-        if (data) {
-          this.categoriesalaries = data.map(item => ({ ...item, state: false }));
-          // Nouvelle page / nouveau résultat : la sélection précédente n'a plus de sens
-          this.masterSelected = false;
-          this.checkedValGet  = [];
-        }
-      });
+    this.store.select(selectcategoriesalarieData).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(data => {
+      if (data) {
+        this.categoriesalaries = data.map(item => ({ ...item, state: false }));
+        this.resetSelection();
+      }
+    });
 
-    // ── Statuts ────────────────────────────────────────────
-    this.store.dispatch(fetchstatutNoPaginateData());
-    this.store.select(selectAllSatutWithoutPagination)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(data => this.statuts = data ?? []);
-
-    // ── PlatCategoriesalarie ───────────────────────────────
-    this.store.select(selectPlatCategoriesalarieIsLoading)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => this.isTarifsLoading = v);
-
-    // ── Recherche serveur (?search=), temporisée ───────────
+    // ── Recherche serveur (debounce 300 ms, retour page 1) ──
     this.search$.pipe(
-      map(t => (t ?? '').trim()),
-      debounceTime(350),
+      map(t => (t ?? '').toString().trim()),
+      debounceTime(300),
       distinctUntilChanged(),
       takeUntilDestroyed(this.destroyRef),
-    ).subscribe(() => this.loadData(1));
-
-    // ── Retour serveur des suppressions ────────────────────
-    this.actions$.pipe(
-      ofType(deletecategoriesalarieSuccess, deletemultiplecategoriesalarieSuccess),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(a => this.toastService.success(
-      a.type === deletecategoriesalarieSuccess.type
-        ? 'Catégorie salarié supprimée avec succès !'
-        : 'Catégories salariés supprimées avec succès !', 'Succès'));
-
-    this.actions$.pipe(
-      ofType(deletecategoriesalarieFailure, deletemultiplecategoriesalarieFailure),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(({ error }) => {
-      this.toastService.error(error || 'Suppression impossible.', 'Erreur', { timeOut: 10000 });
-      this.loadData(this.currentPage);
+    ).subscribe(t => {
+      this.searchTerm = t;
+      this.loadData(1);
     });
+
+    // ── Réponses du serveur (ajout / modification) ─────────
+    this.actions$.pipe(ofType(addcategoriesalarieDataSuccess, updatecategoriesalarieDataSuccess), takeUntilDestroyed(this.destroyRef))
+      .subscribe(action => {
+        this.saving    = false;
+        this.submitted = false;
+        this.toastService.success(
+          action.type === addcategoriesalarieDataSuccess.type ? 'Catégorie de salarié ajoutée avec succès !' : 'Catégorie de salarié mise à jour avec succès !',
+          'Succès'
+        );
+        this.closeAddModal();
+      });
+
+    this.actions$.pipe(ofType(addcategoriesalarieDataFailure, updatecategoriesalarieDataFailure), takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ error }) => {
+        // La modale reste ouverte avec les valeurs saisies
+        this.saving = false;
+        this.toastService.error(error || 'Enregistrement impossible.', 'Erreur');
+      });
+
+    // ── Réponses du serveur (suppression) ──────────────────
+    this.actions$.pipe(ofType(deletecategoriesalarieSuccess, deletemultiplecategoriesalarieSuccess), takeUntilDestroyed(this.destroyRef))
+      .subscribe(action => {
+        this.toastService.success(
+          action.type === deletecategoriesalarieSuccess.type ? 'Catégorie de salarié supprimée avec succès !' : 'Catégories de salarié supprimées avec succès !',
+          'Succès'
+        );
+        this.afterDeleteActions();
+      });
+
+    this.actions$.pipe(ofType(deletecategoriesalarieFailure, deletemultiplecategoriesalarieFailure), takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ error }) => {
+        // La ligne reste affichée : on montre seulement l'erreur
+        this.deleting = false;
+        this.toastService.error(error || 'Suppression impossible.', 'Erreur');
+        this.closeDeleteModal();
+      });
 
     this.loadData(1);
   }
 
   ngAfterViewInit(): void {
-    this.addCategoriesalarie?.onHidden
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.annulerChargement$.next();
-        this.categoriesalarieForm.reset();
-        this.tarifLignes               = [];
-        this.currentCategoriesalarieId = null;
-        this.submitted                 = false;
-        this.store.dispatch(PlatCategoriesalarieActions.resetPlatCategoriesalarie());
-        this.modalTitle = 'Ajouter une catégorie salarié';
-        this.modalBtn   = 'Enregistrer';
-      });
-
-    this.deleteRecordModal?.onHidden
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.deleteID = null);
-  }
-
-  loadData(page: number = 1): void {
-    this.store.dispatch(fetchcategoriesalarieData({ page, search: (this.term ?? '').trim(), ordering: this.tri.ordering }));
-  }
-
-  private mapTarifsToLignes(tarifs: PlatCategoriesalarieModel[]): PlatCategoriesalarieModel[] {
-    return tarifs.map(t => ({
-      ...t,
-      date_debut: t.date_debut ? t.date_debut.split('T')[0] : '',
-      date_fin:   t.date_fin   ? t.date_fin.split('T')[0]   : '',
-      _isNew:     false,
-      _isDeleted: false,
-      _hasError:  false,
-    }));
-  }
-
-  /**
-   * Charge les tarifs de la catégorie `id`. Le store est vidé avant, et seule
-   * la réponse (succès ou échec) correspondant à CET id est prise en compte :
-   * jamais les tarifs de la fiche ouverte précédemment. Une liste vide est valide.
-   */
-  private chargerTarifs(id: number): void {
-    this.annulerChargement$.next();
-    this.tarifLignes = [];
-    this.store.dispatch(PlatCategoriesalarieActions.resetPlatCategoriesalarie());
-
-    this.actions$.pipe(
-      ofType(
-        PlatCategoriesalarieActions.fetchPlatCategoriesalarieSuccess,
-        PlatCategoriesalarieActions.fetchPlatCategoriesalarieFailure,
-      ),
-      filter(a => a.categoriesalarieId === id),
-      take(1),
-      takeUntil(this.annulerChargement$),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(a => {
-      if ('tarifs' in a) {
-        this.tarifLignes = this.mapTarifsToLignes(a.tarifs ?? []);
-      } else {
-        this.toastService.error(a.error || 'Erreur lors du chargement des tarifs.', 'Erreur');
-      }
+    this.addCategoriesalarie?.onHidden.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.categoriesalarieForm.reset();
+      this.submitted = false;
+      this.saving    = false;
+      this.isEdit    = false;
     });
 
-    this.store.dispatch(PlatCategoriesalarieActions.fetchPlatCategoriesalarie({ categoriesalarieId: id }));
+    this.deleteRecordModal?.onHidden.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.deleteID = null;
+      this.deleting = false;
+    });
+  }
+
+  // ── Chargement ────────────────────────────────────────────
+  loadData(page: number = 1): void {
+    this.store.dispatch(fetchcategoriesalarieData({ page, search: this.searchTerm || undefined, ordering: this.tri.ordering }));
+  }
+
+  private resetSelection(): void {
+    this.checkedValGet  = [];
+    this.masterSelected = false;
   }
 
   // ── Modal Ajouter ─────────────────────────────────────────
   openAddModal(): void {
-    this.lastActiveElement         = document.activeElement as HTMLElement;
-    this.annulerChargement$.next();
-    this.currentCategoriesalarieId = null;
-    this.tarifLignes               = [];
-    this.submitted                 = false;
+    this.lastActiveElement = document.activeElement as HTMLElement;
     this.categoriesalarieForm.reset();
-    this.store.dispatch(PlatCategoriesalarieActions.resetPlatCategoriesalarie());
-    this.modalTitle = 'Ajouter une catégorie salarié';
-    this.modalBtn   = 'Enregistrer';
+    this.submitted = false;
+    this.isEdit    = false;
     this.addCategoriesalarie?.show();
   }
 
-  /** « Fermer » : abandonne toutes les modifications (y compris les suppressions de lignes) */
   closeAddModal(): void {
     this.lastActiveElement?.focus();
     setTimeout(() => this.addCategoriesalarie?.hide(), 10);
@@ -270,147 +205,35 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
   // ── Modal Édition ─────────────────────────────────────────
   editList(id: any): void {
     this.lastActiveElement = document.activeElement as HTMLElement;
-    const editData         = this.categoriesalaries.find(p => p.id === id);
+    const editData = this.categoriesalaries.find(p => p.id === id);
     if (!editData) return;
 
-    this.currentCategoriesalarieId = id;
-    this.submitted                 = false;
     this.categoriesalarieForm.reset();
-    this.categoriesalarieForm.patchValue({ id: editData.id, libelle: editData.libelle });
-
-    this.chargerTarifs(id);
-
-    this.modalTitle = 'Modifier la catégorie salarié';
-    this.modalBtn   = 'Enregistrer';
+    this.categoriesalarieForm.patchValue(editData);
+    this.submitted = false;
+    this.isEdit    = true;
     this.addCategoriesalarie?.show();
   }
 
-  // ── Gestion lignes PlatCategoriesalarie ───────────────────
-  ajouterLigneTarif(): void {
-    this.tarifLignes.push({
-      montant: undefined, type_plat: null, date_debut: '', date_fin: null,
-      statut: undefined, _isNew: true, _isDeleted: false, _hasError: false,
-    });
-  }
-
-  /** Une ligne existante est seulement marquée : la suppression part sur « Enregistrer » */
-  supprimerLigneTarif(index: number): void {
-    const ligne = this.tarifLignes[index];
-    if (!ligne) return;
-    if (ligne._isNew || !ligne.id) {
-      this.tarifLignes.splice(index, 1);
-    } else {
-      ligne._isDeleted = true;
-    }
-  }
-
-  montantInvalide(l: PlatCategoriesalarieModel): boolean {
-    return l.montant == null || (l.montant as any) === '' || Number(l.montant) < 0;
-  }
-
-  private validerTarifs(): boolean {
-    let valid = true;
-    this.tarifLignes.filter(l => !l._isDeleted).forEach(l => {
-      const hasError = this.montantInvalide(l) || !l.date_debut ||
-        l.statut == null || (l.statut as any) === '' || (l.statut as any) === 'undefined' ||
-        (!!l.date_fin && !!l.date_debut && l.date_fin < l.date_debut);
-      l._hasError = hasError;
-      if (hasError) valid = false;
-    });
-    return valid;
-  }
-
-  // ── Sauvegarde ────────────────────────────────────────────
-  /**
-   * 1. Enregistre la catégorie (création ou modification) ; en cas de refus
-   *    (libellé vide / déjà utilisé…), message du serveur et fenêtre ouverte ;
-   * 2. puis les tarifs, une requête après l'autre : suppressions, modifications
-   *    (ex. clôturer l'ancien tarif), créations — sinon le serveur refuse le
-   *    chevauchement des périodes. Les lignes refusées sont listées.
-   */
+  // ── Sauvegarde (ajout / mise à jour) ─────────────────────
   saveProperty(): void {
     this.submitted = true;
-    if (this.isSaving) return;
-
     if (this.categoriesalarieForm.invalid) {
       this.toastService.error('Veuillez vérifier les informations saisies.', 'Erreur');
       return;
     }
-    if (!this.validerTarifs()) {
-      this.toastService.error('Veuillez corriger les erreurs dans le tableau des tarifs.', 'Erreur');
-      return;
-    }
+    if (this.saving) return;
 
     const formValue = { ...this.categoriesalarieForm.value };
-    const creation  = !formValue.id;
-    if (creation) delete formValue.id;
+    this.saving = true;
 
-    this.isSaving = true;
-    const fiche$: Observable<any> = creation
-      ? this.categoriesalarieService.createCategoriesalarie(formValue)
-      : this.categoriesalarieService.updateCategoriesalarie(formValue);
-
-    fiche$.pipe(
-      switchMap(cat => this.enregistrerTarifs(cat?.id ?? formValue.id)),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
-      next: erreurs => {
-        this.isSaving = false;
-        if (erreurs.length) {
-          this.toastService.warning(
-            `Catégorie enregistrée, mais des tarifs ont été refusés : ${erreurs.join(' ; ')}`,
-            'Attention', { timeOut: 10000 });
-        } else {
-          this.toastService.success(
-            creation ? 'Catégorie salarié ajoutée avec succès !' : 'Catégorie salarié mise à jour avec succès !',
-            'Succès');
-        }
-        this.submitted = false;
-        this.closeAddModal();
-        this.loadData(creation ? 1 : this.currentPage);
-      },
-      error: err => {
-        this.isSaving = false;
-        this.toastService.error(typeof err === 'string' ? err : 'Enregistrement impossible.', 'Erreur');
-      },
-    });
-  }
-
-  /** Enregistre les tarifs séquentiellement ; renvoie les messages d'erreur */
-  private enregistrerTarifs(categoriesalarieId: number): Observable<string[]> {
-    const erreurs: string[] = [];
-    const libelle = (l: PlatCategoriesalarieModel) =>
-      `${l.montant} FCFA du ${this.formatDate(l.date_debut!)}${l.date_fin ? ' au ' + this.formatDate(l.date_fin) : ''}`;
-    const appel = (obs: Observable<any>, l: PlatCategoriesalarieModel, quoi: string) => obs.pipe(
-      catchError(err => {
-        erreurs.push(`${quoi} ${libelle(l)} : ${typeof err === 'string' ? err : 'refusé'}`);
-        return of(null);
-      }));
-    const donnees = (l: PlatCategoriesalarieModel) => ({
-      categoriesalarie: categoriesalarieId,
-      montant:          Number(l.montant),
-      type_plat:        l.type_plat || null,
-      date_debut:       l.date_debut,
-      date_fin:         l.date_fin || null,
-      statut:           Number(l.statut),
-    });
-
-    const L = this.tarifLignes;
-    const operations: Observable<any>[] = [
-      ...L.filter(l => l._isDeleted && l.id)
-          .map(l => appel(this.platCategoriesalarieService.delete(l.id!), l, 'Suppression du tarif')),
-      ...L.filter(l => !l._isNew && !l._isDeleted && l.id)
-          .map(l => appel(this.platCategoriesalarieService.update(l.id!, donnees(l)), l, 'Tarif')),
-      ...L.filter(l => l._isNew && !l._isDeleted)
-          .map(l => appel(this.platCategoriesalarieService.create(donnees(l)), l, 'Nouveau tarif')),
-    ];
-    if (!operations.length) return of([]);
-    return concat(...operations).pipe(toArray(), map(() => erreurs));
-  }
-
-  // ── Getters ───────────────────────────────────────────────
-  get tarifLignesVisibles(): PlatCategoriesalarieModel[] {
-    return this.tarifLignes.filter(l => !l._isDeleted);
+    if (formValue.id) {
+      this.store.dispatch(updatecategoriesalarieData({ updatedData: formValue }));
+    } else {
+      delete formValue.id;
+      this.store.dispatch(addcategoriesalarieData({ newData: formValue }));
+    }
+    // Toast + fermeture de la modale à la réponse du serveur (voir ngOnInit)
   }
 
   // ── Modal Suppression ─────────────────────────────────────
@@ -420,44 +243,61 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
     this.deleteRecordModal?.show();
   }
 
+  openBulkDelete(): void {
+    this.lastActiveElement = document.activeElement as HTMLElement;
+    this.deleteID = null;
+    this.deleteRecordModal?.show();
+  }
+
   closeDeleteModal(): void {
     this.lastActiveElement?.focus();
     setTimeout(() => this.deleteRecordModal?.hide(), 10);
   }
 
-  /** Le message (succès ou refus du serveur, ex. catégorie encore utilisée) arrive par les actions */
+  get deleteMessage(): string {
+    if (this.deleteID) {
+      const libelle = this.categoriesalaries.find(e => e.id === this.deleteID)?.libelle;
+      return libelle ? `la catégorie de salarié « ${libelle} »` : 'cette catégorie de salarié';
+    }
+    const n = this.checkedValGet.length;
+    return n > 1 ? `ces ${n} catégories de salarié` : 'cette catégorie de salarié';
+  }
+
   confirmDelete(id?: any): void {
+    if (this.deleting) return;
+
     if (id) {
+      this.deleting = true;
       this.store.dispatch(deletecategoriesalarieData({ id: id.toString() }));
-      this.afterDeleteActions();
       return;
     }
+
     if (this.checkedValGet?.length > 0) {
+      this.deleting = true;
       this.store.dispatch(deletemultiplecategoriesalarieData({ id: this.checkedValGet.join(',') }));
-      this.afterDeleteActions();
       return;
     }
-    this.toastService.error('Aucune catégorie salarié sélectionnée.', 'Erreur');
+
+    this.toastService.error('Aucune catégorie de salarié sélectionnée.', 'Erreur');
     this.closeDeleteModal();
   }
 
   private afterDeleteActions(): void {
     this.closeDeleteModal();
-    this.masterSelected = false;
-    this.deleteID       = null;
-    this.checkedValGet  = [];
+    this.deleting = false;
+    this.deleteID = null;
+    this.resetSelection();
   }
 
   // ── Modal Détails ─────────────────────────────────────────
   viewDetails(id: any): void {
     this.lastActiveElement = document.activeElement as HTMLElement;
-    const data = this.categoriesalaries.find(p => p.id === id);
-    if (data) {
-      this.selectedCategoriesalarie = data;
-      this.chargerTarifs(id);
+    const categoriesalarieData = this.categoriesalaries.find(p => p.id === id);
+    if (categoriesalarieData) {
+      this.selectedCategoriesalarie = categoriesalarieData;
       this.viewCategoriesalarie?.show();
     } else {
-      this.toastService.error('Catégorie salarié introuvable', 'Erreur');
+      this.toastService.error('Catégorie de salarié introuvable', 'Erreur');
     }
   }
 
@@ -465,25 +305,11 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
     this.lastActiveElement?.focus();
     setTimeout(() => {
       this.viewCategoriesalarie?.hide();
-      this.annulerChargement$.next();
       this.selectedCategoriesalarie = null;
-      this.tarifLignes              = [];
-      this.store.dispatch(PlatCategoriesalarieActions.resetPlatCategoriesalarie());
     }, 10);
   }
 
-  // ── Helpers ───────────────────────────────────────────────
-  getStatutLibelle(statutId: number): string {
-    return this.statuts.find(s => s.id === Number(statutId))?.libelle_statut ?? '—';
-  }
-
-  formatDate(d: string): string {
-    if (!d) return '—';
-    const date = d.includes('T') ? d.split('T')[0] : d;
-    const [y, m, day] = date.split('-');
-    return `${day}/${m}/${y}`;
-  }
-
+  // ── Checkboxes ────────────────────────────────────────────
   checkUncheckAll(ev: any): void {
     this.categoriesalaries.forEach(x => x.state = ev.target.checked);
     this.masterSelected = ev.target.checked;
@@ -496,8 +322,9 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
 
   private updateCheckedValues(): void {
     this.checkedValGet = this.categoriesalaries
-      .filter(f => f.state === true)
-      .map(f => f.id);
+      .filter(e => e.state === true)
+      .map(e => e.id);
+    this.masterSelected = this.categoriesalaries.length > 0 && this.checkedValGet.length === this.categoriesalaries.length;
   }
 
   // Tri côté serveur (?ordering=) : s'applique à toutes les données, pas seulement à la page affichée.
@@ -506,16 +333,13 @@ export class CategoriesalarieComponent implements OnInit, AfterViewInit {
     if (this.tri.basculer(column)) this.loadData(1);
   }
 
-  /** Recherche côté serveur (tout le référentiel, pas seulement la page affichée) */
-  filterdata(): void {
-    this.search$.next(this.term ?? '');
+  // ── Recherche (côté serveur) ──────────────────────────────
+  filterdata(value?: string): void {
+    this.search$.next(value ?? this.term ?? '');
   }
 
+  // ── Pagination (le terme de recherche est conservé) ───────
   pageChanged(event: PageChangedEvent): void {
     this.loadData(event.page);
-  }
-
-  libelleType(id: number | null | undefined): string {
-    return id ? (this.typesPlat.find(t => t.id === Number(id))?.libelle ?? '—') : 'Tous types';
   }
 }

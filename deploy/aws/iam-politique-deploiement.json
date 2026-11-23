@@ -38,16 +38,16 @@
         "iam:AddRoleToInstanceProfile"
       ],
       "Resource": [
-        "arn:aws:iam::*:role/ubifood",
-        "arn:aws:iam::*:instance-profile/ubifood"
+        "arn:aws:iam::*:role/ubiflow",
+        "arn:aws:iam::*:instance-profile/ubiflow"
       ]
     },
     {
-      "Sid": "SecretsUbifood",
+      "Sid": "SecretsUbiFlow",
       "Effect": "Allow",
       "Action": ["ssm:PutParameter", "ssm:GetParameter"],
       "Resource": [
-        "arn:aws:ssm:*:*:parameter/ubifood/*",
+        "arn:aws:ssm:*:*:parameter/ubiflow/*",
         "arn:aws:ssm:*:*:parameter/aws/service/canonical/*"
       ]
     },

@@ -7,8 +7,6 @@ import { Actions, ofType } from '@ngrx/effects';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { login, loginFailure, loginSuccess } from 'src/app/store/Authentication/authentication.actions';
-import { WebNotificationService } from 'src/app/core/services/web-notification.service'; // ✅ AJOUTÉ
-import { POPUP_APRES_CONNEXION } from 'src/app/core/helpers/popup-connexion';
 
 @Component({
   selector: 'app-login',
@@ -32,7 +30,6 @@ export class LoginComponent implements OnInit {
     private store: Store,
     private actions$: Actions,
     private tokenStorage: TokenStorageService,
-    private webNotif: WebNotificationService, // ✅ AJOUTÉ
   ) {}
 
   ngOnInit(): void {
@@ -57,18 +54,12 @@ export class LoginComponent implements OnInit {
       this.isLoading = false;
     });
 
-    // Connexion réussie → enregistrer token FCM + rediriger
+    // Connexion réussie → rediriger
     this.actions$.pipe(
       ofType(loginSuccess),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(() => {
-      // Fenêtre d'information à afficher une fois arrivé dans l'application
-      try { sessionStorage.setItem(POPUP_APRES_CONNEXION, '1'); } catch { /* facultatif */ }
-      // Redirection d'abord : la demande d'autorisation des notifications
-      // ne doit pas retarder l'arrivée sur la page.
-      this.router.navigateByUrl(this.destinationApresConnexion()).finally(() =>
-        // Token JWT disponible à ce stade → l'envoi du token FCM au backend fonctionnera
-        this.webNotif.requestPermissionAndSaveToken());
+      this.router.navigateByUrl(this.destinationApresConnexion());
     });
   }
 

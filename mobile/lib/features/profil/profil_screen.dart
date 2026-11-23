@@ -5,20 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import '../suivi/suivi_widgets.dart' show NotificationsSuiviScreen;
-import '../tarifs/mes_tarifs_screen.dart';
-import '../jeux/jeux_screen.dart' show JeuxScreen;
-import '../jeux/lots_a_remettre_screen.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/providers/app_provider.dart';
 import '../../core/widgets/common_widgets.dart';
-import '../allergies/allergies_screen.dart';
-import '../commandes/commandes_screen.dart' show EtatCommande, etatCommande;
 import 'change_password_screen.dart';
-import 'qr_code_screen.dart';
-import 'mon_badge_screen.dart';
-import '../paiements/choix_paiement_sheet.dart';
-import '../../shared/models/compte_repas_models.dart' show ModePaiementCommande;
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -27,23 +17,10 @@ class ProfilScreen extends StatefulWidget {
 }
 
 class _ProfilScreenState extends State<ProfilScreen> {
-  /// Version affichée en bas de l'écran (sans version : « UbiFood »)
+  /// Version affichée en bas de l'écran (sans version : « UbiFlow »)
   final Future<PackageInfo> _version = PackageInfo.fromPlatform().catchError(
       (Object _) => PackageInfo(
-          appName: 'UbiFood', packageName: '', version: '', buildNumber: ''));
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Compte prestataire : ni commandes ni allergies (routes employé, 403)
-      if (context.read<AuthProvider>().user?.isComptePrestataire ?? false) {
-        return;
-      }
-      context.read<AllergieProvider>().loadAllergies();
-      context.read<CommandeProvider>().loadMesCommandes();
-    });
-  }
+          appName: 'UbiFlow', packageName: '', version: '', buildNumber: ''));
 
   @override
   Widget build(BuildContext context) {
@@ -51,15 +28,10 @@ class _ProfilScreenState extends State<ProfilScreen> {
     final theme = context.watch<ThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = auth.user;
-    final presta = user?.isComptePrestataire ?? false;
     final role = user?.libelleRole ?? 'Employé';
     final detailIdentite = [
-      if ((user?.username ?? '').isNotEmpty)
-        presta ? user!.username : 'Matricule ${user!.username}',
-      if (presta && (user?.prestataireLibelle ?? '').isNotEmpty)
-        user!.prestataireLibelle!
-      else if (user?.derniereAgence != null)
-        user!.derniereAgence!,
+      if ((user?.username ?? '').isNotEmpty) 'Matricule ${user!.username}',
+      if (user?.derniereAgence != null) user!.derniereAgence!,
     ].join(' · ');
     final identite = Row(children: [
       // Photo de profil : toucher pour la changer
@@ -135,9 +107,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                       ? Icons.shield_outlined
                       : auth.isGestionnaire
                           ? Icons.admin_panel_settings_outlined
-                          : presta
-                              ? Icons.storefront_outlined
-                              : Icons.person_outline_rounded,
+                          : Icons.person_outline_rounded,
                   size: 12,
                   color: AppColors.accent),
               const SizedBox(width: 4),
@@ -160,154 +130,14 @@ class _ProfilScreenState extends State<ProfilScreen> {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // ── En-tête marine + chiffres en une ligne ─────────────
-          if (presta)
-            EnTeteMarine(titre: 'Mon profil', bas: identite)
-          else
-            Stack(clipBehavior: Clip.none, children: [
-              Column(children: [
-                EnTeteMarine(titre: 'Mon profil', bas: identite, margeBas: 46),
-                const SizedBox(height: 34),
-              ]),
-              Positioned(
-                left: 14,
-                right: 14,
-                bottom: 0,
-                child: Consumer<CommandeProvider>(builder: (_, cmdProv, __) {
-                  final cmds = cmdProv.mesCommandes;
-                  final retirees = cmds
-                      .where((c) => etatCommande(c) == EtatCommande.retiree)
-                      .length;
-                  final aRetirer = cmds.where((c) {
-                    final e = etatCommande(c);
-                    return e == EtatCommande.aVenir ||
-                        e == EtatCommande.aRetirer;
-                  }).length;
-                  return _Chiffres(chiffres: [
-                    (
-                      cmds.length,
-                      cmds.length > 1 ? 'commandes' : 'commande',
-                      null
-                    ),
-                    (
-                      retirees,
-                      retirees > 1 ? 'retirées' : 'retirée',
-                      isDark ? AppColors.accent : const Color(0xFF1F9D55)
-                    ),
-                    (
-                      aRetirer,
-                      'à retirer',
-                      isDark ? const Color(0xFFFFC94D) : const Color(0xFFB97800)
-                    ),
-                  ]);
-                }),
-              ),
-            ]),
+          // ── En-tête marine ─────────────────────────────────────
+          EnTeteMarine(titre: 'Mon profil', bas: identite),
 
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 40),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Cantine (employés : badge, allergies) ────
-                  if (!presta) ...[
-                    const LibelleSection('Cantine'),
-                    CarteListe(lignes: [
-                      _Ligne(
-                        icone: Icons.qr_code_2_rounded,
-                        titre: 'Mon badge QR',
-                        sousTitre: 'À présenter au comptoir',
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const QrCodeScreen())),
-                      ),
-                      if (auth.user?.peutCommander ?? true)
-                        _Ligne(
-                          key: const Key('ligne-mon-badge'),
-                          icone: Icons.badge_outlined,
-                          titre: "Mon badge d'accès",
-                          sousTitre:
-                              'Badge des portes au comptoir · déclarer perdu',
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const MonBadgeScreen())),
-                        ),
-                      _Ligne(
-                        key: const Key('ligne-notifications-suivi'),
-                        icone: Icons.notifications_active_outlined,
-                        titre: 'Notifications du suivi',
-                        sousTitre: 'Préparation, livraison, rappel, retards',
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    const NotificationsSuiviScreen())),
-                      ),
-                      if (auth.isGestionnaire)
-                        _Ligne(
-                          key: const Key('ligne-lots-a-remettre'),
-                          icone: Icons.volunteer_activism_outlined,
-                          titre: 'Lots à remettre',
-                          sousTitre: 'Lots gagnés aux jeux par vos employés',
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const LotsARemettreScreen())),
-                        ),
-                      if (auth.user?.peutCommander ?? true)
-                        _Ligne(
-                          key: const Key('ligne-jeux'),
-                          icone: Icons.sports_esports_outlined,
-                          titre: 'Jeux',
-                          sousTitre: 'Quiz à lots, classement, mes gains',
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const JeuxScreen())),
-                        ),
-                      if (auth.user?.peutCommander ?? true)
-                        _Ligne(
-                          key: const Key('ligne-mes-tarifs'),
-                          icone: Icons.sell_outlined,
-                          titre: 'Mes tarifs',
-                          sousTitre: 'Prix de mes repas par type de plat',
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const MesTarifsScreen())),
-                        ),
-                      if (auth.user?.peutCommander ?? true)
-                        _Ligne(
-                          key: const Key('ligne-paiement-prefere'),
-                          icone: Icons.account_balance_wallet_outlined,
-                          titre: 'Paiement de mes repas',
-                          sousTitre:
-                              'Par défaut : ${user?.modePaiementPrefere == 'retenue' ? 'retenue sur salaire' : 'compte repas (si le solde suffit)'}',
-                          onTap: () => _choisirPreferencePaiement(context),
-                        ),
-                      Consumer<AllergieProvider>(
-                          builder: (_, allergieProv, __) {
-                        final count = allergieProv.allergies.length;
-                        return _Ligne(
-                          icone: Icons.warning_amber_rounded,
-                          rouge: true,
-                          titre: 'Mes allergies',
-                          sousTitre: count == 0
-                              ? 'Aucune allergie déclarée'
-                              : '$count allergie${count > 1 ? 's' : ''} '
-                                  'déclarée${count > 1 ? 's' : ''}',
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AllergiesScreen())),
-                        );
-                      }),
-                    ]),
-                    const SizedBox(height: 10),
-                  ],
-
                   // ── Compte ───────────────────────────────────
                   const LibelleSection('Compte'),
                   CarteListe(lignes: [
@@ -321,7 +151,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                     if (user?.dernierService != null)
                       _Ligne(
                           icone: Icons.business_center_outlined,
-                          titre: 'Service',
+                          titre: 'Département',
                           valeur: user!.dernierService!),
                     if (user?.dernierPoste != null)
                       _Ligne(
@@ -374,8 +204,8 @@ class _ProfilScreenState extends State<ProfilScreen> {
                     future: _version,
                     builder: (_, snap) => Text(
                       snap.data == null
-                          ? 'UbiFood'
-                          : 'UbiFood · version ${snap.data!.version}',
+                          ? 'UbiFlow'
+                          : 'UbiFlow · version ${snap.data!.version}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 11,
@@ -498,74 +328,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
 // WIDGETS HELPERS
 // ══════════════════════════════════════════════════════════════
 
-/// Trois chiffres sur une ligne, à cheval sur l'en-tête
-class _Chiffres extends StatelessWidget {
-  final List<(int, String, Color?)> chiffres;
-  const _Chiffres({required this.chiffres});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final filet = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: filet),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.primary.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 6)),
-        ],
-      ),
-      child: Row(children: [
-        for (var i = 0; i < chiffres.length; i++) ...[
-          if (i > 0) VerticalDivider(width: 1, thickness: 1, color: filet),
-          Expanded(
-            child:
-                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('${chiffres[i].$1}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: chiffres[i].$3)),
-              Text(chiffres[i].$2,
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary)),
-            ]),
-          ),
-        ],
-      ]),
-    );
-  }
-}
-
 /// Ligne de réglage : icône, titre (+ sous-titre), valeur ou chevron
-/// Mode de paiement proposé par défaut à la commande (PATCH /users/me/)
-Future<void> _choisirPreferencePaiement(BuildContext context) async {
-  final auth = context.read<AuthProvider>();
-  final messenger = ScaffoldMessenger.of(context);
-  final actuel = auth.user?.modePaiementPrefere == 'retenue'
-      ? ModePaiementCommande.retenue
-      : ModePaiementCommande.compte;
-  final mode = await PreferencePaiementSheet.show(context, actuel);
-  if (mode == null || mode == actuel) return;
-  final erreur = await auth.changerModePaiementPrefere(mode.code);
-  messenger.showSnackBar(SnackBar(
-    content: Text(erreur ??
-        (mode == ModePaiementCommande.compte
-            ? 'Par défaut : compte repas (si votre solde suffit)'
-            : 'Par défaut : retenue sur salaire')),
-    backgroundColor: erreur == null ? AppColors.success : AppColors.error,
-    behavior: SnackBarBehavior.floating,
-  ));
-}
-
 class _Ligne extends StatelessWidget {
   final IconData icone;
   final String titre;
@@ -577,7 +340,6 @@ class _Ligne extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _Ligne({
-    super.key,
     required this.icone,
     required this.titre,
     this.sousTitre,

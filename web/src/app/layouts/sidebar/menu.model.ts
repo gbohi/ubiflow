@@ -20,6 +20,4 @@ export interface MenuItem {
      * incluse et tant que l'utilisateur n'a pas ouvert la page (sidebar).
      */
     isNew?: boolean | string;
-    /** Entrée de la caisse / comptabilité : seules entrées d'un compte limité à la caisse */
-    espaceCaisse?: boolean;
 }

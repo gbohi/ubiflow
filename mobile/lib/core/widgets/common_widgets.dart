@@ -138,35 +138,6 @@ class AppButton extends StatelessWidget {
 // STATUT BADGE
 // ══════════════════════════════════════════════════════════════
 
-class StatutBadge extends StatelessWidget {
-  final StatutCommande statut;
-  const StatutBadge({super.key, required this.statut});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (TonPastille ton, IconData icon) = switch (statut) {
-      StatutCommande.enAttente => (TonPastille.or, Icons.schedule_rounded),
-      StatutCommande.retiree => (TonPastille.vert, Icons.check_circle_rounded),
-      StatutCommande.annulee => (TonPastille.gris, Icons.cancel_rounded),
-    };
-    // Couleurs des pastilles, lisibles en mode sombre
-    final (bg, fg) = couleursPastille(ton, isDark);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: fg),
-        const SizedBox(width: 4),
-        Text(statut.label,
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
-      ]),
-    );
-  }
-}
-
 // ══════════════════════════════════════════════════════════════
 // STAT CARD — corrigé pour éviter le bottom overflow
 // ══════════════════════════════════════════════════════════════
@@ -404,118 +375,6 @@ class SectionHeader extends StatelessWidget {
         ),
     ]);
   }
-}
-
-// ══════════════════════════════════════════════════════════════
-// PLAT CARD
-// ══════════════════════════════════════════════════════════════
-
-class PlatCard extends StatelessWidget {
-  final Plat plat;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  const PlatCard({
-    super.key,
-    required this.plat,
-    this.selected = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkCard : AppColors.lightCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: selected
-                  ? AppColors.primary
-                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              width: selected ? 2 : 1),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                      color: AppColors.primary.withOpacity(0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4))
-                ]
-              : [],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Image
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            child: Stack(children: [
-              plat.imageUrl != null
-                  ? Image.network(plat.imageUrl!,
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder())
-                  : _placeholder(),
-              if (selected)
-                Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: const BoxDecoration(
-                          color: AppColors.primary, shape: BoxShape.circle),
-                      child: const Icon(Icons.check_rounded,
-                          color: Colors.white, size: 16),
-                    )),
-            ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(plat.nom,
-                  style: Theme.of(context).textTheme.titleMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              if (plat.description.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(plat.description,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-              ],
-              if (plat.typePlatLibelle != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(6)),
-                  child: Text(plat.typePlatLibelle!,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500)),
-                ),
-              ],
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _placeholder() => Container(
-        height: 140,
-        width: double.infinity,
-        color: AppColors.primary.withOpacity(0.08),
-        child: const Icon(Icons.restaurant_menu_rounded,
-            size: 40, color: AppColors.primary),
-      );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -864,7 +723,7 @@ class RangeeFiltres extends StatelessWidget {
 // LIBELLÉ DE SECTION, CARTE-LISTE, BANDEAU
 // ══════════════════════════════════════════════════════════════
 
-/// « CETTE SEMAINE », « CANTINE »… (petites capitales grises)
+/// « CETTE SEMAINE », « COMPTE »… (petites capitales grises)
 class LibelleSection extends StatelessWidget {
   final String texte;
   final EdgeInsetsGeometry padding;
@@ -923,7 +782,7 @@ class CarteListe extends StatelessWidget {
   }
 }
 
-/// Bandeau d'information d'une ligne (« Commandes ouvertes · ferme dans … »)
+/// Bandeau d'information d'une ligne
 class BandeauInfo extends StatelessWidget {
   final IconData icone;
   final String texte;
@@ -964,51 +823,8 @@ class BandeauInfo extends StatelessWidget {
 }
 
 // ══════════════════════════════════════════════════════════════
-// VIGNETTE DE PLAT, AVATAR
+// AVATAR
 // ══════════════════════════════════════════════════════════════
-
-/// Photo d'un plat, ou couverts sur fond doux (lisibles en mode sombre)
-class VignettePlat extends StatelessWidget {
-  final String? url;
-  final double taille;
-  final double rayon;
-
-  /// Icône sans photo (gâteau pour un dessert)
-  final IconData icone;
-  const VignettePlat(
-      {super.key,
-      required this.url,
-      this.taille = 42,
-      this.rayon = 10,
-      this.icone = Icons.restaurant_rounded});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final substitut = Container(
-      width: taille,
-      height: taille,
-      color: isDark
-          ? AppColors.accent.withOpacity(0.12)
-          : AppColors.primary.withOpacity(0.06),
-      child: Icon(icone,
-          size: taille * 0.45,
-          color: isDark
-              ? AppColors.accent.withOpacity(0.8)
-              : AppColors.primary.withOpacity(0.45)),
-    );
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(rayon),
-      child: url == null
-          ? substitut
-          : Image.network(url!,
-              width: taille,
-              height: taille,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => substitut),
-    );
-  }
-}
 
 /// Initiales d'un nom affiché (« KONE Fatou » → « KF »)
 String initialesDe(String nom) {

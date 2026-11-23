@@ -1,6 +1,6 @@
 // src/app/core/helpers/exports.ts
 //
-// Exports communs (statistiques, détail du service, facturation) :
+// Exports communs (listes, tableaux) :
 // Excel (xlsx), CSV (séparateur « ; », lisible par Excel en français),
 // PDF (jspdf + jspdf-autotable) et images de graphiques (ApexCharts).
 
@@ -162,7 +162,7 @@ export function enregistrerPdf(p: DocPdf, fichier: string): void {
     p.doc.setPage(i);
     p.doc.setFontSize(7);
     p.doc.setTextColor(150);
-    p.doc.text(`UbiFood · page ${i} / ${n}`, p.doc.internal.pageSize.getWidth() - 14,
+    p.doc.text(`UbiFlow · page ${i} / ${n}`, p.doc.internal.pageSize.getWidth() - 14,
                p.doc.internal.pageSize.getHeight() - 6, { align: 'right' });
   }
   p.doc.save(fichier.endsWith('.pdf') ? fichier : `${fichier}.pdf`);

@@ -1,13 +1,11 @@
 # ============================================================
-# .gitignore — Ubifood (backend Django, web Angular, mobile Flutter)
+# .gitignore — UbiFlow (backend Django, web Angular, mobile Flutter)
 # ============================================================
 
 # ── Secrets & environnement ─────────────────────────────────
 .env
 .env.*
 !.env.example
-**/firebase-service-account*.json
-backend/secrets/
 
 # ── Python / Django ─────────────────────────────────────────
 __pycache__/

@@ -4,18 +4,18 @@
     <div class="navbar-brand-box">
         <a routerLink="/" class="logo logo-dark">
             <span class="logo-sm">
-                <img src="assets/images/ubifood-icone.svg" alt="UbiFood" height="34">
+                <img src="assets/images/ubiflow-icone.svg" alt="UbiFlow" height="34">
             </span>
             <span class="logo-lg">
-                <img src="assets/images/ubifood-logo.svg" alt="UbiFood" height="44">
+                <img src="assets/images/ubiflow-logo.svg" alt="UbiFlow" height="44">
             </span>
         </a>
         <a routerLink="/" class="logo logo-light">
             <span class="logo-sm">
-                <img src="assets/images/ubifood-icone.svg" alt="UbiFood" height="34">
+                <img src="assets/images/ubiflow-icone.svg" alt="UbiFlow" height="34">
             </span>
             <span class="logo-lg">
-                <img src="assets/images/ubifood-logo-blanc.svg" alt="UbiFood" height="44">
+                <img src="assets/images/ubiflow-logo-blanc.svg" alt="UbiFlow" height="44">
             </span>
         </a>
         <button type="button" class="btn btn-sm p-0 fs-3xl header-item float-end btn-vertical-sm-hover" id="vertical-hover" (click)="toggleMobileMenu($event)">
@@ -28,12 +28,6 @@
 
             <div id="two-column-menu">
             </div>
-            @if (espacePrestataire) {
-            <div class="ep-side-presta">
-                <span class="ep-side-presta-ic"><i class="ri-store-2-line"></i></span>
-                <span class="ep-side-presta-txt"><b>{{ espacePrestataire.libelle }}</b><small>{{ espacePrestataire.sous }}</small></span>
-            </div>
-            }
             <ul class="navbar-nav" id="navbar-nav">
               
                 @for(item of menuItems; track $index){

@@ -4,10 +4,11 @@
 // Le backend applique les mêmes règles : ce fichier sert uniquement à
 // ne pas afficher de pages / menus inaccessibles à l'utilisateur.
 
-export type Role = 'super_admin' | 'admin' | 'gestionnaire' | 'employe' | 'prestataire' | 'agent_comptoir'
-  | 'caissier' | 'comptabilite';
+export type Role = 'super_admin' | 'admin' | 'gestionnaire' | 'employe';
 
 export const ADMINS: Role[] = ['super_admin', 'admin'];
+export const GESTIONNAIRES: Role[] = ['super_admin', 'admin', 'gestionnaire'];
+export const EMPLOYES: Role[] = ['employe'];
 
 /** Libellés français des rôles (affichés à la place des codes) */
 export const LIBELLES_ROLES: Record<string, string> = {
@@ -15,87 +16,11 @@ export const LIBELLES_ROLES: Record<string, string> = {
   admin:        'Administrateur',
   gestionnaire: 'Gestionnaire',
   employe:      'Employé',
-  prestataire:    'Prestataire (responsable)',
-  agent_comptoir: 'Agent de comptoir',
-  caissier:       'Caissier',
-  comptabilite:   'Comptabilité',
 };
-export const GESTIONNAIRES: Role[] = ['super_admin', 'admin', 'gestionnaire'];
-/** Seul le rôle « Employé » commande, paie ses repas et joue (cumulable avec les rôles de gestion) */
-export const EMPLOYES: Role[] = ['employe'];
 
-/** Page d'accueil d'un utilisateur sans droit de gestion */
-export const ACCUEIL_EMPLOYE = '/cantines/accueil';
-
-/**
- * Comptes de l'espace prestataire (responsable et agents de comptoir).
- * Ils sont cloisonnés : seules les pages /prestataire/… leur sont ouvertes
- * (le serveur refuse toute autre route avec un 403).
- */
-export const PRESTATAIRES: Role[] = ['prestataire', 'agent_comptoir'];
-/** Responsable du prestataire : tout l'espace prestataire */
-export const RESPONSABLES_PRESTATAIRE: Role[] = ['prestataire'];
-
-/** Préfixe des adresses de l'espace prestataire */
-export const ESPACE_PRESTATAIRE = '/prestataire';
-export const ACCUEIL_PRESTATAIRE = '/prestataire/accueil';
-export const ACCUEIL_COMPTOIR = '/prestataire/comptoir';
-
-// ── Caisse et compte repas (étape 2) ─────────────────────────────
-// Rôles cumulables avec « employe », jamais avec un rôle prestataire (refus du serveur).
-// Les administrateurs ont tous les droits de la caisse et de la comptabilité.
-
-/** Encaissements (recharge du compte repas, clôture de sa caisse) */
-export const CAISSIERS: Role[] = ['super_admin', 'admin', 'caissier'];
-/** Contrôle de la caisse (validation des clôtures, annulation des reçus, remboursement, journaux) */
-export const COMPTABLES: Role[] = ['super_admin', 'admin', 'comptabilite'];
-/** Écrans de caisse en lecture (contexte, recherche, journal) */
-export const ACCES_CAISSE: Role[] = ['super_admin', 'admin', 'caissier', 'comptabilite'];
-/** Soldes des comptes repas (lecture) : comptabilité, administrateurs et gestionnaires (leurs agences) */
-export const LECTURE_COMPTES: Role[] = ['super_admin', 'admin', 'comptabilite', 'gestionnaire'];
-
-/** Préfixe des adresses de la caisse et de la comptabilité */
-export const ESPACE_CAISSE = '/caisse';
-export const ACCUEIL_CAISSIER = '/caisse';
-export const ACCUEIL_COMPTABILITE = '/caisse/clotures';
-
-/**
- * Compte limité à la caisse : caissier ou comptabilité sans autre rôle
- * (ni employé, ni gestionnaire, ni administrateur). Il ne peut ouvrir que /caisse/…
- * (le reste de l'application n'a pas de sens pour lui, et les écrans de gestion
- * lui sont refusés par le serveur : 403).
- */
-export function estCaisseSeule(user: any): boolean {
-  return aUnRole(user, ['caissier', 'comptabilite'])
-    && !aUnRole(user, [...GESTIONNAIRES, 'employe', ...PRESTATAIRES]);
-}
-
-export function estCaissier(user: any): boolean {
-  return aUnRole(user, CAISSIERS);
-}
-
-export function estComptable(user: any): boolean {
-  return aUnRole(user, COMPTABLES);
-}
-
-export function estPrestataire(user: any): boolean {
-  return aUnRole(user, PRESTATAIRES);
-}
-
-/** Agent de comptoir seulement (menu réduit : Comptoir + Liste du jour) */
-export function estAgentComptoir(user: any): boolean {
-  return aUnRole(user, ['agent_comptoir']) && !aUnRole(user, ['prestataire']);
-}
-
-/** Page d'arrivée de l'utilisateur selon son rôle */
-export function accueilUtilisateur(user: any): string {
-  if (estAgentComptoir(user)) return ACCUEIL_COMPTOIR;
-  if (estPrestataire(user)) return ACCUEIL_PRESTATAIRE;
-  if (estGestionnaire(user)) return '/';
-  // Caissier (même s'il est aussi employé) : l'écran de caisse ; comptabilité : les clôtures à valider
-  if (aUnRole(user, ['caissier'])) return ACCUEIL_CAISSIER;
-  if (aUnRole(user, ['comptabilite'])) return ACCUEIL_COMPTABILITE;
-  return ACCUEIL_EMPLOYE;
+/** Page d'arrivée de l'utilisateur après connexion */
+export function accueilUtilisateur(_user: any): string {
+  return '/';
 }
 
 /** Rôles de l'utilisateur stocké après connexion (réponse de /users/me/) */

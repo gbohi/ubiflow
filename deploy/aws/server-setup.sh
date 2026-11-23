@@ -1,18 +1,18 @@
 #!/bin/bash
 # ============================================================
-# Installation / mise à jour d'Ubifood sur l'instance EC2.
+# Installation / mise à jour d'UbiFlow sur l'instance EC2.
 # Exécuté en root par deploy.py (AWS Systems Manager, pas de SSH).
 #
 #   bash server-setup.sh <region> <ip_publique>
 #
 # Idempotent : peut être relancé à chaque mise à jour.
-# Les secrets viennent d'AWS SSM Parameter Store (/ubifood/...).
+# Les secrets viennent d'AWS SSM Parameter Store (/ubiflow/...).
 # ============================================================
 set -euo pipefail
 
 REGION="$1"
 PUBLIC_IP="$2"
-APP_DIR=/opt/ubifood
+APP_DIR=/opt/ubiflow
 BACKEND_DIR="$APP_DIR/backend"
 export DEBIAN_FRONTEND=noninteractive
 
@@ -37,7 +37,7 @@ fi
 
 echo "==> Secrets depuis SSM Parameter Store"
 param() {
-    aws ssm get-parameter --region "$REGION" --name "/ubifood/$1" \
+    aws ssm get-parameter --region "$REGION" --name "/ubiflow/$1" \
         --with-decryption --query Parameter.Value --output text 2>/dev/null || true
 }
 SECRET_KEY=$(param SECRET_KEY)
@@ -46,7 +46,7 @@ DOMAIN=$(param DOMAIN)
 ALLMYSMS_LOGIN=$(param ALLMYSMS_LOGIN)
 ALLMYSMS_API_KEY=$(param ALLMYSMS_API_KEY)
 if [ -z "$SECRET_KEY" ] || [ -z "$DB_PASSWORD" ]; then
-    echo "❌ /ubifood/SECRET_KEY ou /ubifood/DB_PASSWORD absent de SSM" >&2
+    echo "❌ /ubiflow/SECRET_KEY ou /ubiflow/DB_PASSWORD absent de SSM" >&2
     exit 1
 fi
 
@@ -60,13 +60,13 @@ fi
 umask 077
 cat > "$BACKEND_DIR/.env" <<EOF
 # Généré par deploy/aws/server-setup.sh — ne pas modifier à la main
-# (les valeurs viennent de AWS SSM Parameter Store /ubifood/...)
+# (les valeurs viennent de AWS SSM Parameter Store /ubiflow/...)
 SECRET_KEY=$SECRET_KEY
 DEBUG=False
 ALLOWED_HOSTS=$HOSTS
 USE_HTTPS=False
-DB_NAME=ubifood
-DB_USER=ubifood
+DB_NAME=ubiflow
+DB_USER=ubiflow
 DB_PASSWORD=$DB_PASSWORD
 DB_HOST=db
 DB_PORT=5432
@@ -74,20 +74,10 @@ CORS_ALLOWED_ORIGINS=$ORIGINS
 CSRF_TRUSTED_ORIGINS=$ORIGINS
 ALLMYSMS_LOGIN=$ALLMYSMS_LOGIN
 ALLMYSMS_API_KEY=$ALLMYSMS_API_KEY
-ALLMYSMS_SENDER=UbiFood
-FIREBASE_SERVICE_ACCOUNT_KEY=/app/secrets/firebase-service-account.json
+ALLMYSMS_SENDER=UbiFlow
 EOF
 umask 022
 
-mkdir -p "$BACKEND_DIR/secrets"
-FIREBASE_KEY=$(param FIREBASE_KEY)
-if [ -n "$FIREBASE_KEY" ]; then
-    printf '%s' "$FIREBASE_KEY" > "$BACKEND_DIR/secrets/firebase-service-account.json"
-    chmod 644 "$BACKEND_DIR/secrets/firebase-service-account.json"
-    echo "Clé Firebase installée."
-else
-    echo "⚠️  /ubifood/FIREBASE_KEY absent : notifications push désactivées."
-fi
 
 SAUVEGARDE_S3=$(param BACKUP_S3)
 
@@ -131,19 +121,19 @@ else:
 "
 
 echo "==> Sauvegarde quotidienne (base + fichiers, 14 jours conservés)"
-rm -f /etc/cron.d/ubifood-backup   # ancienne sauvegarde (base seule, 7 jours)
-cat > /etc/cron.d/ubifood-sauvegarde <<CRON
-# Chaque nuit à 2 h (heure du serveur) ; journal : /var/log/ubifood-sauvegarde.log
+rm -f /etc/cron.d/ubiflow-backup   # ancienne sauvegarde (base seule, 7 jours)
+cat > /etc/cron.d/ubiflow-sauvegarde <<CRON
+# Chaque nuit à 2 h (heure du serveur) ; journal : /var/log/ubiflow-sauvegarde.log
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 SAUVEGARDE_S3=$SAUVEGARDE_S3
 AWS_REGION=$REGION
 0 2 * * * root bash $APP_DIR/deploy/aws/sauvegarde.sh quotidienne >/dev/null 2>&1
 CRON
-chmod 644 /etc/cron.d/ubifood-sauvegarde
+chmod 644 /etc/cron.d/ubiflow-sauvegarde
 if [ -z "$SAUVEGARDE_S3" ]; then
-    echo "⚠️  /ubifood/BACKUP_S3 absent : sauvegardes conservées uniquement sur ce serveur."
+    echo "⚠️  /ubiflow/BACKUP_S3 absent : sauvegardes conservées uniquement sur ce serveur."
 fi
 
 docker compose ps
-echo "✅ Ubifood déployé : http://$PUBLIC_IP"
+echo "✅ UbiFlow déployé : http://$PUBLIC_IP"

@@ -11,7 +11,7 @@ import { Location } from '@angular/common';
   template: `
     <main class="introuvable">
       <div class="introuvable-carte">
-        <img src="assets/images/ubifood-logo-blanc.svg" alt="UbiFood">
+        <img src="assets/images/ubiflow-logo-blanc.svg" alt="UbiFlow">
         <div class="introuvable-code" aria-hidden="true">404</div>
         <h1>Page introuvable</h1>
         <p>L'adresse demandée n'existe pas ou a été déplacée.</p>

@@ -158,12 +158,12 @@ class _SplashScreenState extends State<SplashScreen>
                 position: _slideTagline,
                 child: Column(children: [
 
-                  // "UbiFood" avec shader
+                  // "UbiFlow" avec shader
                   ShaderMask(
                     shaderCallback: (bounds) => const LinearGradient(
                       colors: [Colors.white, Color(0xFFc8f5e0)],
                     ).createShader(bounds),
-                    child: const Text('UbiFood',
+                    child: const Text('UbiFlow',
                       style: TextStyle(fontSize: 52,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -185,7 +185,7 @@ class _SplashScreenState extends State<SplashScreen>
                   const SizedBox(height: 14),
 
                   // Tagline
-                  Text('CANTINE INTELLIGENTE',
+                  Text('DEMANDES & VALIDATIONS',
                     style: TextStyle(
                       fontSize: 11, fontWeight: FontWeight.w400,
                       color: Colors.white.withOpacity(0.4),
@@ -289,57 +289,37 @@ class _AppIcon extends StatelessWidget {
                 colors: [
                   Colors.white.withOpacity(0.22),
                   Colors.white.withOpacity(0)])))),
-        // Couverts
+        // Flux (deux étapes reliées)
         Center(child: CustomPaint(
           size: const Size(54, 62),
-          painter: _CouvertsPainter())),
+          painter: _FluxPainter())),
       ]),
     );
   }
 }
 
-class _CouvertsPainter extends CustomPainter {
+class _FluxPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()
+    final w = size.width;
+    final h = size.height;
+    // Trait reliant l'étape de départ à l'étape d'arrivée
+    final trait = Paint()
       ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final cx = size.width * 0.3;
-    final cy = size.height / 2;
-
-    // Dents fourchette
-    for (int i = 0; i < 3; i++) {
-      final x = cx - 9 + i * 5.0;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, cy - 24, 3, 15),
-          const Radius.circular(1.5)), p);
-    }
-    // Corps fourchette
-    final fork = Path()
-      ..moveTo(cx - 9, cy - 9)
-      ..quadraticBezierTo(cx, cy - 3, cx + 1, cy - 9)
-      ..lineTo(cx + 1, cy + 24)
-      ..quadraticBezierTo(cx, cy + 27, cx - 9, cy + 24)
-      ..close();
-    p.color = Colors.white.withOpacity(0.95);
-    canvas.drawPath(fork, p);
-
-    // Couteau
-    final kx = size.width * 0.68;
-    p.color = Colors.white.withOpacity(0.9);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(kx - 1.75, cy - 24, 3.5, 48),
-        const Radius.circular(1.75)), p);
-    // Garde
-    final guard = Path()
-      ..moveTo(kx - 1.75, cy - 24)
-      ..quadraticBezierTo(kx + 9, cy - 14, kx + 1.75, cy - 5)
-      ..lineTo(kx - 1.75, cy - 5)
-      ..close();
-    p.color = Colors.white.withOpacity(0.8);
-    canvas.drawPath(guard, p);
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    final chemin = Path()
+      ..moveTo(w * 0.22, h * 0.28)
+      ..lineTo(w * 0.5, h * 0.28)
+      ..quadraticBezierTo(w * 0.72, h * 0.28, w * 0.72, h * 0.5)
+      ..quadraticBezierTo(w * 0.72, h * 0.72, w * 0.82, h * 0.72);
+    canvas.drawPath(chemin, trait);
+    // Étapes
+    final point = Paint()..color = Colors.white;
+    canvas.drawCircle(Offset(w * 0.2, h * 0.28), 7, point);
+    canvas.drawCircle(Offset(w * 0.84, h * 0.72), 7, point);
+    canvas.drawCircle(Offset(w * 0.5, h * 0.28), 4.5, point..color = Colors.white.withOpacity(0.85));
   }
 
   @override

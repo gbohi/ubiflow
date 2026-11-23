@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Déploiement d'Ubifood sur AWS EC2 (backend Django, site Angular, PostgreSQL).
+Déploiement d'UbiFlow sur AWS EC2 (backend Django, site Angular, PostgreSQL).
 
 Tout passe par l'API AWS : pas de clé SSH ni de port 22 ouvert. Les commandes
 sont exécutées sur l'instance via AWS Systems Manager (SSM) et les secrets
-sont stockés chiffrés dans SSM Parameter Store (/ubifood/...).
+sont stockés chiffrés dans SSM Parameter Store (/ubiflow/...).
 
 Prérequis : pip install boto3 ; identifiants AWS dans l'environnement
 (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION).
 
     python deploy.py create  [--instance-type t3.small] [--branch main]
-                             [--firebase-key chemin.json] [--domain api.exemple.com]
+                             [--domain api.exemple.com]
     python deploy.py update  [--branch main]     # redéploie la dernière version du code
     python deploy.py status
-    python deploy.py secrets [--firebase-key ...] [--domain ...]
-                             (+ variables UBIFOOD_ALLMYSMS_LOGIN / UBIFOOD_ALLMYSMS_API_KEY)
+    python deploy.py secrets [--domain ...]
+                             (+ variables UBIFLOW_ALLMYSMS_LOGIN / UBIFLOW_ALLMYSMS_API_KEY)
 
-Ressources créées (toutes nommées « ubifood ») : rôle IAM + profil d'instance,
+Ressources créées (toutes nommées « ubiflow ») : rôle IAM + profil d'instance,
 groupe de sécurité (ports 80 et 443), adresse IP élastique, instance EC2
 Ubuntu 24.04 avec disque gp3 chiffré, paramètres SSM.
 """
@@ -31,9 +31,9 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
-NOM = 'ubifood'
-DEPOT = 'https://github.com/gbohi/ubifood.git'
-PREFIXE_SSM = '/ubifood/'
+NOM = 'ubiflow'
+DEPOT = 'https://github.com/gbohi/ubiflow.git'
+PREFIXE_SSM = '/ubiflow/'
 AMI_UBUNTU = '/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id'
 TAGS = [{'Key': 'Name', 'Value': NOM}, {'Key': 'Projet', 'Value': NOM}]
 
@@ -68,23 +68,23 @@ class Deployeur:
         }
         try:
             self.iam.create_role(RoleName=NOM, AssumeRolePolicyDocument=json.dumps(confiance),
-                                 Description='Instance EC2 Ubifood (SSM)', Tags=TAGS)
+                                 Description='Instance EC2 UbiFlow (SSM)', Tags=TAGS)
             log("Rôle IAM créé.")
         except ClientError as e:
             if e.response['Error']['Code'] != 'EntityAlreadyExists':
                 raise
         self.iam.attach_role_policy(
             RoleName=NOM, PolicyArn='arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore')
-        # Lecture des seuls paramètres /ubifood/*
+        # Lecture des seuls paramètres /ubiflow/*
         compte = self.sts.get_caller_identity()['Account']
-        self.iam.put_role_policy(RoleName=NOM, PolicyName='lecture-parametres-ubifood',
+        self.iam.put_role_policy(RoleName=NOM, PolicyName='lecture-parametres-ubiflow',
                                  PolicyDocument=json.dumps({
                                      'Version': '2012-10-17',
                                      'Statement': [{
                                          'Effect': 'Allow',
                                          'Action': ['ssm:GetParameter', 'ssm:GetParameters',
                                                     'ssm:GetParametersByPath'],
-                                         'Resource': f'arn:aws:ssm:{self.region}:{compte}:parameter/ubifood/*',
+                                         'Resource': f'arn:aws:ssm:{self.region}:{compte}:parameter/ubiflow/*',
                                      }],
                                  }))
         try:
@@ -107,7 +107,7 @@ class Deployeur:
         if existants:
             return existants[0]['GroupId']
         sg_id = self.ec2.create_security_group(
-            GroupName=NOM, Description='Ubifood : HTTP et HTTPS publics', VpcId=vpc_id,
+            GroupName=NOM, Description='UbiFlow : HTTP et HTTPS publics', VpcId=vpc_id,
             TagSpecifications=[{'ResourceType': 'security-group', 'Tags': TAGS}])['GroupId']
         self.ec2.authorize_security_group_ingress(GroupId=sg_id, IpPermissions=[
             {'IpProtocol': 'tcp', 'FromPort': p, 'ToPort': p,
@@ -137,7 +137,7 @@ class Deployeur:
                 return False
             raise
 
-    def secrets(self, firebase_key=None, domaine=None):
+    def secrets(self, domaine=None):
         # Générés une seule fois, jamais écrasés
         for nom, valeur in (('SECRET_KEY', secrets.token_urlsafe(50)),
                             ('DB_PASSWORD', secrets.token_urlsafe(24)),
@@ -145,16 +145,10 @@ class Deployeur:
             if self._param(nom, valeur, ecraser=False):
                 log(f"Secret {nom} généré.")
         # Fournis par l'utilisateur (écrasés s'ils sont redonnés)
-        if firebase_key:
-            with open(firebase_key, encoding='utf-8') as f:
-                contenu = f.read()
-            json.loads(contenu)  # vérifie que c'est bien un JSON
-            self._param('FIREBASE_KEY', contenu, ecraser=True)
-            log("Clé Firebase enregistrée.")
         if domaine:
             self._param('DOMAIN', domaine, ecraser=True)
         for nom in ('ALLMYSMS_LOGIN', 'ALLMYSMS_API_KEY'):
-            valeur = os.environ.get(f'UBIFOOD_{nom}')
+            valeur = os.environ.get(f'UBIFLOW_{nom}')
             if valeur:
                 self._param(nom, valeur, ecraser=True)
                 log(f"{nom} enregistré.")
@@ -198,7 +192,7 @@ class Deployeur:
         cmd = self.ssm.send_command(
             InstanceIds=[instance_id], DocumentName='AWS-RunShellScript',
             Parameters={'commands': commandes, 'executionTimeout': [str(delai)]},
-            Comment='Déploiement Ubifood', TimeoutSeconds=600,
+            Comment='Déploiement UbiFlow', TimeoutSeconds=600,
         )['Command']['CommandId']
         log(f"Commande SSM {cmd} lancée (le premier build prend 10 à 20 min)…")
         while True:
@@ -216,27 +210,27 @@ class Deployeur:
             log(inv['StandardErrorContent'][-3000:])
         if inv['Status'] != 'Success':
             sys.exit(f"❌ Déploiement en échec ({inv['Status']}). Journal complet sur l'instance : "
-                     "/var/log/ubifood-deploy.log")
+                     "/var/log/ubiflow-deploy.log")
 
     def installer(self, instance_id, ip, branche):
         self.executer(instance_id, [
             'set -e',
             'command -v git >/dev/null || (apt-get update -q && apt-get install -y -q git)',
-            'if [ ! -d /opt/ubifood/.git ]; then '
-            f'git clone -q -b {branche} {DEPOT} /opt/ubifood; '
-            f'else cd /opt/ubifood && git fetch -q origin {branche} && git checkout -q {branche} '
+            'if [ ! -d /opt/ubiflow/.git ]; then '
+            f'git clone -q -b {branche} {DEPOT} /opt/ubiflow; '
+            f'else cd /opt/ubiflow && git fetch -q origin {branche} && git checkout -q {branche} '
             f'&& git reset -q --hard origin/{branche}; fi',
-            f'bash /opt/ubifood/deploy/aws/server-setup.sh {self.region} {ip} '
-            '> /var/log/ubifood-deploy.log 2>&1 || { tail -80 /var/log/ubifood-deploy.log; exit 1; }',
-            'tail -40 /var/log/ubifood-deploy.log',
+            f'bash /opt/ubiflow/deploy/aws/server-setup.sh {self.region} {ip} '
+            '> /var/log/ubiflow-deploy.log 2>&1 || { tail -80 /var/log/ubiflow-deploy.log; exit 1; }',
+            'tail -40 /var/log/ubiflow-deploy.log',
         ])
 
     # ── Commandes ─────────────────────────────────────────────
-    def create(self, type_instance, branche, firebase_key, domaine):
+    def create(self, type_instance, branche, domaine):
         self.identite()
         self.role_instance()
         sg_id = self.groupe_securite()
-        self.secrets(firebase_key, domaine)
+        self.secrets(domaine)
         eip = self.ip_elastique()
         inst = self.instance_existante()
         if inst:
@@ -256,7 +250,7 @@ class Deployeur:
         self.identite()
         inst = self.instance_existante()
         if not inst:
-            sys.exit("Aucune instance « ubifood » : lancer d'abord « deploy.py create ».")
+            sys.exit("Aucune instance « ubiflow » : lancer d'abord « deploy.py create ».")
         eip = self.ip_elastique()
         self.installer(inst['InstanceId'], eip['PublicIp'], branche)
         self.resume(eip['PublicIp'])
@@ -265,21 +259,21 @@ class Deployeur:
         self.identite()
         inst = self.instance_existante()
         if not inst:
-            log("Aucune instance « ubifood ».")
+            log("Aucune instance « ubiflow ».")
             return
         log(f"Instance {inst['InstanceId']} {inst['InstanceType']} : {inst['State']['Name']}, "
             f"IP {inst.get('PublicIpAddress', '—')}")
 
     def resume(self, ip):
         log(f"""
-✅ Ubifood est en ligne
+✅ UbiFlow est en ligne
    Site web        : http://{ip}
    API             : http://{ip}/api/api/
    Admin Django    : http://{ip}/admin/
    Identifiant     : admin
-   Mot de passe    : AWS Console → Systems Manager → Parameter Store → /ubifood/ADMIN_PASSWORD
+   Mot de passe    : AWS Console → Systems Manager → Parameter Store → /ubiflow/ADMIN_PASSWORD
    Application mobile : mettre http://{ip} dans mobile/lib/core/config.dart
-   Console serveur : AWS Console → EC2 → instance « ubifood » → Se connecter → Session Manager
+   Console serveur : AWS Console → EC2 → instance « ubiflow » → Se connecter → Session Manager
 """)
 
 
@@ -289,20 +283,19 @@ def main():
     parser.add_argument('--region', default=None)
     parser.add_argument('--instance-type', default='t3.small')
     parser.add_argument('--branch', default='main')
-    parser.add_argument('--firebase-key', help='Fichier firebase-service-account.json')
     parser.add_argument('--domain', help="Nom de domaine pointant sur l'IP (optionnel)")
     args = parser.parse_args()
 
     d = Deployeur(args.region)
     if args.action == 'create':
-        d.create(args.instance_type, args.branch, args.firebase_key, args.domain)
+        d.create(args.instance_type, args.branch, args.domain)
     elif args.action == 'update':
         d.update(args.branch)
     elif args.action == 'status':
         d.status()
     elif args.action == 'secrets':
         d.identite()
-        d.secrets(args.firebase_key, args.domain)
+        d.secrets(args.domain)
 
 
 if __name__ == '__main__':

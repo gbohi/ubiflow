@@ -3,171 +3,31 @@ import { RouterModule, Routes } from '@angular/router';
 import { RoleGuard } from 'src/app/core/guards/role.guard';
 import { ADMINS, GESTIONNAIRES } from 'src/app/core/helpers/roles';
 
+import { AccueilParametresComponent } from './accueil-parametres/accueil-parametres.component';
 import { AgenceComponent } from './agence/agence.component';
-import { EtatComponent } from './etat/etat.component';
-import { PrioriteComponent } from './priorite/priorite.component';
 import { StatutComponent } from './statut/statut.component';
-import { TypebesoinComponent } from './typebesoin/typebesoin.component';
 import { DepartementComponent } from './departement/departement.component';
 import { RoleComponent } from './role/role.component';
 import { UserComponent } from './user/user.component';
-import { TypeplatComponent } from './typeplat/typeplat.component';
-import { SupplementsComponent } from './supplements/supplements.component';
-import { TypeequipeComponent } from './typeequipe/typeequipe/typeequipe.component';
 import { FonctionComponent } from './fonction/fonction.component';
 import { CategoriesalarieComponent } from './categoriesalarie/categoriesalarie.component';
-import { PrestataireComponent } from './prestataire/prestataire.component';
 import { PosteComponent } from './poste/poste.component';
-import { ReglagesCantineComponent } from './cantine/reglages-cantine.component';
-import { SocieteComponent } from './societe/societe.component';
-import { BannieresComponent } from './bannieres/bannieres.component';
-import { PopupConnexionComponent } from './popup-connexion/popup-connexion.component';
-import { AccueilParametresComponent } from './accueil-parametres/accueil-parametres.component';
-import { ApplicationMobileComponent } from './application-mobile/application-mobile.component';
 
 
 const routes: Routes = [
   // Accueil des paramètres : cartes par thème, filtrées selon les routes ci-dessous
   { path: '', pathMatch: 'full', redirectTo: 'accueil' },
-  {
-    path: 'accueil',
-    component: AccueilParametresComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    // Les « services » (modèle Service de l'API) sont gérés par la page Départements
-    path: 'service',
-    redirectTo: 'departement'
-  },
-  {
-    // Image de la fenêtre affichée après la connexion (web et mobile)
-    path: 'popup-connexion',
-    component: PopupConnexionComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    // Bannières de l'accueil de l'application mobile
-    path: 'bannieres',
-    component: BannieresComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    // APK Android et lien iPhone de la page publique /telecharger
-    path: 'application-mobile',
-    component: ApplicationMobileComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    // En-tête des factures PDF
-    path: 'societe',
-    component: SocieteComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    // Seuil d'avis avant d'afficher une note (délais en lecture) : gestionnaires et administrateurs
-    path: 'cantine',
-    component: ReglagesCantineComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    // Gestionnaires : lecture, et ouverture de leurs agences aux employés des autres agences
-    path: 'agence',
-    component: AgenceComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    path: 'etat',
-    component: EtatComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  }, 
-  {
-    path: 'priorite',
-    component: PrioriteComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'statut',
-    component: StatutComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  }, 
-  {
-    path: 'typebesoin',
-    component: TypebesoinComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'departement',
-    component: DepartementComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'role',
-    component: RoleComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'user',
-    component: UserComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    // Familles de suppléments (desserts…) : administrateurs
-    path: 'supplements',
-    component: SupplementsComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS },
-    title: 'Suppléments | UbiFood'
-  },
-  {
-    path: 'typeplat',
-    component: TypeplatComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    path: 'type-equipe',
-    component: TypeequipeComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    path: 'fonction',
-    component: FonctionComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'categorie-salarie',
-    component: CategoriesalarieComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  },
-  {
-    path: 'prestataire',
-    component: PrestataireComponent,
-    canActivate: [RoleGuard],
-    data: { roles: GESTIONNAIRES }
-  },
-  {
-    path: 'poste',
-    component: PosteComponent,
-    canActivate: [RoleGuard],
-    data: { roles: ADMINS }
-  }
+  { path: 'accueil', component: AccueilParametresComponent, canActivate: [RoleGuard], data: { roles: GESTIONNAIRES } },
+  // Les « services » (modèle Service de l'API) sont gérés par la page Départements
+  { path: 'service', redirectTo: 'departement' },
+  { path: 'user', component: UserComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'role', component: RoleComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'statut', component: StatutComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'agence', component: AgenceComponent, canActivate: [RoleGuard], data: { roles: GESTIONNAIRES } },
+  { path: 'departement', component: DepartementComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'poste', component: PosteComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'fonction', component: FonctionComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
+  { path: 'categorie-salarie', component: CategoriesalarieComponent, canActivate: [RoleGuard], data: { roles: ADMINS } },
 ];
 
 @NgModule({

@@ -6,7 +6,7 @@ import { CookieService } from 'ngx-cookie-service';
 export class LanguageService {
 
   // L'application n'est traduite qu'en français (assets/i18n/fr.json) :
-  // les autres fichiers de langue du modèle ne contiennent pas les menus Ubifood.
+  // les autres fichiers de langue du modèle ne contiennent pas les menus de l'application.
   public languages: string[] = ['fr'];
 
   constructor(public translate: TranslateService, private cookieService: CookieService) {

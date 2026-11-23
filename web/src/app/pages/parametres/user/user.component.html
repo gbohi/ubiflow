@@ -96,7 +96,7 @@
           </p>
           <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2">
-              <label class="form-label small mb-1">Service</label>
+              <label class="form-label small mb-1">Département</label>
               <select class="form-select form-select-sm" formControlName="service">
                 <option value="">Tous</option>
                 @for (s of services; track s.id) { <option [value]="s.id">{{ s.libelle_service }}</option> }
@@ -108,13 +108,6 @@
                 <option value="">Toutes</option>
                 <option [value]="aucuneAgence">Aucune agence</option>
                 @for (a of agences; track a.id) { <option [value]="a.id">{{ a.nom_agence }}</option> }
-              </select>
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label small mb-1">Équipe</label>
-              <select class="form-select form-select-sm" formControlName="typeequipe">
-                <option value="">Toutes</option>
-                @for (t of typeequipes; track t.id) { <option [value]="t.id">{{ t.libelle }}</option> }
               </select>
             </div>
             <div class="col-6 col-md-2">
@@ -130,10 +123,6 @@
                 <option value="">Toutes</option>
                 @for (c of categoriesalaries; track c.id) { <option [value]="c.id">{{ c.libelle }}</option> }
               </select>
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label small mb-1">Allergie (contient)</label>
-              <input type="text" class="form-control form-control-sm" formControlName="allergie" placeholder="Ex. : lactose…">
             </div>
             <div class="col-6 col-md-2 d-flex gap-2">
               <button type="submit" class="btn-ubi navy sm flex-fill"><i class="ri-search-line"></i>Rechercher</button>
@@ -171,7 +160,6 @@
             </th>
             <th>Agence</th>
             <th>Catégorie</th>
-            <th>Équipe</th>
             <th>Rôle</th>
             <th>Compte</th>
             <th class="lst-c-act"><span class="visually-hidden">Actions</span></th>
@@ -208,10 +196,6 @@
                 @if (getDerniereCategorie(data); as cat) { <span>{{ getCategorieLibelle(cat.categoriesalarie) }}</span> }
                 @else { <span class="muted">—</span> }
               </td>
-              <td data-label="Équipe">
-                @if (data.typeequipe_libelle) { <span class="lst-tag t-ve"><i class="ri-team-line"></i>{{ data.typeequipe_libelle }}</span> }
-                @else { <span class="muted">—</span> }
-              </td>
               <td data-label="Rôle">
                 <div class="lst-tags">
                   @for (gid of data.groups || []; track gid) {
@@ -220,7 +204,6 @@
                     <span class="muted">—</span>
                   }
                 </div>
-                @if (data.prestataire_libelle) { <small class="d-block"><i class="ri-store-2-line"></i> {{ data.prestataire_libelle }}</small> }
               </td>
               <td data-label="Compte">
                 <div>
@@ -251,7 +234,7 @@
           }
           @if (users.length === 0 && !isLoading) {
             <tr class="lst-l-vide">
-              <td colspan="9" class="lst-c-plein">
+              <td colspan="8" class="lst-c-plein">
                 <div class="lst-vide">
                   <i class="ri-user-search-line"></i>
                   <h5>Aucun utilisateur trouvé</h5>
@@ -344,16 +327,6 @@
                 <label class="form-check-label">Compte actif</label>
               </div>
             </div>
-            @if (!estRolePrestataire) {
-              <div class="col-md-4">
-                <label class="form-label" for="user-typeequipe">Équipe <small class="text-muted">(facultatif)</small></label>
-                <select id="user-typeequipe" class="form-select" formControlName="typeequipe">
-                  <option [ngValue]="null">Aucune équipe</option>
-                  @for (t of typeequipes; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
-                </select>
-                <div class="form-text">Mise en avant (« Mon équipe ») et présélectionnée quand l'employé commande.</div>
-              </div>
-            }
           </div>
 
           }
@@ -384,49 +357,6 @@
             }
           </div>
 
-          <!-- Caisse : rôles cumulables avec Employé, jamais avec un rôle prestataire (refus du serveur affiché) -->
-          @if (estRoleCaisse && !estRolePrestataire) {
-            <p class="text-muted small mb-4"><i class="ri-information-line me-1"></i>Caissier : encaisse les recharges du compte repas et clôture sa caisse.
-              Comptabilité : valide les clôtures de caisse, annule les reçus, rembourse les soldes. Cumulables avec « Employé » (le compte commande aussi ses repas) ;
-              impossible avec un rôle prestataire. Personne n'annule ses propres opérations ni ne valide sa propre clôture.</p>
-          }
-
-          <!-- Compte de l'espace prestataire : prestataire obligatoire, aucun autre rôle -->
-          @if (estRolePrestataire) {
-            <div class="row g-3 mb-4">
-              <div class="col-md-6">
-                <label class="form-label" for="user-prestataire">Prestataire du compte <span class="text-danger">*</span></label>
-                <select id="user-prestataire" class="form-select" formControlName="prestataire"
-                        [class.is-invalid]="submitted && !userForm.get('prestataire')?.value">
-                  <option [ngValue]="null">-- Choisir le prestataire --</option>
-                  @for (p of prestataires; track p.id) { <option [ngValue]="p.id">{{ p.libelle }}</option> }
-                </select>
-                @if (submitted && !userForm.get('prestataire')?.value) {
-                  <div class="invalid-feedback d-block">Choisissez le prestataire de ce compte (rôle prestataire ou agent de comptoir).</div>
-                }
-              </div>
-              <div class="col-md-6 d-flex align-items-end">
-                <p class="text-muted small mb-0"><i class="ri-information-line me-1"></i>Un compte prestataire (responsable ou agent de comptoir) n'a aucun autre rôle :
-                  il n'accède qu'à l'espace prestataire. Les agences, postes et catégories ci-dessous ne le concernent pas.</p>
-              </div>
-              @if (estAgentComptoir && userForm.get('prestataire')?.value) {
-                <div class="col-12">
-                  <label class="form-label">Agences d'intervention de l'agent de comptoir</label>
-                  <div class="d-flex flex-wrap gap-2">
-                    @for (a of agencesDuPrestataire; track a.id) {
-                      <label class="form-check form-check-inline border rounded px-3 py-2 m-0" [class.border-success]="agenceComptoirCochee(a.id)">
-                        <input type="checkbox" class="form-check-input me-2" [checked]="agenceComptoirCochee(a.id)" (change)="basculerAgenceComptoir(a.id)">{{ a.nom }}
-                      </label>
-                    } @empty {
-                      <span class="text-muted small">Ce prestataire ne dessert encore aucune agence.</span>
-                    }
-                  </div>
-                  <p class="text-muted small mt-1 mb-0">Aucune case cochée : toutes les agences du prestataire. Le responsable du prestataire peut aussi les modifier (Mon équipe).</p>
-                </div>
-              }
-            </div>
-          }
-
           }
 
           <!-- Mot de passe création -->
@@ -456,17 +386,17 @@
           }
 
           @if (etape === 'affectations') {
-          <p class="text-muted small"><i class="ri-information-line me-1"></i>L'agence est indispensable pour commander ; la catégorie de salarié fixe le prix des repas.</p>
-          <!-- TABLEAU Services -->
+          <p class="text-muted small"><i class="ri-information-line me-1"></i>Historique des affectations de l'agent : un agent n'a qu'une agence et une catégorie à la fois.</p>
+          <!-- TABLEAU Départements -->
           <div class="d-flex align-items-center justify-content-between mb-2 mt-2">
-            <h6 class="text-muted text-uppercase mb-0 small"><i class="ri-building-line me-1"></i>Services @if(isServicesLoading){<span class="spinner-border spinner-border-sm text-primary ms-2" role="status"></span>}</h6>
+            <h6 class="text-muted text-uppercase mb-0 small"><i class="ri-building-line me-1"></i>Départements @if(isServicesLoading){<span class="spinner-border spinner-border-sm text-primary ms-2" role="status"></span>}</h6>
             <button type="button" class="btn btn-subtle-primary btn-sm" [disabled]="isServicesLoading" (click)="ajouterService()"><i class="ri-add-line me-1"></i>Ajouter</button>
           </div>
           @if (isServicesLoading) { <div class="text-center py-3 border rounded mb-2"><div class="spinner-border text-primary spinner-border-sm" role="status"></div></div> }
-          @else if (serviceLignesVisibles.length===0) { <div class="text-center py-2 text-muted border rounded mb-2 small">Aucun service. Cliquez sur « Ajouter ».</div> }
+          @else if (serviceLignesVisibles.length===0) { <div class="text-center py-2 text-muted border rounded mb-2 small">Aucun département. Cliquez sur « Ajouter ».</div> }
           @else {
             <div class="table-responsive border rounded mb-2"><table class="table table-sm align-middle mb-0">
-              <thead class="table-light text-muted"><tr><th>Service <span class="text-danger">*</span></th><th>Début <span class="text-danger">*</span></th><th>Fin</th><th>Statut <span class="text-danger">*</span></th><th></th></tr></thead>
+              <thead class="table-light text-muted"><tr><th>Département <span class="text-danger">*</span></th><th>Début <span class="text-danger">*</span></th><th>Fin</th><th>Statut <span class="text-danger">*</span></th><th></th></tr></thead>
               <tbody>@for(ligne of serviceLignesVisibles;track $index){
                 <tr [class.table-danger]="ligne._hasError">
                   <td style="min-width:160px;"><select class="form-select form-select-sm" [class.is-invalid]="ligne._hasError&&!ligne.service" [(ngModel)]="ligne.service" [ngModelOptions]="{standalone:true}"><option [value]="undefined">—</option>@for(s of services;track s.id){<option [value]="s.id">{{s.libelle_service}}</option>}</select></td>
@@ -547,35 +477,6 @@
 
           }
 
-          @if (etape === 'allergies') {
-          <!-- TABLEAU Allergies -->
-          <div class="d-flex align-items-center justify-content-between mb-2 mt-3">
-            <h6 class="text-muted text-uppercase mb-0 small"><i class="ri-error-warning-line me-1"></i>Allergies @if(isAllergiesLoading){<span class="spinner-border spinner-border-sm text-primary ms-2" role="status"></span>}</h6>
-            <button type="button" class="btn btn-subtle-danger btn-sm" [disabled]="isAllergiesLoading" (click)="ajouterAllergie()"><i class="ri-add-line me-1"></i>Ajouter</button>
-          </div>
-          @if (isAllergiesLoading) { <div class="text-center py-3 border rounded mb-2"><div class="spinner-border text-primary spinner-border-sm" role="status"></div></div> }
-          @else if (allergieLignesVisibles.length===0) { <div class="text-center py-2 text-muted border rounded mb-2 small">Aucune allergie.</div> }
-          @else {
-            <div class="table-responsive border rounded mb-2"><table class="table table-sm align-middle mb-0">
-              <thead class="table-light text-muted"><tr><th>Libellé <span class="text-danger">*</span></th><th></th></tr></thead>
-              <tbody>@for(ligne of allergieLignesVisibles;track $index){
-                <tr [class.table-danger]="ligne._hasError">
-                  <td><input type="text" class="form-control form-control-sm" [class.is-invalid]="ligne._hasError&&!ligne.libelle?.trim()" [(ngModel)]="ligne.libelle" [ngModelOptions]="{standalone:true}" placeholder="Ex: Arachides..."></td>
-                  <td class="text-center"><button type="button" class="btn btn-subtle-danger btn-icon btn-sm" (click)="supprimerAllergie(allergieLignes.indexOf(ligne))"><i class="ri-delete-bin-6-line"></i></button></td>
-                </tr>
-              }</tbody>
-            </table></div>
-          }
-
-          }
-
-          @if (etape === 'badge' && f['id'].value) {
-            <h6 class="text-muted text-uppercase mb-2 small"><i class="ri-bank-card-2-line me-1"></i>Badge d'accès</h6>
-            <p class="small text-muted mb-3">Le badge des portes sert aussi au comptoir de la cantine. Posez-le sur le lecteur USB :
-              seul son numéro est enregistré, jamais affiché en clair. Indépendant du bouton « Enregistrer ».</p>
-            <app-badge-employe [userId]="f['id'].value"></app-badge-employe>
-          }
-
           @if (etape === 'recap') {
             <h6 class="text-muted text-uppercase mb-3 small"><i class="ri-file-list-3-line me-1"></i>Récapitulatif</h6>
             <dl class="uw-recap">
@@ -583,12 +484,9 @@
               <dt>Contact</dt><dd>{{ f['contact'].value || '—' }}@if (f['poste_telephone'].value) { · poste {{ f['poste_telephone'].value }} }</dd>
               <dt>Compte</dt><dd>{{ f['is_active'].value ? 'Actif (peut se connecter)' : 'Désactivé' }} · statut : {{ getStatutLibelle(f['statut'].value) }}</dd>
               <dt>Rôle(s)</dt><dd>{{ getGroupesLibelle(f['groups'].value || []) || 'Aucun' }}</dd>
-              @if (!estRolePrestataire) {
-                <dt>Agence</dt><dd [class.text-danger]="!agenceLignesVisibles.length">@for (l of agenceLignesVisibles; track $index) { {{ getAgenceLibelle(l.agence!) }}@if (!$last) { · } } @empty { Aucune : il ne pourra pas commander dans son agence }</dd>
-                <dt>Catégorie</dt><dd>@for (l of categorieLignesVisibles; track $index) { {{ getCategorieLibelle(l.categoriesalarie!) }}@if (!$last) { · } } @empty { — }</dd>
-                <dt>Poste · service</dt><dd>@for (l of posteLignesVisibles; track $index) { {{ getPosteLibelle(l.poste!) }} · } @for (l of serviceLignesVisibles; track $index) { {{ getServiceLibelle(l.service!) }} } @if (!posteLignesVisibles.length && !serviceLignesVisibles.length) { — }</dd>
-                <dt>Allergies</dt><dd>@for (l of allergieLignesVisibles; track $index) { {{ l.libelle }}@if (!$last) { · } } @empty { Aucune }</dd>
-              }
+              <dt>Agence</dt><dd>@for (l of agenceLignesVisibles; track $index) { {{ getAgenceLibelle(l.agence!) }}@if (!$last) { · } } @empty { Aucune }</dd>
+              <dt>Catégorie</dt><dd>@for (l of categorieLignesVisibles; track $index) { {{ getCategorieLibelle(l.categoriesalarie!) }}@if (!$last) { · } } @empty { — }</dd>
+              <dt>Poste · département</dt><dd>@for (l of posteLignesVisibles; track $index) { {{ getPosteLibelle(l.poste!) }} · } @for (l of serviceLignesVisibles; track $index) { {{ getServiceLibelle(l.service!) }} } @if (!posteLignesVisibles.length && !serviceLignesVisibles.length) { — }</dd>
             </dl>
           }
         </div><!-- fin modal-body -->
@@ -734,15 +632,14 @@
           <div class="col-md-4"><label class="form-label fw-medium">Poste tél. :</label><p>{{selectedUser?.poste_telephone||'—'}}</p></div>
           <div class="col-md-2"><label class="form-label fw-medium">Statut :</label><p><span class="badge bg-info-subtle text-info">{{getStatutLibelle(selectedUser?.statut)}}</span></p></div>
           <div class="col-md-2"><label class="form-label fw-medium">État :</label><p>@if(selectedUser?.is_active){<span class="badge bg-success-subtle text-success">Actif</span>}@else{<span class="badge bg-danger-subtle text-danger">Inactif</span>}</p></div>
-          <div class="col-md-6"><label class="form-label fw-medium">Équipe :</label><p class="mb-0">{{ selectedUser?.typeequipe_libelle || 'Aucune' }}</p></div>
           <div class="col-12"><label class="form-label fw-medium">Rôle(s) :</label><p class="mb-0">@if(selectedUser?.groups&&selectedUser.groups.length>0){@for(gid of selectedUser.groups;track gid){<span class="badge bg-secondary-subtle text-secondary me-1"><i class="ri-shield-check-line me-1"></i>{{getGroupeName(gid)}}</span>}}@else{<span class="text-muted small">Aucun</span>}</p></div>
         </div>
 
-        <!-- Services -->
-        <h6 class="text-muted text-uppercase mb-2 small"><i class="ri-building-line me-1"></i>Services</h6>
+        <!-- Départements -->
+        <h6 class="text-muted text-uppercase mb-2 small"><i class="ri-building-line me-1"></i>Départements</h6>
         @if(isServicesLoading){<div class="text-center py-2 border rounded mb-3"><div class="spinner-border text-primary spinner-border-sm" role="status"></div></div>}
         @else if(serviceLignesVisibles.length===0){<p class="text-muted small mb-3">Aucun.</p>}
-        @else{<div class="table-responsive border rounded mb-3"><table class="table table-sm align-middle mb-0"><thead class="table-light text-muted"><tr><th>#</th><th>Service</th><th>Début</th><th>Fin</th><th>Statut</th></tr></thead><tbody>
+        @else{<div class="table-responsive border rounded mb-3"><table class="table table-sm align-middle mb-0"><thead class="table-light text-muted"><tr><th>#</th><th>Département</th><th>Début</th><th>Fin</th><th>Statut</th></tr></thead><tbody>
           @for(t of serviceLignesVisibles;track t.id;let i=$index){<tr><td>{{i+1}}</td><td class="fw-semibold">{{getServiceLibelle(t.service!)}}</td><td>{{formatDate(t.date_debut!)}}</td><td>{{t.date_fin?formatDate(t.date_fin):'—'}}</td><td><span class="badge bg-info-subtle text-info">{{getStatutLibelle(t.statut!)}}</span></td></tr>}
         </tbody></table></div>}
 
@@ -770,11 +667,6 @@
           @for(t of categorieLignesVisibles;track t.id;let i=$index){<tr><td>{{i+1}}</td><td class="fw-semibold">{{getCategorieLibelle(t.categoriesalarie!)}}</td><td>{{formatDate(t.date_debut!)}}</td><td>{{t.date_fin?formatDate(t.date_fin):'—'}}</td><td><span class="badge bg-info-subtle text-info">{{getStatutLibelle(t.statut!)}}</span></td></tr>}
         </tbody></table></div>}
 
-        <!-- Allergies -->
-        <h6 class="text-muted text-uppercase mb-2 small"><i class="ri-error-warning-line me-1"></i>Allergies</h6>
-        @if(isAllergiesLoading){<div class="text-center py-2 border rounded"><div class="spinner-border text-primary spinner-border-sm" role="status"></div></div>}
-        @else if(allergieLignesVisibles.length===0){<p class="text-muted small">Aucune.</p>}
-        @else{<div class="d-flex flex-wrap gap-2 mt-1">@for(a of allergieLignesVisibles;track a.id){<span class="badge bg-danger-subtle text-danger" style="font-size:.85rem;"><i class="ri-error-warning-line me-1"></i>{{a.libelle}}</span>}</div>}
       </div>
       <div class="modal-footer"><button type="button" class="btn btn-secondary" (click)="closeViewModal()">Fermer</button></div>
     </div>

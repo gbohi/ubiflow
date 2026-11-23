@@ -31,8 +31,7 @@
             "assets": [
               "src/favicon.ico",
               "src/assets/images",
-              "src/assets/i18n",
-              "src/firebase-messaging-sw.js"
+              "src/assets/i18n"
             ],
             "styles": [
               "node_modules/ngx-toastr/toastr.css",

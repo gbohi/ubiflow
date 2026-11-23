@@ -10,8 +10,7 @@ import { aUnRole, accueilUtilisateur } from '../helpers/roles';
  *   { path: 'user', component: UserComponent,
  *     canActivate: [RoleGuard], data: { roles: ADMINS } }
  *
- * Un utilisateur sans le rôle requis est renvoyé vers son accueil (accueilUtilisateur :
- * /cantines/accueil, tableau de bord, accueil ou comptoir de l'espace prestataire).
+ * Un utilisateur sans le rôle requis est renvoyé vers son accueil (accueilUtilisateur).
  * (Le backend refuse de toute façon les appels non autorisés : ce garde
  * évite d'afficher des pages vides ou en erreur.)
  */

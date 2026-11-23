@@ -1,9 +1,9 @@
 #!/bin/bash
 # ============================================================
-# Restauration d'une sauvegarde Ubifood (base et/ou fichiers).
+# Restauration d'une sauvegarde UbiFlow (base et/ou fichiers).
 #
-#   bash restaurer.sh /opt/ubifood-backups/base/ubifood_2026-10-20_0200_quotidienne.dump \
-#                     [/opt/ubifood-backups/fichiers/media_2026-10-20_0200_quotidienne.tar.gz]
+#   bash restaurer.sh /opt/ubiflow-backups/base/ubiflow_2026-10-20_0200_quotidienne.dump \
+#                     [/opt/ubiflow-backups/fichiers/media_2026-10-20_0200_quotidienne.tar.gz]
 #
 # ⚠️ Remplace TOUTES les données actuelles par celles de la sauvegarde.
 #    Une sauvegarde de l'état actuel est faite juste avant (« avant-restauration »).
@@ -11,7 +11,7 @@
 set -euo pipefail
 BASE=${1:?Indiquer le fichier .dump à restaurer}
 FICHIERS=${2:-}
-BACKEND_DIR=/opt/ubifood/backend
+BACKEND_DIR=/opt/ubiflow/backend
 DOSSIER_SCRIPTS=$(cd "$(dirname "$0")" && pwd)
 
 [ -f "$BASE" ] || { echo "Fichier introuvable : $BASE" >&2; exit 1; }

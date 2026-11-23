@@ -9,20 +9,12 @@ import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
 import { BreadcrumbsComponent } from './breadcrumbs/breadcrumbs.component';
 import { PageEnteteComponent } from './page-entete/page-entete.component';
 import { ListePiedComponent } from './liste-pied/liste-pied.component';
-import { ProfilPrestataireEditeurComponent } from './profil-prestataire/profil-prestataire-editeur.component';
-import { SuiviEtapesComponent } from './suivi-releve/suivi-etapes.component';
-import { SuiviReleveDetailComponent } from './suivi-releve/suivi-releve-detail.component';
-import { FriseSuiviComponent } from './suivi-repas/frise-suivi.component';
 
 @NgModule({
   declarations: [
     BreadcrumbsComponent,
     PageEnteteComponent,
     ListePiedComponent,
-    ProfilPrestataireEditeurComponent,
-    SuiviEtapesComponent,
-    SuiviReleveDetailComponent,
-    FriseSuiviComponent,
   ],
   imports: [
     CommonModule,
@@ -32,8 +24,6 @@ import { FriseSuiviComponent } from './suivi-repas/frise-suivi.component';
     BsDropdownModule,
   ],
   // BsDropdownModule : menu « ⋮ » des actions de ligne (gabarit commun des listes)
-  // SuiviEtapes / SuiviReleveDetail : suivi des factures prestataires (espace prestataire et comptabilité)
-  exports: [BreadcrumbsComponent, PageEnteteComponent, ListePiedComponent, ProfilPrestataireEditeurComponent,
-            SuiviEtapesComponent, SuiviReleveDetailComponent, FriseSuiviComponent, BsDropdownModule, RouterModule]
+  exports: [BreadcrumbsComponent, PageEnteteComponent, ListePiedComponent, BsDropdownModule, RouterModule]
 })
 export class SharedModule { }

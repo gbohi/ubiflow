@@ -146,9 +146,9 @@ class _LoginScreenState extends State<LoginScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SvgPicture.asset('assets/images/logo_white.svg',
-                                height: 34, semanticsLabel: 'UbiFood'),
+                                height: 34, semanticsLabel: 'UbiFlow'),
                             const SizedBox(height: 50),
-                            const Text('Votre repas\nvous attend',
+                            const Text('Vos demandes\nen un clic',
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 30,

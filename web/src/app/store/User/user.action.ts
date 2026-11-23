@@ -7,7 +7,7 @@ import { UserModel, ApiResponse } from './user.model';
 export const fetchuserData = createAction(
   '[User] Fetch Data',
   // filtres : recherche avancée côté serveur (nom, prenom, username, email, statut, is_active,
-  // groupe, allergie, agence, service, poste, categoriesalarie)
+  // groupe, agence, service, poste, categoriesalarie)
   props<{ page?: number; search?: string; ordering?: string; filtres?: Record<string, string> }>()
 );
 export const fetchuserSuccess = createAction(

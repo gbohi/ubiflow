@@ -6,58 +6,17 @@
     "ACCUEIL": {
       "TEXT": "Accueil"
     },
-    "DASHBOARD": {
-      "TEXT": "Tableau de bord",
-      "LIST": {
-        "DASHBOARDCANTINE": "Cantine"
-      }
-    },
-    "APPS": {
-      "TEXT": "applications",
-      "LIST": {
-        "LISTBESOIN": "Liste des besoins"
-      }
-    },
     "PARAMETRES": {
       "TEXT": "Paramètres",
       "LIST": {
-        "SOCIETE": "Société (factures)",
-        "BANNIERES": "Bannières mobile",
-        "POPUPCONNEXION": "Fenêtre de connexion",
         "AGENCE": "Agences",
-        "ETAT": "États",
-        "PRIORITE": "Priorités",
         "STATUT": "Statuts",
-        "TYPEBESOIN": "Types de besoin",
         "DEPARTEMENT": "Départements",
         "ROLE": "Rôles",
         "USER": "Utilisateurs",
-        "TYPEPLAT": "Types de plat",
-        "TYPEEQUIPE": "Types d'équipe",
         "FONCTION": "Fonctions",
         "POSTE": "Postes",
-        "CATEGORIESALARIE": "Catégories de salarié",
-        "PRESTATAIRE": "Prestataires"
-      }
-    },
-    "BESOINS": {
-      "TEXT": "Besoins"
-    },
-    "CANTINES": {
-      "TEXT": "Cantine",
-      "LIST": {
-        "PLAT": "Plats",
-        "MENU": "Menus",
-        "PLANNINGMENU": "Planning des menus",
-        "COMMANDE": "Commander",
-        "MESCOMMANDES": "Mes commandes",
-        "GESTIONCOMMANDE": "Gestion des commandes",
-        "RETRAITCOMMANDE": "Retrait des commandes",
-        "FACTURATIONCOMMANDE": "Facturation employés",
-        "FACTURATIONPRESTATAIRE": "Facturation prestataires",
-        "AVIS": "Avis sur les plats",
-        "STATISTIQUES": "Statistiques",
-        "FACTURATION": "Facturation"
+        "CATEGORIESALARIE": "Catégories de salarié"
       }
     }
   }

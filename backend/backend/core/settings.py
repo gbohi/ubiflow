@@ -2,8 +2,6 @@
 Django settings for core project.
 """
 
-import os
-import sys
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
@@ -88,7 +86,7 @@ else:
     CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
 
 # Origines autorisées à soumettre des formulaires (admin Django derrière Nginx).
-# Exemple : CSRF_TRUSTED_ORIGINS=https://ubifood.mondomaine.com
+# Exemple : CSRF_TRUSTED_ORIGINS=https://ubiflow.mondomaine.com
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
 
 
@@ -177,7 +175,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        # Refuse les comptes prestataires (cloisonnés dans /prestataire/…)
         'api.permissions.IsAuthenticated',
     ),
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.StandardPagination',
@@ -192,12 +189,6 @@ REST_FRAMEWORK = {
         'password_reset': '10/hour',
         'login':          '20/min',
         'token_refresh':  '60/min',
-        # Page publique « Télécharger l'application » : par adresse IP
-        'application_mobile': '60/min',
-        # Contestation d'un retrait par un employé : par utilisateur
-        'contestation': '10/hour',
-        # Opérations de caisse (recharge, régularisation…) : par utilisateur
-        'caisse': '120/min',
     },
 }
 
@@ -249,11 +240,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Taille max des champs d'une requête HORS fichiers (JSON, champs de formulaire).
 # Les fichiers ne sont pas comptés : leur taille est limitée par Nginx
-# (client_max_body_size : 20 Mo, 200 Mo pour l'APK de l'application mobile)
-# et par chaque serializer.
+# (client_max_body_size) et par chaque serializer.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
-# Au-delà, un fichier reçu est écrit dans un fichier temporaire (pas en mémoire) :
-# indispensable pour l'APK (jusqu'à 200 Mo) avec plusieurs workers Gunicorn.
+# Au-delà, un fichier reçu est écrit dans un fichier temporaire (pas en mémoire).
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 
@@ -264,43 +253,12 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ============================================================
-# FIREBASE ADMIN SDK
-# ============================================================
-
-FIREBASE_SERVICE_ACCOUNT_KEY = config(
-    'FIREBASE_SERVICE_ACCOUNT_KEY',
-    default=str(BASE_DIR / 'firebase-service-account.json'),
-)
-
-# Envoi des notifications (api/signals.py) : dans un thread pour un serveur
-# (gunicorn, runserver), dans le fil courant pour les processus courts
-# (commandes manage.py, scripts, tests) qui pourraient se terminer avant le
-# thread. Forçable par NOTIFICATIONS_SYNCHRONES=True/False dans le .env.
-_COMMANDE_MANAGE = (sys.argv[1] if len(sys.argv) > 1 and os.path.basename(sys.argv[0]) == 'manage.py'
-                    else None)
-NOTIFICATIONS_SYNCHRONES = config(
-    'NOTIFICATIONS_SYNCHRONES',
-    default=_COMMANDE_MANAGE is not None and _COMMANDE_MANAGE != 'runserver',
-    cast=bool,
-)
-
-
-# ============================================================
-# CAISSE — compte repas prépayé (api/comptes_repas.py)
-# Seules les espèces sont acceptées : le paiement Mobile Money (CinetPay)
-# viendra plus tard. Tant que ce réglage est faux, le mode « mobile_money »
-# est refusé par l'API, quel que soit l'écran.
-# ============================================================
-
-CAISSE_MOBILE_MONEY_ACTIF = config('CAISSE_MOBILE_MONEY_ACTIF', default=False, cast=bool)
-
-# ============================================================
 # SMS (AllMySMS) — réinitialisation du mot de passe
 # ============================================================
 
 ALLMYSMS_LOGIN   = config('ALLMYSMS_LOGIN',   default='')
 ALLMYSMS_API_KEY = config('ALLMYSMS_API_KEY', default='')
-ALLMYSMS_SENDER  = config('ALLMYSMS_SENDER',  default='UbiFood')
+ALLMYSMS_SENDER  = config('ALLMYSMS_SENDER',  default='UbiFlow')
 
 
 # ============================================================

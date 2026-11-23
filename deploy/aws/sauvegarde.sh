@@ -1,27 +1,27 @@
 #!/bin/bash
 # ============================================================
-# Sauvegarde d'Ubifood : base PostgreSQL + fichiers envoyés
+# Sauvegarde d'UbiFlow : base PostgreSQL + fichiers envoyés
 # (photos des plats et de profil, bannières, fenêtre de connexion,
 # documents des besoins, logo).
 #
 #   bash sauvegarde.sh [libellé]      ex. « avant-deploiement »
 #
-# Lancé chaque nuit par /etc/cron.d/ubifood-sauvegarde (voir
+# Lancé chaque nuit par /etc/cron.d/ubiflow-sauvegarde (voir
 # server-setup.sh) et avant chaque déploiement.
 # Variables (facultatives) :
-#   SAUVEGARDE_DIR            dossier local    (défaut /opt/ubifood-backups)
+#   SAUVEGARDE_DIR            dossier local    (défaut /opt/ubiflow-backups)
 #   SAUVEGARDE_JOURS          jours conservés  (défaut 14)
-#   SAUVEGARDE_S3             bucket S3 pour une copie hors du serveur (ex. s3://mon-bucket/ubifood)
+#   SAUVEGARDE_S3             bucket S3 pour une copie hors du serveur (ex. s3://mon-bucket/ubiflow)
 #   AWS_REGION                région du bucket
 # ============================================================
 set -euo pipefail
 
-BACKEND_DIR=/opt/ubifood/backend
-DIR=${SAUVEGARDE_DIR:-/opt/ubifood-backups}
+BACKEND_DIR=/opt/ubiflow/backend
+DIR=${SAUVEGARDE_DIR:-/opt/ubiflow-backups}
 JOURS=${SAUVEGARDE_JOURS:-14}
 LIBELLE=${1:-quotidienne}
 HORODATAGE=$(date +%Y-%m-%d_%H%M)
-JOURNAL=/var/log/ubifood-sauvegarde.log
+JOURNAL=/var/log/ubiflow-sauvegarde.log
 
 log() { echo "$(date '+%F %T') [$LIBELLE] $*" | tee -a "$JOURNAL"; }
 echec() { log "❌ ÉCHEC : $*"; exit 1; }
@@ -33,7 +33,7 @@ cd "$BACKEND_DIR"
 docker compose ps --status running db | grep -q db || echec "le conteneur PostgreSQL n'est pas démarré"
 
 # ── Base : format personnalisé (compressé, restaurable table par table) ──
-BASE="$DIR/base/ubifood_${HORODATAGE}_${LIBELLE}.dump"
+BASE="$DIR/base/ubiflow_${HORODATAGE}_${LIBELLE}.dump"
 docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$BASE.part" \
     || echec "pg_dump"
 # Vérification : le fichier doit être lisible par pg_restore

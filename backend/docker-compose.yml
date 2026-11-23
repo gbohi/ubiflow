@@ -1,5 +1,5 @@
 # ============================================================
-# Stack de production Ubifood :
+# Stack de production UbiFlow :
 #   PostgreSQL + Django/Gunicorn + Nginx (site Angular + reverse proxy)
 #
 # Démarrage (depuis le dossier backend/) :
@@ -37,28 +37,7 @@ services:
     volumes:
       - static_files:/app/staticfiles
       - media_files:/app/media
-      # Dossier des secrets (non versionné) contenant la clé Firebase :
-      #   backend/secrets/firebase-service-account.json
-      # On monte un DOSSIER et non le fichier : si le fichier manquait,
-      # Docker créerait à sa place un dossier vide portant son nom.
-      - ./secrets:/app/secrets:ro
 
-  # Tâches périodiques (toutes les 5 min) : rappels de réservation aux
-  # employés programmés (planning des équipes), suivi des repas (préparation
-  # et arrivée automatiques, rappel avant la fin du retrait). Même image que le backend ;
-  # les migrations sont appliquées par le service backend.
-  taches:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DB_HOST: db
-      DB_PORT: "5432"
-    depends_on:
-      - backend
-    volumes:
-      - ./secrets:/app/secrets:ro
-    entrypoint: ["sh", "-c", "sleep 120; while true; do python manage.py taches_planifiees; sleep 300; done"]
 
   nginx:
     # Image Nginx contenant le site Angular compilé (web/Dockerfile)

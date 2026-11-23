@@ -2,25 +2,21 @@
 <div class="lst">
   <app-page-entete titre="Catégories de salarié" icone="ri-price-tag-3-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
-                   [compte]="totalItems" unite="catégorie|catégories">
-    <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle catégorie</span></button>
+                   [compte]="totalItems" unite="catégorie de salarié|catégories de salarié">
+    <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle catégorie de salarié</span></button>
   </app-page-entete>
-
-  <!-- Tarifs en vigueur : ligne × type de plat -->
-  <app-grille-tarifs cible="employes"></app-grille-tarifs>
-
 
   <div class="lst-carte" id="categoriesalarieList">
     <div class="lst-barre">
       <div class="lst-recherche">
         <i class="ri-search-line"></i>
-        <input type="search" placeholder="Rechercher…" aria-label="Rechercher" [(ngModel)]="term" (ngModelChange)="filterdata()">
+        <input type="search" placeholder="Rechercher…" aria-label="Rechercher" [(ngModel)]="term" (ngModelChange)="filterdata($event)">
       </div>
     </div>
     @if (checkedValGet.length > 0) {
       <div class="lst-selection">
         <span><b>{{ checkedValGet.length }}</b> sélectionnée(s)</span>
-        <button type="button" class="btn-ubi rouge sm" (click)="deleteRecordModal?.show()"><i class="ri-delete-bin-6-line"></i>Supprimer la sélection</button>
+        <button type="button" class="btn-ubi rouge sm" (click)="openBulkDelete()"><i class="ri-delete-bin-6-line"></i>Supprimer la sélection</button>
       </div>
     }
     <div class="lst-table-wrap lst-cartes-wrap">
@@ -68,8 +64,8 @@
                     <h5>Aucun résultat</h5>
                     <p>Aucun élément ne correspond à « {{ term }} ».</p>
                   } @else {
-                    <i class="ri-price-tag-3-line"></i>
-                    <h5>Aucune catégorie pour le moment</h5>
+                    <i class="ri-user-star-line"></i>
+                    <h5>Aucune catégorie de salarié pour le moment</h5>
                     <p>Ajoutez une catégorie de salarié pour commencer.</p>
                   }
                 </div>
@@ -86,154 +82,53 @@
   </div>
 </div>
 
-<div bsModal #addCategoriesalarie="bs-modal" class="modal fade"
+<div bsModal #addCategoriesalarie="bs-modal"
+     class="modal fade"
      [config]="{backdrop: 'static', keyboard: false, ignoreBackdropClick: true}">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog">
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title">{{ modalTitle }}</h5>
+        <h5 class="modal-title">{{ isEdit ? "Modifier la catégorie de salarié" : "Ajouter une catégorie de salarié" }}</h5>
         <button type="button" class="btn-close" (click)="closeAddModal()"></button>
       </div>
 
       <form (ngSubmit)="saveProperty()" [formGroup]="categoriesalarieForm" novalidate autocomplete="off">
         <div class="modal-body">
+          <input type="hidden" formControlName="id">
 
-          <!-- ── Informations catégorie ──────────────────── -->
-          <h6 class="text-muted text-uppercase mb-3 small">
-            <i class="ri-information-line me-1"></i>Informations de la catégorie
-          </h6>
+          <div class="mb-3">
+            <label class="form-label">
+              Libellé <span class="text-danger">*</span>
+            </label>
+            <input type="text"
+                   class="form-control"
+                   formControlName="libelle"
+                   placeholder="Entrez le libellé de la catégorie de salarié">
 
-          <div class="mb-4">
-            <input type="hidden" formControlName="id">
-            <label class="form-label">Libellé <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" formControlName="libelle"
-                   placeholder="Entrez le libellé de la catégorie">
-            @if (categoriesalarieForm.get('libelle')?.invalid &&
-                 categoriesalarieForm.get('libelle')?.touched) {
+            <!-- ✅ Nouvelle syntaxe @if -->
+            @if (categoriesalarieForm.get('libelle')?.invalid && categoriesalarieForm.get('libelle')?.touched) {
               <div class="text-danger mt-1">
                 @if (categoriesalarieForm.get('libelle')?.errors?.['required']) {
-                  <small>Le libellé de la catégorie est requis</small>
+                  <small>Le libellé de la catégorie de salarié est requis</small>
                 }
               </div>
             }
           </div>
-
-          <!-- ── Tableau Tarifs (PlatCategoriesalarie) ──────── -->
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h6 class="text-muted text-uppercase mb-0 small">
-              <i class="ri-money-dollar-circle-line me-1"></i>Tarifs
-              @if (isTarifsLoading) {
-                <span class="spinner-border spinner-border-sm text-primary ms-2" role="status">
-                  <span class="visually-hidden">Chargement...</span>
-                </span>
-              }
-            </h6>
-            <button type="button" class="btn btn-subtle-primary btn-sm"
-                    [disabled]="isTarifsLoading" (click)="ajouterLigneTarif()">
-              <i class="ri-add-line me-1"></i>Ajouter un tarif
-            </button>
-          </div>
-
-          @if (isTarifsLoading) {
-            <div class="text-center py-3 border rounded mb-2">
-              <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-              <p class="text-muted small mb-0 mt-1">Chargement des tarifs...</p>
-            </div>
-          } @else if (tarifLignesVisibles.length === 0) {
-            <div class="text-center py-3 text-muted border rounded mb-2">
-              <i class="ri-money-dollar-circle-line fs-3"></i>
-              <p class="mb-0 mt-1 small">
-                Aucun tarif enregistré. Cliquez sur "Ajouter un tarif".
-              </p>
-            </div>
-          } @else {
-            <div class="table-responsive border rounded mb-2">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="table-light text-muted">
-                  <tr>
-                    <th>Type de plat</th>
-                    <th>Montant (FCFA) <span class="text-danger">*</span></th>
-                    <th>Date début <span class="text-danger">*</span></th>
-                    <th>Date fin</th>
-                    <th>Statut <span class="text-danger">*</span></th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (ligne of tarifLignesVisibles; track $index) {
-                    <tr [class.table-danger]="ligne._hasError">
-                      <td style="min-width: 140px;">
-                        <select class="form-select form-select-sm" [(ngModel)]="ligne.type_plat" [ngModelOptions]="{standalone: true}" aria-label="Type de plat">
-                          <option [ngValue]="null">Tous types</option>
-                          @for (tp of typesPlat; track tp.id) { <option [ngValue]="tp.id">{{ tp.libelle }}</option> }
-                        </select>
-                      </td>
-                      <td style="min-width: 130px;">
-                        <input type="number" class="form-control form-control-sm"
-                               [class.is-invalid]="ligne._hasError && montantInvalide(ligne)"
-                               [(ngModel)]="ligne.montant" [ngModelOptions]="{standalone: true}"
-                               placeholder="Montant" min="0">
-                      </td>
-                      <td style="min-width: 150px;">
-                        <input type="date" class="form-control form-control-sm"
-                               [class.is-invalid]="ligne._hasError && !ligne.date_debut"
-                               [(ngModel)]="ligne.date_debut" [ngModelOptions]="{standalone: true}">
-                      </td>
-                      <td style="min-width: 150px;">
-                        <input type="date" class="form-control form-control-sm"
-                               [(ngModel)]="ligne.date_fin" [ngModelOptions]="{standalone: true}">
-                        @if (ligne._hasError && ligne.date_fin && ligne.date_fin < ligne.date_debut!) {
-                          <div class="invalid-feedback d-block">
-                            <small>Date fin &lt; date début</small>
-                          </div>
-                        }
-                      </td>
-                      <td style="min-width: 150px;">
-                        <select class="form-select form-select-sm"
-                                [class.is-invalid]="ligne._hasError && !ligne.statut"
-                                [(ngModel)]="ligne.statut" [ngModelOptions]="{standalone: true}">
-                          <option [value]="undefined">Statut</option>
-                          @for (s of statuts; track s.id) {
-                            <option [value]="s.id">{{ s.libelle_statut }}</option>
-                          }
-                        </select>
-                      </td>
-                      <td class="text-center">
-                        <button type="button" class="btn btn-subtle-danger btn-icon btn-sm"
-                                (click)="supprimerLigneTarif(tarifLignes.indexOf(ligne))">
-                          <i class="ri-delete-bin-6-line"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-
-          @if (!isTarifsLoading && tarifLignesVisibles.length > 0) {
-            <div class="alert alert-info py-2 small mb-0">
-              <i class="ri-information-line me-1"></i>
-              Un seul tarif par période et par type de plat : les périodes d'un même type ne peuvent pas se chevaucher
-              (clôturez l'ancien tarif avant d'en ouvrir un nouveau). Le repas est facturé au tarif de son type
-              en vigueur à la date du menu ; sans tarif pour ce type, le tarif « Tous types » s'applique.
-            </div>
-          }
-
         </div>
 
         <div class="modal-footer">
           <div class="hstack gap-2 justify-content-end">
-            <button type="button" class="btn btn-ghost-danger" [disabled]="isSaving" (click)="closeAddModal()">
+            <button type="button"
+                    class="btn btn-ghost-danger"
+                    (click)="closeAddModal()">
               <i class="ri-close-line me-1"></i>Fermer
             </button>
-            <button type="submit" class="btn btn-primary" id="add-btn"
-                    [disabled]="categoriesalarieForm.invalid || isSaving || isTarifsLoading">
-              @if (isSaving) {
-                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-              }
-              {{ modalBtn }}
+            <button type="submit"
+                    class="btn btn-primary"
+                    id="add-btn"
+                    [disabled]="categoriesalarieForm.invalid || saving">
+              {{ isEdit ? 'Mettre à jour' : 'Ajouter' }}
             </button>
           </div>
         </div>
@@ -246,31 +141,46 @@
 <!-- ══════════════════════════════════════════════════════════
      Modal — Confirmer suppression
 ═══════════════════════════════════════════════════════════ -->
-<div bsModal #deleteRecordModal="bs-modal" class="modal fade zoomIn"
-     [config]="{backdrop: 'static', keyboard: false, ignoreBackdropClick: true}" tabindex="-1">
+<div bsModal #deleteRecordModal="bs-modal"
+     class="modal fade zoomIn"
+     [config]="{backdrop: 'static', keyboard: false, ignoreBackdropClick: true}"
+     tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
+
       <div class="modal-header">
         <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
       </div>
+
       <div class="modal-body p-md-5">
         <div class="text-center">
-          <div class="text-danger"><i class="ri-delete-bin-6-line display-5"></i></div>
+          <div class="text-danger">
+            <i class="ri-delete-bin-6-line display-5"></i>
+          </div>
           <div class="mt-4">
             <h4 class="mb-2">Êtes-vous sûr ?</h4>
             <p class="text-muted fs-md mx-3 mb-0">
               Voulez-vous vraiment supprimer
-              {{ checkedValGet.length > 1 ? 'ces catégories' : 'cette catégorie' }} ?
+              {{ deleteMessage }} ?
             </p>
           </div>
         </div>
+
         <div class="d-flex gap-2 justify-content-center mt-4 pt-2 mb-2">
-          <button type="button" class="btn w-sm btn-light" (click)="closeDeleteModal()">Annuler</button>
-          <button type="button" class="btn w-sm btn-danger" (click)="confirmDelete(deleteID)">
+          <button type="button"
+                  class="btn w-sm btn-light"
+                  (click)="closeDeleteModal()">
+            Annuler
+          </button>
+          <button type="button"
+                  class="btn w-sm btn-danger"
+                  [disabled]="deleting"
+                  (click)="confirmDelete(deleteID)">
             Oui, supprimer
           </button>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -278,79 +188,32 @@
 <!-- ══════════════════════════════════════════════════════════
      Modal — Détails
 ═══════════════════════════════════════════════════════════ -->
-<div bsModal #viewCategoriesalarie="bs-modal" class="modal fade"
+<div bsModal #viewCategoriesalarie="bs-modal"
+     class="modal fade"
      [config]="{backdrop: 'static', keyboard: false, ignoreBackdropClick: true}">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog">
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title">Détails de la catégorie salarié</h5>
+        <h5 class="modal-title">Détails de la catégorie de salarié</h5>
         <button type="button" class="btn-close" (click)="closeViewModal()"></button>
       </div>
 
       <div class="modal-body">
-
-        <!-- Infos catégorie -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label fw-medium">ID :</label>
-            <p>{{ selectedCategoriesalarie?.id }}</p>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-medium">Libellé :</label>
-            <p>{{ selectedCategoriesalarie?.libelle }}</p>
-          </div>
+        <div class="mb-3">
+          <label class="form-label fw-medium">ID :</label>
+          <p>{{ selectedCategoriesalarie?.id }}</p>
         </div>
-
-        <!-- Tarifs -->
-        <h6 class="text-muted text-uppercase mb-2 small">
-          <i class="ri-money-dollar-circle-line me-1"></i>Tarifs
-        </h6>
-
-        @if (isTarifsLoading) {
-          <div class="text-center py-3 border rounded">
-            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-            <p class="text-muted small mb-0 mt-1">Chargement des tarifs...</p>
-          </div>
-        } @else if (tarifLignesVisibles.length === 0) {
-          <p class="text-muted small">Aucun tarif enregistré.</p>
-        } @else {
-          <div class="table-responsive border rounded">
-            <table class="table table-sm align-middle mb-0">
-              <thead class="table-light text-muted">
-                <tr>
-                  <th>#</th>
-                  <th>Type de plat</th>
-                  <th>Montant (FCFA)</th>
-                  <th>Date début</th>
-                  <th>Date fin</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (t of tarifLignesVisibles; track t.id; let i = $index) {
-                  <tr>
-                    <td>{{ i + 1 }}</td>
-                    <td>{{ t.type_plat_libelle || libelleType(t.type_plat) }}</td>
-                    <td class="fw-semibold">{{ t.montant | number:'1.0-2' }} FCFA</td>
-                    <td>{{ formatDate(t.date_debut!) }}</td>
-                    <td>{{ t.date_fin ? formatDate(t.date_fin) : '—' }}</td>
-                    <td>
-                      <span class="badge bg-info-subtle text-info">
-                        {{ getStatutLibelle(t.statut!) }}
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
+        <div class="mb-3">
+          <label class="form-label fw-medium">Libellé :</label>
+          <p>{{ selectedCategoriesalarie?.libelle }}</p>
+        </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeViewModal()">
+        <button type="button"
+                class="btn btn-secondary"
+                (click)="closeViewModal()">
           Fermer
         </button>
       </div>

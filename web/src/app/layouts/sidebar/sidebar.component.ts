@@ -2,7 +2,7 @@ import { Component, ElementRef, EventEmitter, HostListener, Output, ViewChild } 
 
 import { MenuItem } from './menu.model';
 import { MENU } from './menu';
-import { estAgentComptoir, estCaisseSeule, estPrestataire, filtrerMenu } from '../../core/helpers/roles';
+import { filtrerMenu } from '../../core/helpers/roles';
 import { TokenStorageService } from '../../core/services/token-storage.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
@@ -19,8 +19,6 @@ export class SidebarComponent {
   @ViewChild('sideMenu') sideMenu!: ElementRef;
   @Output() mobileMenuButtonClicked = new EventEmitter();
   lastroute: any;
-  /** Espace prestataire : carte du prestataire en tête du menu */
-  espacePrestataire: { libelle: string; sous: string } | null = null;
 
   constructor(private router: Router, public translate: TranslateService, private tokenStorage: TokenStorageService) {
     translate.setDefaultLang('fr');
@@ -33,17 +31,10 @@ export class SidebarComponent {
   ngOnInit(): void {
     // Menu Items
     const user = this.tokenStorage.getUser();
-    this.clePagesVues = `ubifood.menu-vus.${user?.id ?? 'anonyme'}`;
+    this.clePagesVues = `ubiflow.menu-vus.${user?.id ?? 'anonyme'}`;
     try { this.pagesVues = new Set(JSON.parse(localStorage.getItem(this.clePagesVues) || '[]')); } catch { this.pagesVues = new Set(); }
     this.marquerVue(this.router.url);
-    // Compte limité à la caisse : seulement la caisse et la comptabilité
-    this.menuItems = filtrerMenu(estCaisseSeule(user) ? MENU.filter(i => i.espaceCaisse) : MENU, user);
-    if (estPrestataire(user)) {
-      this.espacePrestataire = {
-        libelle: user?.prestataire_libelle || 'Prestataire',
-        sous: estAgentComptoir(user) ? 'Comptoir' : 'Espace prestataire',
-      };
-    }
+    this.menuItems = filtrerMenu(MENU, user);
 
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) this.marquerVue(event.urlAfterRedirects);

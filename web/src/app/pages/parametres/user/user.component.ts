@@ -1,4 +1,4 @@
-// src/app/pages/user/user.component.ts
+// src/app/pages/parametres/user/user.component.ts
 
 import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -39,8 +39,6 @@ import { selectAllPosteWithoutPagination } from 'src/app/store/Poste/poste-selec
 import { fetchposteNoPaginateData } from 'src/app/store/Poste/poste.action';
 import { selectAllCategoriesalarieWithoutPagination } from 'src/app/store/Categoriesalarie/categoriesalarie-selector';
 import { fetchcategoriesalarieNoPaginateData } from 'src/app/store/Categoriesalarie/categoriesalarie.action';
-import { selectAllTypeequipeWithoutPagination } from 'src/app/store/Typeequipe/typeequipe-selector';
-import { fetchtypeequipeNoPaginateData } from 'src/app/store/Typeequipe/typeequipe.action';
 
 
 
@@ -48,7 +46,6 @@ import { UserServiceModel } from 'src/app/store/UserService/user-service.model';
 import { UserAgenceModel } from 'src/app/store/UserAgence/user-agence.model';
 import { UserPosteModel } from 'src/app/store/UserPoste/user-poste.model';
 import { UserCategoriesalarieModel } from 'src/app/store/UserCategoriesalarie/user-categoriesalarie.model';
-import { UserAllergieModel } from 'src/app/store/UserAllergie/user-allergie.model';
 
 import { RoleService } from 'src/app/core/services/role/role.service';
 import { UserService } from 'src/app/core/services/user/user.service';
@@ -56,7 +53,6 @@ import { UserServiceService } from 'src/app/core/services/user-service/user-serv
 import { UserAgenceService } from 'src/app/core/services/user-agence/user-agence.service';
 import { UserPosteService } from 'src/app/core/services/user-poste/user-poste.service';
 import { UserCategoriesalarieService } from 'src/app/core/services/user-categoriesalarie/user-categoriesalarie.service';
-import { UserAllergieService } from 'src/app/core/services/user-allergie/user-allergie.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 
 import * as XLSX from 'xlsx';
@@ -116,8 +112,6 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
   postes:            any[] = [];
   categoriesalaries: any[] = [];
   groupes:           any[] = [];
-  /** Types d'équipe (équipe de l'employé : « Mon équipe » du parcours de commande) */
-  typeequipes:       any[] = [];
 
   totalItems  = 0;
   currentPage = 1;
@@ -132,9 +126,7 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       { cle: 'identite', titre: 'Identité' },
       { cle: 'roles', titre: 'Rôle(s)' },
       ...(creation ? [{ cle: 'mdp', titre: 'Mot de passe' }] : []),
-      ...(this.estRolePrestataire ? [] : [{ cle: 'affectations', titre: 'Affectations' }, { cle: 'allergies', titre: 'Allergies' }]),
-      // Badge d'accès (retrait au comptoir) : une fois le compte créé
-      ...(this.estRolePrestataire || creation ? [] : [{ cle: 'badge', titre: "Badge d'accès" }]),
+      { cle: 'affectations', titre: 'Affectations' },
       { cle: 'recap', titre: 'Récapitulatif' },
     ];
   }
@@ -164,13 +156,11 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
   isAgencesLoading     = false; isAgencesSubmitting     = false;
   isPostesLoading      = false; isPostesSubmitting      = false;
   isCategoriesLoading  = false; isCategoriesSubmitting  = false;
-  isAllergiesLoading   = false; isAllergiesSubmitting   = false;
 
   serviceLignes:   UserServiceModel[]          = [];
   agenceLignes:    UserAgenceModel[]           = [];
   posteLignes:     UserPosteModel[]            = [];
   categorieLignes: UserCategoriesalarieModel[] = [];
-  allergieLignes:  UserAllergieModel[]          = [];
 
   /** Enregistrement en cours (fiche + historique) : bouton désactivé */
   isSaving = false;
@@ -181,7 +171,7 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly search$ = new Subject<string>();
   private lastActiveElement: HTMLElement | null = null;
 
-  // ?search=matricule : ouverture filtrée depuis la facturation (« Compléter la fiche »)
+  // ?search=matricule : ouverture filtrée sur un utilisateur
   private route = inject(ActivatedRoute);
 
   @ViewChild('addUser',           { static: false }) addUser?:           ModalDirective;
@@ -201,7 +191,6 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
     private userAgenceService: UserAgenceService,
     private userPosteService: UserPosteService,
     private userCategoriesalarieService: UserCategoriesalarieService,
-    private userAllergieService: UserAllergieService,
     private tokenStorage: TokenStorageService,
     private http: HttpClient,
   ) {}
@@ -221,12 +210,6 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       password2:       [''],
       is_active:       [true],
       groups:          [[]],
-      // Espace prestataire : prestataire du compte (rôles prestataire / agent_comptoir)
-      prestataire:     [null],
-      // Agent de comptoir : agences d'intervention (vide = toutes celles du prestataire)
-      agences_comptoir: [[]],
-      // Équipe de l'employé (facultative) : présélectionnée quand il commande
-      typeequipe:      [null],
     }, { validators: passwordMatchValidator });
 
     this.mdpForm = this.fb.group({
@@ -248,8 +231,6 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       agence:           [''],
       poste:            [''],
       categoriesalarie: [''],
-      allergie:         [''],
-      typeequipe:       [''],
     });
 
     this.store.select(selectLoading).pipe(takeUntil(this.destroy$)).subscribe(v => this.isLoading = v);
@@ -278,19 +259,10 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
     this.store.dispatch(fetchcategoriesalarieNoPaginateData());
     this.store.select(selectAllCategoriesalarieWithoutPagination).pipe(takeUntil(this.destroy$)).subscribe(d => this.categoriesalaries = d ?? []);
 
-    this.store.dispatch(fetchtypeequipeNoPaginateData());
-    this.store.select(selectAllTypeequipeWithoutPagination).pipe(takeUntil(this.destroy$)).subscribe(d => this.typeequipes = d ?? []);
-
-    this.http.get<any[]>(`${environment.apiUrl}/api/api/allnopagin/prestataires/`).pipe(catchError(() => of([])), takeUntil(this.destroy$))
-      .subscribe(d => this.prestataires = (d ?? []).map(p => ({
-        id: p.id, libelle: p.libelle,
-        agences: [...new Map((p.agence_prestataires ?? []).map((ap: any) => [Number(ap.agence), { id: Number(ap.agence), nom: ap.agence_libelle }])).values()] as { id: number; nom: string }[],
-      })));
-
     this.roleService.getAllRolesNoPaginate().pipe(takeUntil(this.destroy$)).subscribe(data => {
       this.groupes = data ?? [];
       this.chargerComptesRoles();
-      // ?role=employe (alerte « employés sans agence » de l'accueil) : pastille du rôle
+      // ?role=employe : pastille du rôle
       const role = this.route.snapshot.queryParamMap.get('role');
       const id = role ? this.idGroupe(role) : null;
       if (id != null) {
@@ -326,7 +298,7 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const recherche = this.route.snapshot.queryParamMap.get('search');
     if (recherche) this.term = recherche;
-    // ?agence=aucune : ouverture filtrée sur « Aucune agence » (alerte de l'accueil)
+    // ?agence=aucune : ouverture filtrée sur « Aucune agence »
     const agence = this.route.snapshot.queryParamMap.get('agence');
     if (agence) {
       this.searchForm.patchValue({ agence });
@@ -403,13 +375,6 @@ getDerniereCategorie(user: any): any | null {
   return user.derniere_categoriesalarie ?? null;
 }
 
-  /** Toutes les allergies d'un user (liste complète) */
-  getAllergiesStr(user: any): string {
-    const al = user.user_allergies || [];
-    if (al.length === 0) return '—';
-    return al.map((a: any) => a.libelle).join(', ');
-  }
-
   // ══════════════════════════════════════════════════════════
   // ✅ RECHERCHE AVANCÉE
   // ══════════════════════════════════════════════════════════
@@ -422,11 +387,11 @@ getDerniereCategorie(user: any): any | null {
     const v = this.searchForm.value ?? {};
     const filtres: Record<string, string> = {};
     ['nom', 'prenom', 'username', 'email', 'statut', 'is_active', 'groupe',
-     'service', 'agence', 'poste', 'categoriesalarie', 'allergie', 'typeequipe'].forEach(cle => {
+     'service', 'agence', 'poste', 'categoriesalarie'].forEach(cle => {
       const val = v[cle];
       if (val !== null && val !== undefined && `${val}`.trim() !== '') filtres[cle] = `${val}`.trim();
     });
-    // « Aucune agence » : comptes sans aucune agence (ils ne commandent que dans les agences ouvertes)
+    // « Aucune agence » : comptes sans aucune agence
     if (filtres['agence'] === AUCUNE_AGENCE) {
       delete filtres['agence'];
       filtres['sans_agence'] = 'true';
@@ -438,7 +403,7 @@ getDerniereCategorie(user: any): any | null {
   resetSearch(): void {
     this.searchForm.reset({
       nom: '', prenom: '', username: '', email: '', statut: '', is_active: '', groupe: '',
-      service: '', agence: '', poste: '', categoriesalarie: '', allergie: '', typeequipe: '',
+      service: '', agence: '', poste: '', categoriesalarie: '',
     });
     this.term = '';
     this.filtresAvances = {};
@@ -456,7 +421,7 @@ getDerniereCategorie(user: any): any | null {
     const v = this.searchForm?.value;
     return v && (v.nom || v.prenom || v.username || v.email || v.statut ||
       (v.is_active !== '' && v.is_active !== null) || v.groupe ||
-      v.service || v.agence || v.poste || v.categoriesalarie || v.allergie || v.typeequipe);
+      v.service || v.agence || v.poste || v.categoriesalarie);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -478,12 +443,11 @@ getDerniereCategorie(user: any): any | null {
         'Email':                 u.email || '',
         'Contact':               u.contact || '',
         'Poste tél.':            u.poste_telephone || '',
-        'Équipe':                u.typeequipe_libelle || '',
         'Rôle(s)':               this.getGroupesLibelle(u.groups || []),
         'Statut':                this.getStatutLibelle(u.statut),
         'État':                  u.is_active ? 'Actif' : 'Inactif',
         // ✅ Dernière ligne sous-store
-        'Service (dernier)':     svc  ? this.getServiceLibelle(svc.service)        : '—',
+        'Département (dernier)':     svc  ? this.getServiceLibelle(svc.service)        : '—',
         'Svc Date début':        svc  ? this.formatDate(svc.date_debut)            : '—',
         'Agence (dernière)':     agc  ? this.getAgenceLibelle(agc.agence)          : '—',
         'Agc Date début':        agc  ? this.formatDate(agc.date_debut)            : '—',
@@ -491,16 +455,15 @@ getDerniereCategorie(user: any): any | null {
         'Pst Date début':        pst  ? this.formatDate(pst.date_debut)            : '—',
         'Catégorie (dernière)':  cat  ? this.getCategorieLibelle(cat.categoriesalarie) : '—',
         'Cat Date début':        cat  ? this.formatDate(cat.date_debut)            : '—',
-        'Allergies':             this.getAllergiesStr(u),
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
     ws['!cols'] = [
       { wch: 6  }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 28 },
-      { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 10 },
+      { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 16 }, { wch: 10 },
       { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 12 },
-      { wch: 22 }, { wch: 12 }, { wch: 24 }, { wch: 12 }, { wch: 30 },
+      { wch: 22 }, { wch: 12 }, { wch: 24 }, { wch: 12 },
     ];
 
     const wb = XLSX.utils.book_new();
@@ -547,11 +510,10 @@ getDerniereCategorie(user: any): any | null {
 
     const head2 = [[
       'Nom & Prénom',
-      'Service', 'Svc Début',
+      'Département', 'Dpt Début',
       'Agence', 'Agc Début',
       'Poste', 'Pst Début',
       'Catégorie', 'Cat Début',
-      'Allergies',
     ]];
 
     const body2 = this.users.map(u => {
@@ -569,7 +531,6 @@ getDerniereCategorie(user: any): any | null {
         pst ? this.formatDate(pst.date_debut)                  : '—',
         cat ? this.getCategorieLibelle(cat.categoriesalarie)   : '—',
         cat ? this.formatDate(cat.date_debut)                  : '—',
-        this.getAllergiesStr(u),
       ];
     });
 
@@ -584,7 +545,6 @@ getDerniereCategorie(user: any): any | null {
         3: { cellWidth: 25 }, 4: { cellWidth: 18 },
         5: { cellWidth: 25 }, 6: { cellWidth: 18 },
         7: { cellWidth: 25 }, 8: { cellWidth: 18 },
-        9: { cellWidth: 35 },
       },
       margin: { left: 14, right: 14 },
     });
@@ -613,11 +573,7 @@ getDerniereCategorie(user: any): any | null {
     switch (this.groupes.find(g => g.id === Number(id))?.name) {
       case 'super_admin':  return { classe: 't-na', icone: 'ri-shield-star-line' };
       case 'admin':        return { classe: 't-bl', icone: 'ri-shield-user-line' };
-      case 'gestionnaire': return { classe: 't-ve', icone: 'ri-restaurant-line' };
-      case 'prestataire':    return { classe: 't-or', icone: 'ri-store-2-line' };
-      case 'agent_comptoir': return { classe: 't-or', icone: 'ri-qr-scan-2-line' };
-      case 'caissier':       return { classe: 't-bl', icone: 'ri-money-dollar-circle-line' };
-      case 'comptabilite':   return { classe: 't-bl', icone: 'ri-calculator-line' };
+      case 'gestionnaire': return { classe: 't-ve', icone: 'ri-briefcase-line' };
       default:             return { classe: 't-gr', icone: 'ri-user-line' };
     }
   }
@@ -632,10 +588,6 @@ getDerniereCategorie(user: any): any | null {
     { cle: 'gestionnaire', libelle: 'Gestionnaires' },
     { cle: 'admin',        libelle: 'Administrateurs' },
     { cle: 'super_admin',  libelle: 'Super administrateurs' },
-    { cle: 'prestataire',  libelle: 'Prestataires' },
-    { cle: 'agent_comptoir', libelle: 'Agents de comptoir' },
-    { cle: 'caissier',     libelle: 'Caissiers' },
-    { cle: 'comptabilite', libelle: 'Comptabilité' },
     { cle: 'desactive',    libelle: 'Désactivés' },
   ];
 
@@ -690,59 +642,12 @@ getDerniereCategorie(user: any): any | null {
   getGroupesLibelle(ids: number[]): string { return !ids || !ids.length ? '—' : ids.map(id => this.getGroupeName(id)).join(', '); }
   isGroupSelected(groupId: number): boolean { return (this.userForm.get('groups')?.value || []).map(Number).includes(Number(groupId)); }
   toggleGroup(groupId: number): void {
-    let current: number[] = [...(this.userForm.get('groups')?.value || [])].map(Number);
+    const current: number[] = [...(this.userForm.get('groups')?.value || [])].map(Number);
     const id = Number(groupId);
     const idx = current.indexOf(id);
     if (idx > -1) current.splice(idx, 1);
-    else {
-      // Un compte prestataire (responsable / agent de comptoir) n'a aucun autre rôle
-      // (règle du serveur) : cocher l'un retire les autres
-      const presta = this.idsRolesPrestataire;
-      current = presta.includes(id) ? [id] : current.filter(g => !presta.includes(g));
-      current.push(id);
-    }
+    else current.push(id);
     this.userForm.get('groups')?.setValue([...new Set(current)]);
-    if (!this.estRolePrestataire) this.userForm.get('prestataire')?.setValue(null);
-  }
-
-  /** Prestataires (rattachement des comptes de l'espace prestataire) */
-  prestataires: { id: number; libelle: string; agences?: { id: number; nom: string }[] }[] = [];
-
-  /** Le compte édité est un agent de comptoir (agences d'intervention) */
-  get estAgentComptoir(): boolean {
-    const id = this.groupes.find(g => g.name === 'agent_comptoir')?.id;
-    return id != null && (this.userForm?.get('groups')?.value || []).map(Number).includes(Number(id));
-  }
-
-  /** Agences desservies par le prestataire choisi */
-  get agencesDuPrestataire(): { id: number; nom: string }[] {
-    const p = this.prestataires.find(x => x.id === Number(this.userForm?.get('prestataire')?.value));
-    return p?.agences ?? [];
-  }
-
-  agenceComptoirCochee(id: number): boolean {
-    return (this.userForm.get('agences_comptoir')?.value || []).map(Number).includes(id);
-  }
-
-  basculerAgenceComptoir(id: number): void {
-    const v: number[] = (this.userForm.get('agences_comptoir')?.value || []).map(Number);
-    this.userForm.get('agences_comptoir')?.setValue(v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
-  }
-
-  private get idsRolesPrestataire(): number[] {
-    return this.groupes.filter(g => g.name === 'prestataire' || g.name === 'agent_comptoir').map(g => Number(g.id));
-  }
-
-  /** Le compte édité a le rôle caissier ou comptabilité (cumulable avec employé) */
-  get estRoleCaisse(): boolean {
-    const ids = this.groupes.filter(g => g.name === 'caissier' || g.name === 'comptabilite').map(g => Number(g.id));
-    return (this.userForm?.get('groups')?.value || []).map(Number).some((g: number) => ids.includes(g));
-  }
-
-  /** Le compte édité a le rôle prestataire ou agent de comptoir */
-  get estRolePrestataire(): boolean {
-    const ids = this.idsRolesPrestataire;
-    return (this.userForm?.get('groups')?.value || []).map(Number).some((g: number) => ids.includes(g));
   }
 
   // ══════════════════════════════════════════════════════════
@@ -750,7 +655,7 @@ getDerniereCategorie(user: any): any | null {
   // ══════════════════════════════════════════════════════════
 
   private _resetAllLignes(): void {
-    this.serviceLignes=[]; this.agenceLignes=[]; this.posteLignes=[]; this.categorieLignes=[]; this.allergieLignes=[];
+    this.serviceLignes=[]; this.agenceLignes=[]; this.posteLignes=[]; this.categorieLignes=[];
   }
   private _mapLignes<T extends { date_debut?: string; date_fin?: string | null; _isNew?: boolean; _isDeleted?: boolean; _hasError?: boolean }>(items: T[]): T[] {
     return items.map(t => ({ ...t, date_debut: t.date_debut ? t.date_debut.split('T')[0] : '', date_fin: t.date_fin ? t.date_fin.split('T')[0] : '', _isNew: false, _isDeleted: false, _hasError: false }));
@@ -766,7 +671,6 @@ getDerniereCategorie(user: any): any | null {
     this.agenceLignes    = this._mapLignes(user.user_agences           || []);
     this.posteLignes     = this._mapLignes(user.user_postes            || []);
     this.categorieLignes = this._mapLignes(user.user_categoriesalaries || []);
-    this.allergieLignes  = (user.user_allergies || []).map((a: any) => ({ ...a, _isNew: false, _isDeleted: false, _hasError: false }));
   }
 
   // ══════════════════════════════════════════════════════════
@@ -780,7 +684,6 @@ getDerniereCategorie(user: any): any | null {
       for (const c of ['nom', 'prenom', 'username', 'email', 'statut']) f[c].markAsTouched();
       if (['nom', 'prenom', 'username', 'email', 'statut'].some(c => f[c].invalid)) return 'Complétez l\'identité (nom, prénom, identifiant, statut).';
     }
-    if (cle === 'roles' && this.estRolePrestataire && !f['prestataire'].value) return 'Choisissez le prestataire de ce compte.';
     if (cle === 'mdp') {
       f['password'].markAsTouched(); f['password2'].markAsTouched();
       if (f['password'].invalid || this.passwordMismatch) return 'Mot de passe invalide ou différent de la confirmation.';
@@ -789,7 +692,6 @@ getDerniereCategorie(user: any): any | null {
         || !this._validerLignesAvecDate(this.posteLignes, 'poste') || !this._validerLignesAvecDate(this.categorieLignes, 'categoriesalarie'))) {
       return 'Complétez ou supprimez les lignes incomplètes (élément, date de début, statut).';
     }
-    if (cle === 'allergies' && !this._validerAllergies()) return 'Complétez ou supprimez les allergies vides.';
     return null;
   }
 
@@ -841,7 +743,7 @@ getDerniereCategorie(user: any): any | null {
     this.lastActiveElement = document.activeElement as HTMLElement;
     this.currentUserId = null; this._resetAllLignes();
     this.submitted = false; this.userForm.reset();
-    this.userForm.patchValue({ is_active: true, groups: [], prestataire: null, typeequipe: null, agences_comptoir: [] });
+    this.userForm.patchValue({ is_active: true, groups: [] });
     this._motDePasseObligatoire(true);
     this.etape = 'identite';
     this.setModalTitle('Ajouter un utilisateur'); this.setModalBtn('Enregistrer'); this.addUser?.show();
@@ -857,7 +759,7 @@ getDerniereCategorie(user: any): any | null {
     const editData = this.users.find(u => u.id === id);
     if (!editData) return;
     this.currentUserId = id; this._resetAllLignes(); this.submitted = false;
-    this.userForm.patchValue({ ...editData, password: '', password2: '', groups: (editData.groups || []).map(Number), prestataire: editData.prestataire ?? null, typeequipe: editData.typeequipe ?? null, agences_comptoir: (editData.agences_comptoir || []).map(Number) });
+    this.userForm.patchValue({ ...editData, password: '', password2: '', groups: (editData.groups || []).map(Number) });
     this._motDePasseObligatoire(false);
     this.etape = 'identite';
     this._chargerHistorique(editData);
@@ -869,13 +771,11 @@ getDerniereCategorie(user: any): any | null {
   ajouterAgence(): void     { this.agenceLignes.push({ agence: undefined, date_debut: '', date_fin: null, statut: undefined, _isNew: true, _isDeleted: false, _hasError: false }); }
   ajouterPoste(): void      { this.posteLignes.push({ poste: undefined, date_debut: '', date_fin: null, statut: undefined, _isNew: true, _isDeleted: false, _hasError: false }); }
   ajouterCategorie(): void  { this.categorieLignes.push({ categoriesalarie: undefined, date_debut: '', date_fin: null, statut: undefined, _isNew: true, _isDeleted: false, _hasError: false }); }
-  ajouterAllergie(): void   { this.allergieLignes.push({ libelle: '', _isNew: true, _isDeleted: false, _hasError: false }); }
 
   supprimerService(i: number): void   { this._supprimerLigne(i, this.serviceLignes); }
   supprimerAgence(i: number): void    { this._supprimerLigne(i, this.agenceLignes); }
   supprimerPoste(i: number): void     { this._supprimerLigne(i, this.posteLignes); }
   supprimerCategorie(i: number): void { this._supprimerLigne(i, this.categorieLignes); }
-  supprimerAllergie(i: number): void  { this._supprimerLigne(i, this.allergieLignes); }
 
   /**
    * Ligne existante : seulement marquée, supprimée au clic sur « Enregistrer »
@@ -899,7 +799,6 @@ getDerniereCategorie(user: any): any | null {
   get agenceLignesVisibles()    { return this.agenceLignes.filter(l => !l._isDeleted); }
   get posteLignesVisibles()     { return this.posteLignes.filter(l => !l._isDeleted); }
   get categorieLignesVisibles() { return this.categorieLignes.filter(l => !l._isDeleted); }
-  get allergieLignesVisibles()  { return this.allergieLignes.filter(l => !l._isDeleted); }
 
   // ── Getters formulaires ────────────────────────────────────
   get f() { return this.userForm.controls; }
@@ -920,12 +819,6 @@ getDerniereCategorie(user: any): any | null {
     });
     return valid;
   }
-  private _validerAllergies(): boolean {
-    let valid = true;
-    this.allergieLignes.filter(l => !l._isDeleted).forEach(l => { l._hasError = !l.libelle?.trim(); if (l._hasError) valid = false; });
-    return valid;
-  }
-
   // ── Sauvegarde ─────────────────────────────────────────────
   /**
    * 1. Enregistre la fiche (création ou modification) ;
@@ -938,26 +831,15 @@ getDerniereCategorie(user: any): any | null {
   saveProperty(): void {
     this.submitted = true;
     if (this.userForm.invalid) { this.toastService.error('Veuillez vérifier les informations saisies.', 'Erreur'); return; }
-    if (this.estRolePrestataire && !this.userForm.get('prestataire')?.value) {
-      this.toastService.error('Choisissez le prestataire de ce compte (rôle prestataire ou agent de comptoir).', 'Erreur'); return;
-    }
     if (!this._validerLignesAvecDate(this.serviceLignes, 'service') ||
         !this._validerLignesAvecDate(this.agenceLignes, 'agence')   ||
         !this._validerLignesAvecDate(this.posteLignes, 'poste')     ||
-        !this._validerLignesAvecDate(this.categorieLignes, 'categoriesalarie') ||
-        !this._validerAllergies()) {
+        !this._validerLignesAvecDate(this.categorieLignes, 'categoriesalarie')) {
       this.toastService.error('Veuillez corriger les erreurs dans les tableaux.', 'Erreur'); return;
     }
     const formValue = { ...this.userForm.value };
     if (!formValue.password) { delete formValue.password; delete formValue.password2; }
     formValue.groups = (formValue.groups || []).map(Number);
-    formValue.prestataire = this.estRolePrestataire && formValue.prestataire ? Number(formValue.prestataire) : null;
-    // Agences d'intervention : agent de comptoir seulement, parmi celles de son prestataire
-    const desservies = this.agencesDuPrestataire.map(a => a.id);
-    formValue.agences_comptoir = this.estAgentComptoir
-      ? (formValue.agences_comptoir || []).map(Number).filter((a: number) => desservies.includes(a)) : [];
-    // Compte prestataire : pas d'équipe (il ne commande pas)
-    formValue.typeequipe = !this.estRolePrestataire && formValue.typeequipe ? Number(formValue.typeequipe) : null;
     formValue.email = formValue.email || '';
     formValue.contact = formValue.contact || '';
     formValue.poste_telephone = formValue.poste_telephone || '';
@@ -1001,7 +883,7 @@ getDerniereCategorie(user: any): any | null {
       catchError(err => { erreurs.push(`${quoi} : ${typeof err === 'string' ? err : 'refusé'}`); return of(null); }));
 
     const tables: { lignes: any[]; fk: string; quoi: string; api: any }[] = [
-      { lignes: this.serviceLignes,   fk: 'service',          quoi: 'Service',   api: this.userServiceService },
+      { lignes: this.serviceLignes,   fk: 'service',          quoi: 'Département',   api: this.userServiceService },
       { lignes: this.agenceLignes,    fk: 'agence',           quoi: 'Agence',    api: this.userAgenceService },
       { lignes: this.posteLignes,     fk: 'poste',            quoi: 'Poste',     api: this.userPosteService },
       { lignes: this.categorieLignes, fk: 'categoriesalarie', quoi: 'Catégorie', api: this.userCategoriesalarieService },
@@ -1015,11 +897,6 @@ getDerniereCategorie(user: any): any | null {
       t.lignes.filter(l => !l._isNew && !l._isDeleted && l.id).forEach(l => operations.push(appel(t.api.update(l.id, donnees(l, t.fk)), t.quoi)));
       t.lignes.filter(l => l._isNew && !l._isDeleted).forEach(l => operations.push(appel(t.api.create(donnees(l, t.fk)), t.quoi)));
     }
-    const al = this.allergieLignes;
-    al.filter(l => l._isDeleted && l.id).forEach(l => operations.push(appel(this.userAllergieService.delete(l.id!), 'Allergie')));
-    al.filter(l => !l._isNew && !l._isDeleted && l.id).forEach(l => operations.push(appel(this.userAllergieService.update(l.id!, { user: uid, libelle: l.libelle }), 'Allergie')));
-    al.filter(l => l._isNew && !l._isDeleted).forEach(l => operations.push(appel(this.userAllergieService.create({ user: uid, libelle: l.libelle }), 'Allergie')));
-
     if (!operations.length) return of([]);
     return concat(...operations).pipe(toArray(), map(() => erreurs));
   }

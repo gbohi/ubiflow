@@ -4,46 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'core/services/notification_service.dart';
-import 'core/services/notification_routage.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/providers/app_provider.dart';
-import 'shared/providers/prestataire_provider.dart';
-import 'shared/providers/compte_repas_provider.dart';
-import 'features/paiements/mes_paiements_screen.dart';
-import 'features/contestation/retrait_detail_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/main_shell.dart';
 import 'features/splash/splash_screen.dart';
-import 'features/onboarding/onboarding_screen.dart';
-import 'features/notifications/notification_screen.dart';
-import 'features/jeux/jeux_screen.dart' show JeuDetailScreen, JeuxScreen;
 
-// ✅ NavigatorKey global — permet de naviguer sans contexte
-// et évite de recréer l'app quand on tape sur une notification
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await initializeDateFormatting('fr_FR', null);
-
-  // Firebase et les notifications ne doivent jamais bloquer le démarrage
-  // (services Google absents, configuration invalide, réseau lent…)
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 10));
-    try {
-      await notificationService.init().timeout(const Duration(seconds: 15));
-    } catch (e) {
-      debugPrint('⚠️ Notifications indisponibles : $e');
-    }
-  } catch (e) {
-    debugPrint('⚠️ Firebase indisponible : $e');
-  }
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -55,11 +27,11 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(const CantineApp());
+  runApp(const UbiFlowApp());
 }
 
-class CantineApp extends StatelessWidget {
-  const CantineApp({super.key});
+class UbiFlowApp extends StatelessWidget {
+  const UbiFlowApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -67,40 +39,11 @@ class CantineApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => MenuProvider()),
-        ChangeNotifierProvider(create: (_) => AccueilProvider()),
-        // Commande, annulation, retrait : l'accueil se met à jour
-        ChangeNotifierProvider(
-            create: (ctx) => CommandeProvider()
-              ..apresModification =
-                  () => ctx.read<AccueilProvider>().charger()),
-        ChangeNotifierProvider(
-            create: (ctx) => RetraitProvider()
-              ..apresRetrait = () => ctx.read<AccueilProvider>().charger()),
-        ChangeNotifierProvider(create: (_) => FacturationProvider()),
-        // Compte repas : solde, paiements, mouvements, reçus de caisse
-        ChangeNotifierProvider(create: (_) => CompteRepasProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-        // Espace prestataire (comptoir, liste du jour, accueil du responsable)
-        ChangeNotifierProvider(create: (_) => EspacePrestataireProvider()),
-        ChangeNotifierProvider(create: (_) => ComptoirProvider()),
-        ChangeNotifierProvider(create: (_) => ListeDuJourProvider()),
-        // Contestations de retrait de l'employé
-        ChangeNotifierProvider(create: (_) => ContestationProvider()),
-        ChangeNotifierProxyProvider<AuthProvider, AllergieProvider>(
-          create: (_) => AllergieProvider(),
-          update: (_, auth, allergies) {
-            allergies?.setAuthUser(auth.user);
-            return allergies ?? AllergieProvider();
-          },
-        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (_, theme, __) => MaterialApp(
-          // ✅ NavigatorKey global — réutilise l'instance existante
-          // au lieu d'en créer une nouvelle quand on tape une notification
           navigatorKey: navigatorKey,
-          title: 'UbiFood',
+          title: 'UbiFlow',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
@@ -121,140 +64,35 @@ class _AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<_AuthGate> {
   bool _checking = true;
-  bool _showOnboarding = false;
+  bool _horsLigne = false;
+  bool _etaitConnecte = false;
 
   @override
   void initState() {
     super.initState();
     _checkAuth();
-
-    // ✅ Tap sur notification (background/terminée)
-    // → utilise navigatorKey pour naviguer sans recréer l'app
-    notificationService.onMessageTap = (message) {
-      if (!mounted) return;
-      _donneesNotif = Map<String, dynamic>.from(message.data);
-      // Pas encore connecté (app lancée par la notification : la session est
-      // en cours de restauration) → ouverture dès la connexion.
-      // Avant : le tap était ignoré et l'écran ne s'ouvrait jamais.
-      if (!context.read<AuthProvider>().isLoggedIn) {
-        _notifEnAttente = true;
-        return;
-      }
-      _ouvrirNotifications();
-    };
   }
-
-  /// Notification tapée avant que la session soit restaurée
-  bool _notifEnAttente = false;
-
-  /// Données de la dernière notification tapée (commande, action…)
-  Map<String, dynamic> _donneesNotif = const {};
-  bool _notifOuvertes = false;
-
-  void _ouvrirNotifications() {
-    _notifEnAttente = false;
-    final nav = navigatorKey.currentState;
-    if (nav == null) return;
-    // « Retrait validé » / décision de contestation (employé) : détail du
-    // retrait, formulaire ouvert si le bouton « Je n'ai pas retiré ce
-    // repas » a été touché
-    final donnees = _donneesNotif;
-    _donneesNotif = const {};
-    final commandeId = commandeRetraitAOuvrir(donnees);
-    final user = context.read<AuthProvider>().user;
-    if (commandeId != null && !(user?.isComptePrestataire ?? false)) {
-      context.read<NotificationProvider>().charger();
-      nav.push(MaterialPageRoute(
-          builder: (_) => RetraitDetailScreen(
-              commandeId: commandeId,
-              ouvrirFormulaire: ouvrirFormulaireContestation(donnees))));
-      return;
-    }
-    // Compte repas (recharge, régularisation, remboursement, reçu annulé) :
-    // Mes paiements (employé ; un compte prestataire n'a pas de compte repas)
-    if (ouvreMesPaiements(donnees) && !(user?.isComptePrestataire ?? false)) {
-      context.read<NotificationProvider>().charger();
-      nav.push(MaterialPageRoute(builder: (_) => const MesPaiementsScreen()));
-      return;
-    }
-    // Jeux : présentation du jeu (lots, résultats, lot retiré)
-    final jeuId = jeuAOuvrir(donnees);
-    if (jeuId != null && !(user?.isComptePrestataire ?? false)) {
-      context.read<NotificationProvider>().charger();
-      nav.push(MaterialPageRoute(builder: (_) => JeuDetailScreen(jeuId: jeuId)));
-      return;
-    }
-    final onglet = ongletJeuAOuvrir(donnees);
-    if (onglet != null && !(user?.isComptePrestataire ?? false)) {
-      context.read<NotificationProvider>().charger();
-      nav.push(MaterialPageRoute(builder: (_) => JeuxScreen(ongletInitial: onglet)));
-      return;
-    }
-    // Déjà affiché : pas de second écran par-dessus
-    if (_notifOuvertes) return;
-    // La notification vient d'arriver : liste à jour sans attendre le polling
-    context.read<NotificationProvider>().charger();
-    _notifOuvertes = true;
-    nav
-        .push(MaterialPageRoute(builder: (_) => const NotificationScreen()))
-        .whenComplete(() => _notifOuvertes = false);
-  }
-
-  bool _pollingActif = false;
-  bool _horsLigne = false;
 
   Future<void> _checkAuth() async {
     // restoreSession() recharge le profil si un jeton est stocké :
     // l'utilisateur reste connecté entre deux lancements de l'app.
-    // Quoi qu'il arrive (stockage illisible, erreur inattendue), l'écran de
-    // démarrage doit laisser la place à la connexion : avant, une exception
-    // ici laissait l'application bloquée sur le splash.
+    // Quoi qu'il arrive, l'écran de démarrage laisse la place à la connexion.
     EtatSession etat = EtatSession.deconnecte;
-    bool onbDone = true;
     try {
       final results = await Future.wait([
         context.read<AuthProvider>().restoreSession(),
-        onboardingDejaVu().catchError((_) => true),
         Future.delayed(const Duration(milliseconds: 1500)),
       ]).timeout(const Duration(seconds: 60));
       etat = results[0] as EtatSession;
-      onbDone = results[1] as bool;
     } catch (e) {
       debugPrint('⚠️ Restauration de session impossible : $e');
-    }
-
-    if (etat == EtatSession.connecte) {
-      // Sans attendre : l'envoi du token FCM ne doit pas retarder l'accueil
-      notificationService.registerTokenAfterLogin();
-    } else if (etat == EtatSession.deconnecte) {
-      // Plus de session : la notification tapée ne concerne pas le
-      // prochain compte qui se connectera
-      _notifEnAttente = false;
     }
 
     if (!mounted) return;
     setState(() {
       _checking = false;
       _horsLigne = etat == EtatSession.horsLigne;
-      _showOnboarding = !onbDone && etat == EtatSession.deconnecte;
     });
-  }
-
-  /// Déconnexion ou session expirée : fermer les écrans ouverts par-dessus
-  /// et vider les données du compte (téléphone partagé).
-  void _apresDeconnexion() {
-    navigatorKey.currentState?.popUntil((r) => r.isFirst);
-    context.read<NotificationProvider>().stopPolling();
-    context.read<MenuProvider>().reset();
-    context.read<CommandeProvider>().reset();
-    context.read<AccueilProvider>().reset();
-    context.read<RetraitProvider>().reset();
-    context.read<FacturationProvider>().reset();
-    context.read<CompteRepasProvider>().reset();
-    context.read<EspacePrestataireProvider>().reset();
-    context.read<ComptoirProvider>().reset();
-    context.read<ListeDuJourProvider>().reset();
-    context.read<ContestationProvider>().reset();
   }
 
   @override
@@ -271,28 +109,14 @@ class _AuthGateState extends State<_AuthGate> {
       });
     }
 
-    if (_showOnboarding) {
-      return OnboardingScreen(
-        onTermine: () => setState(() => _showOnboarding = false),
-      );
-    }
-
     return Consumer<AuthProvider>(
       builder: (_, auth, __) {
-        // Démarre / arrête le rafraîchissement des notifications une seule
-        // fois par changement d'état de connexion (avant : à chaque rebuild).
-        if (auth.isLoggedIn != _pollingActif) {
-          _pollingActif = auth.isLoggedIn;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            if (auth.isLoggedIn) {
-              context.read<NotificationProvider>().startPolling();
-              if (_notifEnAttente) _ouvrirNotifications();
-            } else {
-              _apresDeconnexion();
-            }
-          });
+        // Déconnexion ou session expirée : fermer les écrans ouverts par-dessus
+        if (_etaitConnecte && !auth.isLoggedIn) {
+          WidgetsBinding.instance.addPostFrameCallback(
+              (_) => navigatorKey.currentState?.popUntil((r) => r.isFirst));
         }
+        _etaitConnecte = auth.isLoggedIn;
         return auth.isLoggedIn ? const MainShell() : const LoginScreen();
       },
     );

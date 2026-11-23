@@ -4,7 +4,7 @@ import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
 import { DOCUMENT } from '@angular/common';
 import { LanguageService } from 'src/app/core/services/language.service';
-import { CAISSIERS, COMPTABLES, GESTIONNAIRES, LIBELLES_ROLES, aUnRole, estPrestataire, rolesUtilisateur } from 'src/app/core/helpers/roles';
+import { GESTIONNAIRES, LIBELLES_ROLES, aUnRole, rolesUtilisateur } from 'src/app/core/helpers/roles';
 
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { RootReducerState } from 'src/app/store';
@@ -12,24 +12,10 @@ import { Store } from '@ngrx/store';
 import { logout } from 'src/app/store/Authentication/authentication.actions';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 
-/** Libellés courts sous le nom (espace prestataire : le prestataire est affiché à côté) */
-const LIBELLES_COURTS: Record<string, string> = {
-  prestataire:    'Responsable',
-  agent_comptoir: 'Agent de comptoir',
-};
-
 /** Raccourcis du menu « Liens utiles » (mêmes droits que le menu latéral) */
 const LIENS_UTILES: { libelle: string; icone: string; lien: string; roles?: string[] }[] = [
-  { libelle: 'Plats',            icone: 'ri-restaurant-line',     lien: '/cantines/liste-plats',             roles: GESTIONNAIRES },
-  { libelle: 'Menus',            icone: 'ri-file-list-3-line',    lien: '/cantines/liste-menus',             roles: GESTIONNAIRES },
-  { libelle: 'Commandes',        icone: 'ri-shopping-cart-line',  lien: '/cantines/liste-commandes',         roles: GESTIONNAIRES },
-  { libelle: 'Retrait',          icone: 'ri-calendar-check-fill', lien: '/cantines/retrait-commande',        roles: GESTIONNAIRES },
-  // Facturation employés et prestataires : une seule page à onglets
-  { libelle: 'Facturation',      icone: 'ri-wallet-3-line',       lien: '/cantines/facturation-commande',    roles: GESTIONNAIRES },
+  { libelle: 'Utilisateurs',     icone: 'ri-user-3-line',          lien: '/parametres/user',                  roles: ['super_admin', 'admin'] },
   { libelle: 'Paramètres',       icone: 'ri-settings-3-line',     lien: '/parametres/accueil',               roles: GESTIONNAIRES },
-  // Caisse et comptabilité (étape 2)
-  { libelle: 'Caisse',           icone: 'ri-money-dollar-circle-line',           lien: '/caisse',                           roles: CAISSIERS },
-  { libelle: 'Reçus',            icone: 'ri-file-paper-2-line',        lien: '/caisse/recus',                     roles: COMPTABLES },
 ];
 
 @Component({
@@ -59,13 +45,8 @@ export class TopbarComponent {
   /** Rôle le plus élevé de l'utilisateur */
   get roleAffiche(): string {
     const roles = rolesUtilisateur(this.userData);
-    const role = ['super_admin', 'admin', 'gestionnaire', 'prestataire', 'agent_comptoir', 'comptabilite', 'caissier', 'employe'].find(r => roles.includes(r));
-    return role ? (LIBELLES_COURTS[role] ?? LIBELLES_ROLES[role]) : 'Utilisateur';
-  }
-
-  /** Espace prestataire : nom du prestataire affiché dans la barre du haut */
-  get prestataireAffiche(): string | null {
-    return estPrestataire(this.userData) ? (this.userData?.prestataire_libelle || 'Prestataire') : null;
+    const role = ['super_admin', 'admin', 'gestionnaire', 'employe'].find(r => roles.includes(r));
+    return role ? LIBELLES_ROLES[role] : 'Utilisateur';
   }
 
   @Output() mobileMenuButtonClicked = new EventEmitter();
@@ -77,41 +58,6 @@ export class TopbarComponent {
 
   // ── Photo de profil ─────────────────────────────────────────
   @ViewChild('photoModal', { static: false }) photoModal?: ModalDirective;
-  @ViewChild('paiementModal', { static: false }) paiementModal?: ModalDirective;
-  /** Mode de paiement proposé par défaut à la commande (PATCH /users/me/) */
-  modePrefere: 'compte' | 'retenue' = 'compte';
-  paiementEnCours = false;
-  erreurPaiement: string | null = null;
-
-  get estComptePrestataire(): boolean {
-    return estPrestataire(this.userData);
-  }
-
-  ouvrirPaiement(): void {
-    this.modePrefere = this.userData?.mode_paiement_prefere === 'retenue' ? 'retenue' : 'compte';
-    this.erreurPaiement = null;
-    this.paiementModal?.show();
-  }
-
-  enregistrerPaiement(): void {
-    if (this.paiementEnCours) return;
-    this.paiementEnCours = true;
-    this.erreurPaiement = null;
-    this.http.patch<any>(`${environment.apiUrl}/api/api/users/me/`, { mode_paiement_prefere: this.modePrefere }).subscribe({
-      next: profil => {
-        this.userData = { ...this.userData, mode_paiement_prefere: profil?.mode_paiement_prefere ?? this.modePrefere };
-        this.TokenStorageService.saveUser(this.userData);
-        this.paiementEnCours = false;
-        this.paiementModal?.hide();
-        this.toastr.success(this.modePrefere === 'compte'
-          ? 'Par défaut : compte repas (si votre solde suffit).' : 'Par défaut : retenue sur salaire.', 'Paiement de mes repas');
-      },
-      error: (err: any) => {
-        this.paiementEnCours = false;
-        this.erreurPaiement = typeof err === 'string' ? err : "La préférence n'a pas pu être enregistrée.";
-      },
-    });
-  }
   @ViewChild('photoInput', { static: false }) photoInput?: ElementRef<HTMLInputElement>;
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
