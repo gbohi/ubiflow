@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.0 — référence pour le développement. Toute évolution de règle
+Version 1.1 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -32,15 +32,15 @@ paiement et la clôture, sur le web et le mobile, avec une API unique.
 | D13 | E-mail | SMTP de l'entreprise, configuré plus tard (canal prévu, désactivable) |
 | D14 | Push mobile | Firebase Cloud Messaging |
 | D15 | Synchronisation RH | Import Excel ; le matricule est la clé de rapprochement |
+| D16 | Transport mission hors pays | **Forfait fixe** (trajet vers l'aéroport), 20 000 par défaut, paramétrable (barème daté) et ajustable sur la demande avec justification |
+| D17 | Devise de référence | **Paramétrable** (paramètre système) ; elle sert aux totaux, aux conversions et au reporting |
 
 ### Hypothèses (à confirmer si besoin)
 
-- H1 — Les tarifs transport par ville concernent les **missions locales**.
-  Pour une mission hors pays, le transport principal est saisi en frais
-  aérien ; le transport sur place est saisi en « autres frais ».
-- H2 — La devise de référence de l'entreprise (reporting, totaux) est le
-  **FCFA (XOF)**.
-- H3 — Le référentiel des villes est géré dans l'application (pas de
+- H1 — Les tarifs transport par ville concernent uniquement les **missions
+  locales** ; une mission hors pays utilise le forfait aéroport (D16), le
+  billet d'avion étant saisi en frais aérien.
+- H2 — Le référentiel des villes est géré dans l'application (pas de
   service externe de géolocalisation).
 
 ---
@@ -282,7 +282,8 @@ additionnels des types « mission »)
 - `version_courante` → VersionContenu
 - Données organisationnelles **figées à la soumission** : `departement`,
   `agence`, `categorie`, `poste`, `n_plus_1`
-- `objet`, `montant_demande`, `devise`, `montant_demande_xof`
+- `objet`, `montant_demande`, `devise`, `devise_reference` (figée),
+  `montant_demande_ref` (converti dans la devise de référence)
 - `montant_approuve`, `montant_paye`, `montant_reverse`, `solde`
 - `demande_parent` → Demande (complément, copie d'une demande rejetée)
 - `origine_copie` → Demande
@@ -323,8 +324,9 @@ symétrique)
 - `demande`, `version_contenu`, `rubrique` : per_diem, transport, visa,
   aerien, hebergement, autres
 - `base` (jours, km…), `tarif`, `devise`, `taux_change`, `montant`,
-  `montant_xof`, `bareme_source` (type + id + version), `libelle_calcul`
-  (ex. « 4 jours × 25 000 XOF (Cadre, mission locale, barème v3) »)
+  `montant_ref` (devise de référence), `bareme_source` (type + id + version),
+  `libelle_calcul` (ex. « 4 jours × 25 000 XOF (Cadre, mission locale,
+  barème v3) »)
 
 ### 3.6 Barèmes (tous datés et versionnés)
 
@@ -337,8 +339,9 @@ d'effet, date de modification, auteur et motif.
 |---|---|---|
 | **PerDiem** | type de mission × catégorie | montant, devise |
 | **TarifKilometrique** | type de mission (× catégorie, optionnel) | montant par km, devise |
-| **TarifTransportVille** | ville de destination | montant aller-retour (XOF) |
-| **TauxChange** | devise | taux vers XOF |
+| **TarifTransportVille** | ville de destination (missions locales) | montant aller-retour, devise |
+| **ForfaitTransportHorsPays** | — | montant (20 000 par défaut), devise |
+| **TauxChange** | devise | taux vers la devise de référence |
 
 Règle de sélection : la ligne dont `date_effet ≤ date de référence` la
 plus récente. La date de référence est la **date de soumission** (cycle 1).
@@ -350,7 +353,7 @@ l'écart est visible des valideurs.
 ### 3.7 Trésorerie
 
 **Reglement**
-- `demande`, `montant`, `devise`, `taux_change`, `montant_xof`
+- `demande`, `montant`, `devise`, `taux_change`, `montant_ref`
 - `date_paiement`, `mode` : virement, chèque, espèces, mobile money, autre
 - `reference`, `beneficiaire` (par défaut le demandeur ou le bénéficiaire
   saisi), `justificatif` → Document
@@ -395,6 +398,20 @@ référence, demandeur, étape, motif, lien)
 - `horodatage`, `auteur`, `pour_compte_de`, `action`, `objet_type`,
   `objet_id`, `avant` (JSON), `apres` (JSON), `motif`, `adresse_ip`,
   `agent` (navigateur / app), `canal`
+
+### 3.11 Paramètres système
+
+**ParametreSysteme** (une seule ligne, rôle `admin_finances` / `admin`)
+- `devise_reference` (code ISO, ex. XOF) : devise des totaux, des
+  conversions et du reporting.
+- Changement : possible tant qu'aucune demande n'a été soumise. Ensuite,
+  il ne s'applique qu'aux nouvelles demandes, chaque demande gardant sa
+  propre `devise_reference` figée ; le reporting signale alors les
+  montants exprimés dans une autre devise de référence (aucune
+  reconversion silencieuse).
+- Autres réglages globaux : calendrier (jours ouvrés, jours fériés),
+  taille maximale des pièces, durée de session, activation des canaux
+  (push, e-mail).
 
 ---
 
@@ -499,7 +516,7 @@ Structure JSON évaluée par le moteur (pas de code libre) :
 
 ```json
 { "et": [
-    { "champ": "montant_demande_xof", "op": ">", "valeur": 1000000 },
+    { "champ": "montant_demande_ref", "op": ">", "valeur": 1000000 },
     { "ou": [
         { "champ": "categorie", "op": "=", "valeur": "CADRE" },
         { "champ": "type_mission", "op": "=", "valeur": "hors_pays" } ] } ] }
@@ -507,7 +524,7 @@ Structure JSON évaluée par le moteur (pas de code libre) :
 
 - Opérateurs : `=`, `≠`, `>`, `≥`, `<`, `≤`, `dans`, `pas dans`, `vide`,
   `non vide`.
-- Champs disponibles : `type_demande`, `montant_demande_xof`, `categorie`,
+- Champs disponibles : `type_demande`, `montant_demande_ref`, `categorie`,
   `departement` (avec option « ou un de ses sous-départements »), `agence`,
   `type_mission`, `pays_destination`, `nombre_jours`, et tout `ChampType`
   marqué `utilisable_en_condition`.
@@ -668,17 +685,25 @@ barème. La catégorie est celle du demandeur **à la date de départ** (figée)
 - **Véhicule de service** : pas d'indemnité de transport.
 
 ### 7.4 Mission hors pays
-Per diem (devise du barème), visa, aérien, hébergement, autres frais :
-chaque montant avec sa devise.
+- Per diem : barème hors pays (montant et devise paramétrables).
+- **Transport** : forfait fixe pour se rendre à l'aéroport (barème
+  `ForfaitTransportHorsPays`, 20 000 par défaut), quel que soit le moyen
+  de transport. Le demandeur peut l'ajuster sur sa demande avec une
+  justification obligatoire ; l'écart avec le barème est signalé aux
+  valideurs.
+- Visa, billet d'avion, hébergement, autres frais : chaque montant avec sa
+  devise.
 
 ### 7.5 Devises
-- Chaque ligne est convertie en XOF au **taux figé à la soumission**
-  (barème `TauxChange`).
-- Le récapitulatif affiche le montant en devise et en XOF ; le total
-  prévisionnel est en XOF.
+- Chaque ligne est convertie dans la **devise de référence** (paramètre
+  système, §3.11) au **taux figé à la soumission** (barème `TauxChange`).
+- Le récapitulatif affiche le montant en devise d'origine et en devise de
+  référence ; le total prévisionnel est en devise de référence.
 - Les règlements sont enregistrés dans leur devise réelle avec leur taux.
 
 ### 7.6 Récapitulatif affiché
+
+Exemple avec XOF comme devise de référence :
 
 | Rubrique | Base | Tarif | Montant |
 |---|---|---|---|
@@ -845,7 +870,7 @@ l'API ; les écrans masquent seulement ce qui n'est pas accessible.
 
 Filtres communs : période, type, statut, département, agence, catégorie,
 demandeur. Exports Excel et PDF de toute liste et de tout tableau. Les
-montants agrégés sont en XOF (taux figés).
+montants agrégés sont dans la devise de référence (taux figés).
 
 ---
 
@@ -861,7 +886,7 @@ Préfixe `/api/v1/`. Format JSON, pagination, filtres, tri.
 | Validation | `taches/` (mes tâches, filtres), `taches/{id}/approuver/`, `/rejeter/`, `/retourner/`, `taches/{id}/reaffecter/` (admin) |
 | Délégations | `delegations/`, `delegations/{id}/revoquer/` |
 | Missions | `missions/calculer/` (calcul à blanc pendant la saisie), `villes/`, `pays/`, `distances/` |
-| Barèmes | `baremes/per-diem/`, `baremes/kilometrique/`, `baremes/transport-ville/`, `baremes/taux-change/` (avec historique) |
+| Barèmes | `baremes/per-diem/`, `baremes/kilometrique/`, `baremes/transport-ville/`, `baremes/forfait-hors-pays/`, `baremes/taux-change/` (avec historique), `parametres-systeme/` |
 | Trésorerie | `a-payer/`, `reglements/`, `reglements/{id}/annuler/`, `reversements/`, `reversements/{id}/percevoir/` |
 | Notifications | `notifications/`, `notifications/tout-lire/`, `appareils/`, `preferences-notification/` |
 | Reporting | `tableaux-de-bord/{profil}/`, `exports/{liste}.xlsx`, `exports/{liste}.pdf` |
@@ -892,7 +917,7 @@ barèmes, trésorerie, reporting avancé.
 |---|---|---|
 | **1. Organisation** | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
 | **2. Moteur et socle** | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
-| **3. Barèmes et missions** | Per diem, tarifs km, tarifs par ville, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
+| **3. Barèmes et missions** | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
 | **6. Pilotage et canaux** | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
@@ -911,4 +936,4 @@ mobile suit dès le lot 2 pour la consultation et la validation.
 | Serveur SMTP | À définir (D13) |
 | Système RH cible | À définir (D15) ; import Excel en attendant |
 | Calendrier des jours fériés | À saisir par l'administrateur |
-| Tarif par ville pour les missions hors pays | Hypothèse H1 : non concerné |
+| Transport des missions hors pays | Forfait aéroport (D16) |
