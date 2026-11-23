@@ -21,7 +21,7 @@
               </td>
               <td data-label="Demandeur">{{ t.demande.demandeur }}</td>
               <td data-label="Objet">{{ t.demande.objet }}</td>
-              <td data-label="Montant" class="text-nowrap">{{ t.demande.montant_demande ? (t.demande.montant_demande | number:'1.0-2') + ' ' + t.demande.devise : '—' }}</td>
+              <td data-label="Montant" class="text-nowrap">{{ t.demande.montant_demande ? (t.demande.montant_demande | montant:t.demande.devise) : '—' }}</td>
               <td data-label="Étape">{{ t.etape }}
                 @if (t.pour_compte_de) { <small class="d-block text-warning"><i class="ri-user-shared-line"></i> pour {{ t.pour_compte_de }}</small> }
                 @if (t.auto_validation) { <small class="d-block text-muted">vous êtes le demandeur</small> }</td>

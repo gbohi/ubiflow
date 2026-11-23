@@ -85,7 +85,8 @@ class ApiClient {
       baseUrl: AppConfig.apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
-      headers: {'Content-Type': 'application/json'},
+      // X-Canal : les actions faites depuis le mobile sont tracées comme telles
+      headers: {'Content-Type': 'application/json', 'X-Canal': 'mobile'},
     ));
 
     // ── Intercepteur JWT ──────────────────────────────────────
@@ -228,7 +229,8 @@ class ApiClient {
         baseUrl: AppConfig.apiBaseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
-        headers: {'Content-Type': 'application/json'},
+        // X-Canal : les actions faites depuis le mobile sont tracées comme telles
+      headers: {'Content-Type': 'application/json', 'X-Canal': 'mobile'},
       )).post(path, data: data);
 }
 

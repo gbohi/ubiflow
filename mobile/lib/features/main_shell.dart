@@ -4,6 +4,8 @@
 
 import 'package:flutter/material.dart';
 import 'accueil/accueil_screen.dart';
+import 'demandes/a_valider_screen.dart';
+import 'demandes/mes_demandes_screen.dart';
 import 'profil/profil_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -18,13 +20,16 @@ class _MainShellState extends State<MainShell> {
 
   static const _ecrans = <Widget>[
     AccueilScreen(),
+    MesDemandesScreen(),
+    AValiderScreen(),
     ProfilScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _ecrans),
+      // Écran reconstruit à chaque changement d'onglet : listes à jour
+      body: _ecrans[_index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
@@ -33,6 +38,14 @@ class _MainShellState extends State<MainShell> {
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: 'Accueil'),
+          NavigationDestination(
+              icon: Icon(Icons.description_outlined),
+              selectedIcon: Icon(Icons.description_rounded),
+              label: 'Demandes'),
+          NavigationDestination(
+              icon: Icon(Icons.task_alt_outlined),
+              selectedIcon: Icon(Icons.task_alt_rounded),
+              label: 'À valider'),
           NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
               selectedIcon: Icon(Icons.person_rounded),

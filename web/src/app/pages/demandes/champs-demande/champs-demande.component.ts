@@ -53,7 +53,7 @@ export class ChampsDemandeComponent implements OnChanges {
     if (c.nature === 'booleen') return v ? 'Oui' : 'Non';
     if (c.nature === 'date') return new Date(v).toLocaleDateString('fr-FR');
     if (c.nature === 'datetime') return new Date(v).toLocaleString('fr-FR');
-    if (c.nature === 'montant') return Number(v).toLocaleString('fr-FR');
+    if (c.nature === 'montant') return Number(v).toLocaleString('fr-FR').replace(/[\u202f\s]/g, '\u00a0');
     if (c.nature === 'collaborateur') return this.collaborateurs.find(x => x.id === Number(v))?.libelle ?? `#${v}`;
     return String(v);
   }

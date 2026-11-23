@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.2 — référence pour le développement. Toute évolution de règle
+Version 1.3 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -199,6 +199,13 @@ servent seulement à désigner des valideurs. Un valideur voit les demandes
 pour lesquelles il a (ou a eu) une tâche.
 
 ### 3.3 Workflow
+
+> **Mise en œuvre (lot 2)** : `ModeleWorkflow` est fusionné dans
+> `VersionWorkflow` (la version porte directement le type de demande). Les
+> champs de délais (`delai_heures`, `rappel_apres_heures`,
+> `escalade_apres_heures`, `escalade_vers`) et l'échéance des tâches seront
+> ajoutés au lot 6 avec les rappels et le calendrier. Les états de
+> délégation sont calculés à partir des dates (pas de tâche planifiée).
 
 **ModeleWorkflow** — `type_demande` (1–1), `libelle`, `description`
 
@@ -886,7 +893,9 @@ montants agrégés sont dans la devise de référence (taux figés).
 
 ## 15. API (principaux points d'entrée)
 
-Préfixe `/api/v1/`. Format JSON, pagination, filtres, tri.
+Préfixe `/api/v1/` proposé ; **mis en œuvre : `/api/api/`** (préfixe
+existant conservé pour ne pas casser le web et le mobile). Format JSON,
+pagination, filtres, tri.
 
 | Domaine | Points d'entrée |
 |---|---|
@@ -926,7 +935,7 @@ barèmes, trésorerie, reporting avancé.
 | Lot | Contenu | Critères de fin |
 |---|---|---|
 | **1. Organisation** ✅ | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
-| **2. Moteur et socle** | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
+| **2. Moteur et socle** ✅ | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
 | **3. Barèmes et missions** | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |

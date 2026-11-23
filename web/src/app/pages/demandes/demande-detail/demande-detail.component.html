@@ -37,7 +37,7 @@
         <app-champs-demande [contenu]="contenu" [champs]="demande.champs || []" [avecMontant]="demande.montant_demande !== null || editable"
                             [lectureSeule]="!editable" [erreurs]="erreurs"></app-champs-demande>
         @if (demande.montant_approuve && demande.montant_approuve !== demande.montant_demande) {
-          <div class="alert alert-info small mt-3 mb-0">Montant approuvé : <b>{{ demande.montant_approuve | number:'1.0-2' }} {{ demande.devise }}</b></div>
+          <div class="alert alert-info small mt-3 mb-0">Montant approuvé : <b>{{ demande.montant_approuve | montant:demande.devise }}</b></div>
         }
       </div>
 
@@ -168,7 +168,7 @@
                     @case ('retournee') { <i class="ri-arrow-go-back-line"></i> } @case ('sautee') { <i class="ri-skip-forward-line"></i> }
                     @default { {{ e.ordre }} } }
                 </span>
-                <b class="small">{{ e.libelle }}</b> <span class="text-muted small">— {{ e.etat_libelle }}{{ e.reprise ? ' (reprise)' : '' }}</span>
+                <b class="small">{{ e.libelle }}</b> <span class="text-muted small ms-1">— {{ e.etat_libelle }}{{ e.reprise ? ' (reprise)' : '' }}</span>
                 @if (e.etat === 'sautee') { <div class="small text-muted">{{ e.motif_saut }}</div> }
                 @for (t of e.taches; track t.id) {
                   @if (t.etat !== 'annulee' || t.decision) {
@@ -209,7 +209,7 @@
           @for (a of historique; track a.id) {
             <div class="d-flex gap-2 mb-2 small">
               <i [class]="iconeAction(a.type)" class="text-muted mt-1"></i>
-              <div><b>{{ a.type_libelle }}</b>@if (a.etape_libelle) { <span class="text-muted"> — {{ a.etape_libelle }}</span> }
+              <div><b>{{ a.type_libelle }}</b>@if (a.etape_libelle) { <span class="text-muted ms-1">— {{ a.etape_libelle }}</span> }
                 <div class="text-muted">{{ a.auteur_nom }}@if (a.pour_compte_de_nom) { pour {{ a.pour_compte_de_nom }} }
                   · {{ a.horodatage | date:'dd/MM/yyyy HH:mm' }}@if (a.canal === 'mobile') { · mobile }</div>
                 @if (a.motif) { <div style="white-space: pre-line">{{ a.motif }}</div> }

@@ -39,7 +39,7 @@
               </td>
               <td data-label="Objet">{{ d.objet || '—' }}</td>
               @if (vue === 'toutes') { <td data-label="Demandeur">{{ d.demandeur_nom }}</td> }
-              <td data-label="Montant" class="text-nowrap">{{ d.montant_demande ? (d.montant_demande | number:'1.0-2') + ' ' + d.devise : '—' }}</td>
+              <td data-label="Montant" class="text-nowrap">{{ d.montant_demande ? (d.montant_demande | montant:d.devise) : '—' }}</td>
               <td data-label="Statut"><span class="lst-tag" [ngClass]="classes[d.statut]">{{ d.statut_libelle }}</span></td>
               <td data-label="Étape en cours" class="small">
                 @if (d.etape_en_cours) { {{ d.etape_en_cours.libelle }}<span class="text-muted d-block">{{ d.etape_en_cours.valideurs.join(', ') }}</span> }

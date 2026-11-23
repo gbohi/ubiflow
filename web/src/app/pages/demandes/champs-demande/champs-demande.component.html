@@ -3,7 +3,7 @@
     <dt class="col-sm-4 text-muted fw-normal">Objet</dt><dd class="col-sm-8 fw-semibold">{{ contenu.objet || '—' }}</dd>
     @if (avecMontant) {
       <dt class="col-sm-4 text-muted fw-normal">Montant demandé</dt>
-      <dd class="col-sm-8 fw-semibold">{{ contenu.montant_demande ? (contenu.montant_demande | number:'1.0-2') + ' ' + contenu.devise : '—' }}</dd>
+      <dd class="col-sm-8 fw-semibold">{{ contenu.montant_demande ? (contenu.montant_demande | montant:contenu.devise) : '—' }}</dd>
     }
     @for (c of champs; track c.code) {
       <dt class="col-sm-4 text-muted fw-normal">{{ c.libelle }}</dt>

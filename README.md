@@ -1,16 +1,22 @@
 # UbiFlow
 
-Socle de la plateforme UbiFlow (demandes administratives et financières,
-circuits de validation). Le dépôt ne contient pour l'instant que les
-**paramètres** : utilisateurs, rôles, agences, départements, postes,
-fonctions, catégories de salarié et statuts. Les modules métier viendront
-s'y ajouter.
+Plateforme UbiFlow : demandes administratives et financières et circuits
+de validation paramétrables. État d'avancement (voir `docs/conception.md`,
+§17) :
+
+- **Lot 1 — Organisation** : utilisateurs, rôles, agences, départements
+  hiérarchisés, postes, fonctions, catégories, responsabilités, N+1
+  historisés, véhicule, import Excel.
+- **Lot 2 — Moteur de workflow et socle des demandes** : types de demande
+  paramétrables, demandes, circuits versionnés, validations, délégations,
+  pièces jointes, notifications, journal. Premier type livré : **frais de
+  réception client (FRC)**.
 
 | Dossier    | Contenu                                                        |
 |------------|----------------------------------------------------------------|
 | `backend/` | API Django REST Framework + PostgreSQL, déployée avec Docker   |
 | `web/`     | Back-office Angular 18                                         |
-| `mobile/`  | Application Flutter (connexion, accueil, profil)               |
+| `mobile/`  | Application Flutter (mes demandes, validations, profil)        |
 | `deploy/`  | Déploiement automatisé sur AWS EC2, sauvegardes                |
 | `docs/`    | Dossier de conception (`docs/conception.md`)                   |
 
@@ -65,6 +71,31 @@ masquent en plus les écrans non autorisés.
 Les règles d'organisation (N+1, titulaires, affectations à une date) sont
 dans `backend/backend/api/organisation.py` ; l'import Excel dans
 `api/import_collaborateurs.py`. Voir `docs/conception.md` (§3.1 et §17).
+
+## Demandes et circuits de validation
+
+| Domaine | API (`/api/api/…`) | Code |
+|---|---|---|
+| Types de demande | `types-demande/`, `champs-type/`, `exigences-pieces/`, `types-pieces/` | `demandes/` |
+| Demandes | `demandes/` (+ `plan/`, `soumettre/`, `annuler/`, `dupliquer/`, `historique/`, `versions/`, `commentaires/`, `documents/`), `demandes/compteurs/` | `demandes/services.py` |
+| Validations | `taches/` (+ `approuver/`, `rejeter/`, `retourner/`, `reaffecter/`) | `workflow/moteur.py` |
+| Circuits | `versions-workflow/` (+ `publier/`, `controle/`, `simuler/`, `reordonner/`), `etapes-workflow/`, `champs-condition/` | `workflow/parametrage.py`, `workflow/conditions.py` |
+| Délégations | `delegations/` (+ `revoquer/`) | `workflow/` |
+| Notifications | `notifications/` (+ `compteur/`, `lire/`, `tout-lire/`) | `notifications/` |
+| Journal | `journal/` | `audit/` |
+
+Règles principales :
+- une demande est un **brouillon** jusqu'à sa soumission ; le demandeur voit
+  le **circuit prévu** avant de confirmer ; la référence
+  (`PREFIXE-AAAA-NNNNN`) est attribuée à la soumission, sans trou ;
+- la demande garde la **version du circuit**, le **N+1** et sa situation
+  (département, agence, catégorie) du jour de la soumission ;
+- un circuit publié n'est jamais modifié : on publie une nouvelle version,
+  qui ne s'applique qu'aux demandes soumises ensuite ;
+- un valideur approuve, retourne (motif) ou rejette (motif) ; un retour crée
+  une nouvelle version du contenu et un nouveau cycle de validation ;
+- chaque action est tracée (auteur, pour le compte de qui en cas de
+  délégation, canal web / mobile).
 
 Chaque enregistrement garde ses dates et auteurs de création / modification
 (`BaseModel`). Un élément de paramètre encore utilisé ne peut pas être

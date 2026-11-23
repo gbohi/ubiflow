@@ -215,7 +215,7 @@
             <ol class="ps-3 mb-0">
               @for (e of simResultat.plan; track e.etape) {
                 <li class="mb-1" [class.text-muted]="e.statut === 'sautee'" [class.text-danger]="e.statut === 'bloquante'">
-                  <b>{{ e.libelle }}</b> — @if (e.statut === 'prevue') { {{ noms(e) }} } @else { {{ e.statut === 'sautee' ? 'non concernée' : 'bloquante' }} }
+                  <b class="me-1">{{ e.libelle }}</b>— @if (e.statut === 'prevue') { {{ noms(e) }} } @else { {{ e.statut === 'sautee' ? 'non concernée' : 'bloquante' }} }
                   @if (e.raison) { <div class="text-muted">{{ e.raison }}</div> }
                 </li>
               }
