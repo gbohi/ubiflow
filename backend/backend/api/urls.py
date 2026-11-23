@@ -4,6 +4,11 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import *
+from .organisation_views import (
+    AffectationHierarchiqueViewSet, AffectationResponsabiliteViewSet, ArbreDepartementsView,
+    ImportCollaborateursViewSet, OrganisationCollaborateurView, ReaffectationN1View, ResponsabiliteViewSet,
+    SituationVehiculeViewSet,
+)
 
 
 class ConnexionSerializer(TokenObtainPairSerializer):
@@ -40,8 +45,22 @@ router.register(r'postes', PosteViewSet)
 router.register(r'fonctions', FonctionViewSet)
 router.register(r'categoriesalaries', CategoriesalarieViewSet)
 router.register(r'statuts', StatutViewSet)
+# Organisation : responsabilités, hiérarchie, véhicule, import
+router.register(r'responsabilites', ResponsabiliteViewSet)
+router.register(r'affectations-responsabilite', AffectationResponsabiliteViewSet)
+router.register(r'affectations-hierarchiques', AffectationHierarchiqueViewSet)
+router.register(r'situations-vehicule', SituationVehiculeViewSet)
+router.register(r'imports-collaborateurs', ImportCollaborateursViewSet)
 
 urlpatterns = [
+    # Avant le routeur : « services/arbre » ne doit pas être lu comme services/{id}
+    path('api/departements/arbre/', ArbreDepartementsView.as_view(), name='departements-arbre'),
+    path('api/collaborateurs/moi/organisation/', OrganisationCollaborateurView.as_view(),
+         name='organisation-moi'),
+    path('api/collaborateurs/<int:pk>/organisation/', OrganisationCollaborateurView.as_view(),
+         name='organisation-collaborateur'),
+    path('api/collaborateurs/<int:pk>/reaffecter-n-plus-1/', ReaffectationN1View.as_view(),
+         name='reaffecter-n-plus-1'),
     path('api/', include(router.urls)),
     path('api/token/', ThrottledTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', ThrottledTokenRefreshView.as_view(), name='token_refresh'),

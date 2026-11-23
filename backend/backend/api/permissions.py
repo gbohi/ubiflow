@@ -2,10 +2,18 @@
 Permissions par rôle.
 
 Les rôles sont des groupes Django :
-    super_admin  → tout, y compris gérer les autres administrateurs
-    admin        → administration de l'application (utilisateurs, paramètres)
-    gestionnaire → consultation des paramètres et des utilisateurs de ses agences
-    employe      → utilisateur standard
+    super_admin    → tout, y compris gérer les autres administrateurs
+    admin          → administration (organisation, utilisateurs, paramètres)
+    admin_workflow → paramétrage des circuits de validation
+    admin_finances → barèmes, taux de change, paramètres financiers
+    comptable      → paiements et reversements
+    direction      → tableaux de bord et consultation
+    controleur     → consultation et audit
+    gestionnaire   → consultation des paramètres et des collaborateurs
+    employe        → utilisateur standard
+
+Les rôles métier (admin_workflow … controleur) sont utilisés par les lots
+suivants ; ils sont créés dès maintenant pour être attribués aux comptes.
 
 Un superuser Django est considéré comme super_admin.
 """
@@ -16,6 +24,11 @@ ROLE_SUPER_ADMIN  = 'super_admin'
 ROLE_ADMIN        = 'admin'
 ROLE_GESTIONNAIRE = 'gestionnaire'
 ROLE_EMPLOYE      = 'employe'
+ROLE_ADMIN_WORKFLOW = 'admin_workflow'
+ROLE_ADMIN_FINANCES = 'admin_finances'
+ROLE_COMPTABLE      = 'comptable'
+ROLE_DIRECTION      = 'direction'
+ROLE_CONTROLEUR     = 'controleur'
 
 ADMIN_ROLES        = {ROLE_SUPER_ADMIN, ROLE_ADMIN}
 GESTIONNAIRE_ROLES = ADMIN_ROLES | {ROLE_GESTIONNAIRE}
@@ -24,6 +37,8 @@ GESTIONNAIRE_ROLES = ADMIN_ROLES | {ROLE_GESTIONNAIRE}
 LIBELLES_ROLES = {
     ROLE_SUPER_ADMIN: 'Super administrateur', ROLE_ADMIN: 'Administrateur',
     ROLE_GESTIONNAIRE: 'Gestionnaire', ROLE_EMPLOYE: 'Employé',
+    ROLE_ADMIN_WORKFLOW: 'Administrateur des workflows', ROLE_ADMIN_FINANCES: 'Administrateur des finances',
+    ROLE_COMPTABLE: 'Comptable', ROLE_DIRECTION: 'Direction', ROLE_CONTROLEUR: 'Contrôleur',
 }
 
 

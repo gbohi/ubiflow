@@ -15,21 +15,6 @@ def nom_complet(user):
     return nom or user.username
 
 
-def agence_actuelle(user, a_date=None):
-    """
-    Agence de l'agent : ligne UserAgence active à la date donnée (aujourd'hui
-    par défaut), sinon la plus récente. Utilise le prefetch si présent.
-    """
-    a_date = a_date or timezone.now()
-    lignes = list(user.useragence_set.all())
-    if not lignes:
-        return None
-    actives = [l for l in lignes
-               if l.date_debut <= a_date and (l.date_fin is None or l.date_fin >= a_date)]
-    ligne = max(actives or lignes, key=lambda l: l.date_debut)
-    return ligne.agence
-
-
 class _PeriodeMixin:
     """
     Lignes d'historique d'un agent (département, agence, poste, catégorie) :
@@ -125,10 +110,26 @@ class StatutSerializer(serializers.ModelSerializer):
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    """Département."""
+    """Département (arbre : champ parent)."""
+    parent_libelle = serializers.ReadOnlyField(source='parent.libelle_service')
+    chemin = serializers.SerializerMethodField()
+
     class Meta:
         model = Service
         fields = '__all__'
+
+    def get_chemin(self, obj):
+        """« Direction générale › Finances › Comptabilité »"""
+        noms = [obj.libelle_service] + [a.libelle_service for a in obj.ancetres()]
+        return ' › '.join(reversed(noms))
+
+    def validate_parent(self, parent):
+        inst = self.instance
+        if parent is not None and inst is not None:
+            if parent.pk == inst.pk or any(a.pk == inst.pk for a in parent.ancetres()):
+                raise serializers.ValidationError(
+                    "Un département ne peut pas être rattaché à lui-même ni à l'un de ses sous-départements.")
+        return parent
 
 
 class FonctionSerializer(serializers.ModelSerializer):

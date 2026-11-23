@@ -45,6 +45,8 @@ _NOMS_LIES = {
     'User': 'des utilisateurs', 'UserAgence': 'des affectations d\'agence',
     'UserService': 'des affectations de département', 'UserPoste': 'des postes d\'agents',
     'UserCategoriesalarie': 'des catégories d\'agents', 'Poste': 'des postes',
+    'Service': 'des sous-départements', 'AffectationResponsabilite': 'des titulaires de responsabilité',
+    'AffectationHierarchique': 'des affectations hiérarchiques', 'SituationVehicule': 'des situations de véhicule',
 }
 
 
@@ -235,6 +237,22 @@ def _verifier_peut_gerer(request, cible):
             )
 
 
+def _supprimer_comptes(users):
+    """
+    Supprime les comptes (et leurs affectations). Un compte désigné comme N+1
+    ou référencé ailleurs ne peut pas être supprimé : il faut le désactiver.
+    """
+    from django.db.models.deletion import ProtectedError, RestrictedError
+    try:
+        with transaction.atomic():
+            for user in users:
+                user.delete()
+    except (ProtectedError, RestrictedError):
+        raise ValidationError("Ce compte est encore référencé (N+1 désigné d'autres collaborateurs…) : "
+                              "désactivez-le plutôt que de le supprimer.")
+    return len(users)
+
+
 class UserFilter(django_filters.FilterSet):
     """
     Recherche avancée des comptes (page Utilisateurs) sur toutes les données :
@@ -342,7 +360,7 @@ class UserViewSet(BaseViewSet):
         if instance.pk == self.request.user.pk:
             raise PermissionDenied("Vous ne pouvez pas supprimer votre propre compte.")
         _verifier_peut_gerer(self.request, instance)
-        instance.delete()
+        _supprimer_comptes([instance])
 
     @action(detail=False, methods=['delete'], permission_classes=[IsAdminRole])
     def bulk_delete(self, request):
@@ -360,7 +378,7 @@ class UserViewSet(BaseViewSet):
         users = User.objects.filter(id__in=ids)
         for user in users:
             _verifier_peut_gerer(request, user)
-        deleted_count, _ = users.delete()
+        deleted_count = _supprimer_comptes(list(users))
         return Response({
             "message": f"{deleted_count} élément(s) supprimé(s) avec succès",
             "deleted_count": deleted_count
@@ -808,7 +826,7 @@ class AgenceViewSet(BaseViewSet):
     queryset = Agence.objects.all().order_by('id')
     serializer_class = AgenceSerializer
     filterset_fields = ['nom_agence']
-    search_fields = ['nom_agence']
+    search_fields = ['nom_agence', 'code']
     ordering_fields = ['id', 'nom_agence', 'created_at']
 
 
@@ -838,13 +856,15 @@ class PublicStatutListAPIView(ListAPIView):
 class ServiceViewSet(BaseViewSet):
     proteger_references = True
     champ_libelle = 'libelle_service'
-    search_fields = ['libelle_service']
-    queryset = Service.objects.all().order_by('id')
+    search_fields = ['libelle_service', 'code']
+    filterset_fields = ['parent']
+    ordering_fields = ['id', 'libelle_service', 'code']
+    queryset = Service.objects.select_related('parent').order_by('id')
     serializer_class = ServiceSerializer
 
 
 class ServiceListAPIView(ListAPIView):
-    queryset = Service.objects.all()
+    queryset = Service.objects.select_related('parent').order_by('libelle_service')
     serializer_class = ServiceSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
