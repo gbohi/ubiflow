@@ -10,7 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { ToastrService } from 'ngx-toastr';
 import {
-  Action, CLASSES_STATUT, CycleCircuit, Demande, DemandesService, EntreePlan, MaTache, TypePiece, enregistrerFichier,
+  Action, CLASSES_STATUT, CycleCircuit, Demande, DemandesService, MaTache, TypePiece, enregistrerFichier,
 } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { ContenuDemande } from '../champs-demande/champs-demande.component';
@@ -48,9 +48,6 @@ export class DemandeDetailComponent implements OnInit {
 
   // Soumission
   @ViewChild('soumissionModal', { static: false }) soumissionModal?: ModalDirective;
-  plan: EntreePlan[] = [];
-  blocages: string[] = [];
-  planChargement = false;
   motifResoumission = '';
 
   // Annulation
@@ -87,10 +84,6 @@ export class DemandeDetailComponent implements OnInit {
         this.corrections = { objet: d.objet, montant_demande: null, devise: d.devise, donnees: { ...(d.donnees ?? {}) } };
         this.chargement = false;
         this.service.historique(id).subscribe(h => this.historique = h.slice().reverse());
-        if (this.route.snapshot.queryParamMap.get('soumettre') && d.actions?.soumettre) {
-          this.router.navigate([], { queryParams: {}, replaceUrl: true });
-          setTimeout(() => this.ouvrirSoumission());
-        }
       },
       error: e => { this.chargement = false; this.toast.error(messageErreur(e)); this.router.navigate(['/demandes']); },
     });
@@ -131,38 +124,31 @@ export class DemandeDetailComponent implements OnInit {
   ouvrirSoumission(): void {
     if (!this.demande) return;
     this.erreurs = null;
-    this.planChargement = true;
-    this.plan = [];
-    this.blocages = [];
     this.motifResoumission = '';
-    // On enregistre d'abord la saisie en cours, puis on calcule le circuit
-    this.enregistrer$().subscribe({
-      next: () => {
-        this.service.plan(this.demande!.id).subscribe({
-          next: r => { this.plan = r.plan; this.blocages = r.blocages; this.planChargement = false; this.soumissionModal?.show(); },
-          error: e => { this.planChargement = false; this.erreurs = e?.champs ?? null; this.toast.error(messageErreur(e)); },
-        });
-      },
-      error: e => { this.planChargement = false; this.erreurs = e?.champs ?? null; this.toast.error(messageErreur(e)); },
-    });
+    this.soumissionModal?.show();
   }
 
+  /** Enregistre la saisie en cours puis soumet (ou resoumet) la demande */
   soumettre(): void {
     if (!this.demande || this.enCours) return;
     this.enCours = true;
-    this.service.soumettre(this.demande.id, this.motifResoumission).subscribe({
-      next: d => {
-        this.enCours = false;
-        this.soumissionModal?.hide();
-        this.toast.success(`Demande ${d.reference} soumise.`);
-        this.charger();
-      },
-      error: e => {
-        this.enCours = false;
-        this.erreurs = e?.champs ?? null;
-        const circuit = e?.champs?.circuit;
-        this.toast.error(Array.isArray(circuit) ? circuit.join(' ') : messageErreur(e));
-      },
+    const echec = (e: any) => {
+      this.enCours = false;
+      this.erreurs = e?.champs ?? null;
+      const circuit = e?.champs?.circuit;
+      this.toast.error(Array.isArray(circuit) ? circuit.join(' ') : messageErreur(e));
+    };
+    this.enregistrer$().subscribe({
+      next: () => this.service.soumettre(this.demande!.id, this.motifResoumission).subscribe({
+        next: d => {
+          this.enCours = false;
+          this.soumissionModal?.hide();
+          this.toast.success(`Demande ${d.reference} soumise.`);
+          this.charger();
+        },
+        error: e => { this.soumissionModal?.hide(); echec(e); },
+      }),
+      error: e => { this.soumissionModal?.hide(); echec(e); },
     });
   }
 
@@ -254,8 +240,6 @@ export class DemandeDetailComponent implements OnInit {
       error: e => this.toast.error(messageErreur(e, 'Téléchargement impossible.')),
     });
   }
-
-  noms(e: EntreePlan): string { return e.valideurs.map(v => v.nom).join(', '); }
 
   taille(o: number): string { return o > 1024 * 1024 ? `${(o / 1024 / 1024).toFixed(1)} Mo` : `${Math.ceil(o / 1024)} Ko`; }
 

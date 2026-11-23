@@ -261,8 +261,8 @@ def _figer_organisation(demande, d):
 
 def preparer_soumission(demande, user):
     """
-    Contrôles et plan de validation, sans rien enregistrer : sert à la
-    prévisualisation (« Votre demande passera par… ») et à la soumission.
+    Contrôles et plan de validation, sans rien enregistrer (première étape
+    de la soumission).
     """
     _exiger_demandeur(demande, user, {StatutDemande.BROUILLON, StatutDemande.A_CORRIGER}, 'soumettre')
     d = timezone.localdate()

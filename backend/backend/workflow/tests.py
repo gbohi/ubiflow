@@ -118,16 +118,15 @@ class Base(APITestCase):
 
 
 class CircuitStandardTests(Base):
-    def test_plan_avant_soumission(self):
+    def test_circuit_calcule_a_la_soumission(self):
         pk = self.creer()
-        r = self.client.get(f'/api/api/demandes/{pk}/plan/')
-        self.assertEqual(r.status_code, 200, r.data)
-        plan = {e['code']: e for e in r.data['plan']}
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/plan/').status_code, 404)  # plus de prévisualisation
+        self.soumettre(pk)
+        plan = {e['code']: e for e in Demande.objects.get(pk=pk).instances.get().plan}
         self.assertEqual(plan['n_plus_1']['valideurs'][0]['id'], self.chef.pk)
         self.assertEqual(plan['daf']['valideurs'][0]['id'], self.daf.pk)
         self.assertEqual(plan['dg']['statut'], 'sautee')
         self.assertIn('1 000 000', plan['dg']['raison'])
-        self.assertEqual(self.statut(pk), 'brouillon')  # rien n'est enregistré
 
     def test_approbation_complete_et_numerotation(self):
         pk = self.creer()

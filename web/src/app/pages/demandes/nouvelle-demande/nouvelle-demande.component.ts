@@ -46,15 +46,33 @@ export class NouvelleDemandeComponent implements OnInit {
     this.contenu = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
   }
 
-  enregistrer(): void {
+  /** Crée le brouillon ; avec soumettre=true, le soumet aussitôt. */
+  enregistrer(soumettre = false): void {
     if (!this.type || this.enCours) return;
+    if (soumettre && !confirm('Soumettre la demande pour validation ? Elle ne sera plus modifiable, sauf retour pour correction.')) return;
     this.enCours = true;
     this.erreurs = null;
     this.service.creer({ type_demande: this.type.id!, objet: this.contenu.objet, montant_demande: this.contenu.montant_demande,
                          donnees: this.contenu.donnees }).subscribe({
       next: d => {
-        this.toast.success('Brouillon enregistré. Vérifiez puis soumettez votre demande.');
-        this.router.navigate(['/demandes', d.id], { queryParams: { soumettre: 1 } });
+        if (!soumettre) {
+          this.toast.success('Brouillon enregistré.');
+          this.router.navigate(['/demandes', d.id]);
+          return;
+        }
+        this.service.soumettre(d.id).subscribe({
+          next: s => {
+            this.toast.success(`Demande ${s.reference} soumise.`);
+            this.router.navigate(['/demandes', d.id]);
+          },
+          error: e => {
+            // Le brouillon existe : on l'ouvre pour corriger ce qui bloque
+            const circuit = e?.champs?.circuit;
+            this.toast.error(Array.isArray(circuit) ? circuit.join(' ') : messageErreur(e, 'Vérifiez les informations saisies.'));
+            this.toast.info('La demande est enregistrée en brouillon.');
+            this.router.navigate(['/demandes', d.id]);
+          },
+        });
       },
       error: e => {
         this.enCours = false;

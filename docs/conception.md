@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.3 — référence pour le développement. Toute évolution de règle
+Version 1.4 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -558,8 +558,10 @@ Structure JSON évaluée par le moteur (pas de code libre) :
    condition ; résoudre les valideurs ; appliquer les règles
    d'auto-validation et de « même valideur déjà passé ». Le plan est
    enregistré avec les raisons (« étape DG sautée : montant ≤ 1 000 000 »).
-4. Le plan est montré au demandeur **avant** confirmation de la soumission.
-5. Ouverture de la première étape.
+4. Ouverture de la première étape. Le plan n'est **pas** montré au demandeur
+   avant la soumission (décision du 23/11/2026) ; il voit ensuite la
+   progression du circuit sur la fiche de sa demande. La simulation reste
+   disponible pour les administrateurs des workflows.
 
 **Ouverture d'une étape**
 - Vérification des valideurs prévus : un titulaire de responsabilité qui a

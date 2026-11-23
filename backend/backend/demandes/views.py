@@ -91,7 +91,6 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     POST   /demandes/                       brouillon
     PATCH  /demandes/{id}/                  brouillon / correction
     DELETE /demandes/{id}/                  brouillon jamais soumis
-    GET    /demandes/{id}/plan/             circuit prévu (avant soumission)
     POST   /demandes/{id}/soumettre/        soumission ou resoumission { motif }
     POST   /demandes/{id}/annuler/          { motif }
     POST   /demandes/{id}/dupliquer/
@@ -165,13 +164,6 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
     def destroy(self, request, pk=None):
         services.supprimer_brouillon(self.get_object(), request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['get'])
-    def plan(self, request, pk=None):
-        demande = self.get_object()
-        version, plan = services.preparer_soumission(demande, request.user)
-        return Response({'version_workflow': version.numero, 'plan': plan, 'blocages': moteur.blocages(plan),
-                         'n_plus_1': moteur.nom(demande.n_plus_1) if demande.n_plus_1 else None})
 
     @action(detail=True, methods=['post'])
     def soumettre(self, request, pk=None):

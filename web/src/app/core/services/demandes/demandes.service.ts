@@ -172,10 +172,6 @@ export class DemandesService {
     return this.http.patch<Demande>(`${this.api}/demandes/${id}/`, d, detaille());
   }
   supprimer(id: number) { return this.http.delete(`${this.api}/demandes/${id}/`); }
-  plan(id: number) {
-    return this.http.get<{ version_workflow: number; plan: EntreePlan[]; blocages: string[]; n_plus_1: string | null }>(
-      `${this.api}/demandes/${id}/plan/`);
-  }
   soumettre(id: number, motif = '') { return this.http.post<Demande>(`${this.api}/demandes/${id}/soumettre/`, { motif }, detaille()); }
   annuler(id: number, motif: string) { return this.http.post<Demande>(`${this.api}/demandes/${id}/annuler/`, { motif }); }
   dupliquer(id: number) { return this.http.post<Demande>(`${this.api}/demandes/${id}/dupliquer/`, {}); }

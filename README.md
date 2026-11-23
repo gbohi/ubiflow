@@ -77,7 +77,7 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Domaine | API (`/api/api/…`) | Code |
 |---|---|---|
 | Types de demande | `types-demande/`, `champs-type/`, `exigences-pieces/`, `types-pieces/` | `demandes/` |
-| Demandes | `demandes/` (+ `plan/`, `soumettre/`, `annuler/`, `dupliquer/`, `historique/`, `versions/`, `commentaires/`, `documents/`), `demandes/compteurs/` | `demandes/services.py` |
+| Demandes | `demandes/` (+ `soumettre/`, `annuler/`, `dupliquer/`, `historique/`, `versions/`, `commentaires/`, `documents/`), `demandes/compteurs/` | `demandes/services.py` |
 | Validations | `taches/` (+ `approuver/`, `rejeter/`, `retourner/`, `reaffecter/`) | `workflow/moteur.py` |
 | Circuits | `versions-workflow/` (+ `publier/`, `controle/`, `simuler/`, `reordonner/`), `etapes-workflow/`, `champs-condition/` | `workflow/parametrage.py`, `workflow/conditions.py` |
 | Délégations | `delegations/` (+ `revoquer/`) | `workflow/` |
@@ -85,8 +85,8 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Journal | `journal/` | `audit/` |
 
 Règles principales :
-- une demande est un **brouillon** jusqu'à sa soumission ; le demandeur voit
-  le **circuit prévu** avant de confirmer ; la référence
+- une demande est un **brouillon** jusqu'à sa soumission (elle peut être
+  soumise dès sa création) ; la référence
   (`PREFIXE-AAAA-NNNNN`) est attribuée à la soumission, sans trou ;
 - la demande garde la **version du circuit**, le **N+1** et sa situation
   (département, agence, catégorie) du jour de la soumission ;

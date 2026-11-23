@@ -137,8 +137,8 @@
         <div class="lst-carte p-3 mb-3">
           <div class="d-grid gap-2">
             @if (demande.actions?.soumettre) {
-              <button type="button" class="btn btn-primary" [disabled]="planChargement || enCours" (click)="ouvrirSoumission()">
-                @if (planChargement) { <span class="spinner-border spinner-border-sm me-1"></span> } @else { <i class="ri-send-plane-line me-1"></i> }
+              <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="ouvrirSoumission()">
+                @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> } @else { <i class="ri-send-plane-line me-1"></i> }
                 {{ demande.statut === 'a_corriger' ? 'Soumettre de nouveau' : 'Soumettre' }}
               </button>
             }
@@ -222,32 +222,14 @@
   </div>
 </div>
 
-<!-- Soumission : circuit prévu -->
+<!-- Soumission : confirmation -->
 <div bsModal #soumissionModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Votre demande passera par…</h5>
+      <div class="modal-header"><h5 class="modal-title">{{ demande.statut === 'a_corriger' ? 'Soumettre de nouveau ?' : 'Soumettre la demande ?' }}</h5>
         <button type="button" class="btn-close" aria-label="Fermer" (click)="soumissionModal.hide()"></button></div>
       <div class="modal-body">
-        @if (blocages.length) {
-          <div class="alert alert-danger small">@for (b of blocages; track $index) { <div>{{ b }}</div> }
-            <div class="mt-1">La soumission est impossible tant que ce point n'est pas réglé. Les administrateurs en sont informés si vous soumettez.</div></div>
-        }
-        <ol class="list-group list-group-numbered">
-          @for (e of plan; track e.etape) {
-            <li class="list-group-item d-flex justify-content-between align-items-start" [class.text-muted]="e.statut === 'sautee'" [class.list-group-item-danger]="e.statut === 'bloquante'">
-              <div class="ms-2 me-auto">
-                <div class="fw-semibold">{{ e.libelle }}</div>
-                @if (e.statut === 'prevue') {
-                  <small>{{ noms(e) }}@if (e.mode === 'parallele') { — en parallèle ({{ e.regle_parallele === 'un_seul' ? 'une approbation suffit' : e.regle_parallele === 'quorum' ? 'quorum ' + e.quorum : 'tous' }}) }</small>
-                }
-                @if (e.raison) { <small class="d-block">{{ e.raison }}</small> }
-              </div>
-              <span class="badge rounded-pill" [ngClass]="e.statut === 'prevue' ? 'bg-primary' : e.statut === 'sautee' ? 'bg-secondary' : 'bg-danger'">
-                {{ e.statut === 'prevue' ? 'Prévue' : e.statut === 'sautee' ? 'Non concernée' : 'Bloquante' }}</span>
-            </li>
-          }
-        </ol>
+        <p class="mb-0">La demande sera transmise pour validation et ne sera plus modifiable, sauf si elle vous est retournée pour correction.</p>
         @if (demande.statut === 'a_corriger') {
           <label class="form-label mt-3 small" for="motif-resoumission">Ce que vous avez corrigé (facultatif)</label>
           <textarea id="motif-resoumission" class="form-control form-control-sm" rows="2" [(ngModel)]="motifResoumission"></textarea>
@@ -255,8 +237,8 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light" (click)="soumissionModal.hide()">Retour</button>
-        <button type="button" class="btn btn-primary" [disabled]="enCours || blocages.length > 0" (click)="soumettre()">
-          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> }Confirmer la soumission</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="soumettre()">
+          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> }Soumettre</button>
       </div>
     </div>
   </div>
