@@ -1,6 +1,6 @@
 // src/app/core/helpers/error.interceptor.ts
 import { Injectable } from '@angular/core';
-import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
+import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse, HttpContextToken } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -42,6 +42,15 @@ export function messageErreurApi(err: HttpErrorResponse | any): string {
 }
 
 /**
+ * Requêtes qui veulent aussi les erreurs par champ : l'erreur renvoyée est alors
+ * { message, champs, status } au lieu d'un simple texte.
+ *   this.http.post(url, data, { context: new HttpContext().set(ERREURS_DETAILLEES, true) })
+ */
+export const ERREURS_DETAILLEES = new HttpContextToken<boolean>(() => false);
+
+export interface ErreurDetaillee { message: string; champs: any; status: number; }
+
+/**
  * ErrorInterceptor — gestion globale des erreurs HTTP
  *
  * - 401 : laissé tel quel, géré par AuthInterceptor (refresh puis déconnexion).
@@ -56,6 +65,10 @@ export class ErrorInterceptor implements HttpInterceptor {
       catchError(err => {
         if (err.status === 401) {
           return throwError(() => err);
+        }
+        if (request.context.get(ERREURS_DETAILLEES)) {
+          return throwError(() => ({ message: messageErreurApi(err) || 'Accès refusé.', champs: err.error,
+                                     status: err.status } as ErreurDetaillee));
         }
         if (err.status === 403) {
           return throwError(() => messageErreurApi(err) || 'Accès refusé.');

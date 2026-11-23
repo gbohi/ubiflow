@@ -28,6 +28,10 @@ import { OrganigrammeComponent } from './organigramme/organigramme.component';
 import { ImportCollaborateursComponent } from './import-collaborateurs/import-collaborateurs.component';
 import { OrganisationCollaborateurComponent } from './user/organisation-collaborateur/organisation-collaborateur.component';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { TypesDemandeComponent } from './types-demande/types-demande.component';
+import { WorkflowsComponent } from './workflows/workflows.component';
+import { WorkflowEditeurComponent } from './workflow-editeur/workflow-editeur.component';
+import { JournalComponent } from './journal/journal.component';
 
 @NgModule({
   declarations: [
@@ -44,6 +48,10 @@ import { NgSelectModule } from '@ng-select/ng-select';
     OrganigrammeComponent,
     ImportCollaborateursComponent,
     OrganisationCollaborateurComponent,
+    TypesDemandeComponent,
+    WorkflowsComponent,
+    WorkflowEditeurComponent,
+    JournalComponent,
   ],
   imports: [
     CommonModule,

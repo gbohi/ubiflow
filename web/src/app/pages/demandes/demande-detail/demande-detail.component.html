@@ -1,0 +1,283 @@
+@if (chargement) {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+} @else if (demande) {
+<div class="lst">
+  <app-page-entete [titre]="demande.reference || 'Brouillon'" icone="ri-file-text-line"
+                   [fil]="[{label: 'Mes demandes', lien: '/demandes'}]" [sousTitre]="demande.type_libelle + ' — ' + demande.demandeur_nom">
+    <span class="lst-tag fs-6" [ngClass]="classes[demande.statut]">{{ demande.statut_libelle }}</span>
+  </app-page-entete>
+
+  @if (retourEnCours) {
+    <div class="alert alert-warning"><i class="ri-arrow-go-back-line me-1"></i><b>Demande retournée pour correction</b>
+      par {{ retourEnCours.auteur_nom }} ({{ retourEnCours.etape_libelle }}) : {{ retourEnCours.motif }}
+      @if (demande.actions?.soumettre) { <div class="small mt-1">Corrigez les informations ou les pièces, puis soumettez de nouveau.</div> }
+    </div>
+  }
+  @if (rejet) {
+    <div class="alert alert-danger"><i class="ri-close-circle-line me-1"></i><b>Demande rejetée</b> par {{ rejet.auteur_nom }}
+      ({{ rejet.etape_libelle }}) : {{ rejet.motif }}</div>
+  }
+  @if (demande.statut === 'annulee') {
+    <div class="alert alert-secondary"><i class="ri-forbid-line me-1"></i>Demande annulée le {{ demande.annulee_le | date:'dd/MM/yyyy' }} : {{ demande.motif_annulation }}</div>
+  }
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <!-- Contenu -->
+      <div class="lst-carte p-3 p-md-4 mb-3">
+        <div class="d-flex align-items-center mb-3">
+          <h6 class="mb-0">Contenu de la demande</h6>
+          @if (demande.version_numero) { <small class="text-muted ms-2">version {{ demande.version_numero }}</small> }
+          @if (editable) {
+            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" [disabled]="enCours" (click)="enregistrer()">
+              <i class="ri-save-line me-1"></i>Enregistrer
+            </button>
+          }
+        </div>
+        <app-champs-demande [contenu]="contenu" [champs]="demande.champs || []" [avecMontant]="demande.montant_demande !== null || editable"
+                            [lectureSeule]="!editable" [erreurs]="erreurs"></app-champs-demande>
+        @if (demande.montant_approuve && demande.montant_approuve !== demande.montant_demande) {
+          <div class="alert alert-info small mt-3 mb-0">Montant approuvé : <b>{{ demande.montant_approuve | number:'1.0-2' }} {{ demande.devise }}</b></div>
+        }
+      </div>
+
+      <!-- Pièces jointes -->
+      <div class="lst-carte p-3 p-md-4 mb-3">
+        <h6 class="mb-3">Pièces jointes</h6>
+        @if (demande.pieces_exigees?.length) {
+          <p class="small text-muted">Pièces prévues :
+            @for (e of demande.pieces_exigees; track e.id) { {{ e.type_piece_libelle }} ({{ e.obligatoire ? 'obligatoire' : 'facultative' }}, {{ e.moment_libelle?.toLowerCase() }})@if (!$last) { · } }</p>
+        }
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-2">
+            <tbody>
+              @for (doc of demande.documents; track doc.id) {
+                <tr [class.text-decoration-line-through]="doc.retire" [class.text-muted]="doc.retire">
+                  <td><i class="ri-file-line me-1"></i><a href="javascript:void(0)" (click)="telecharger(doc)">{{ doc.nom_origine }}</a>
+                    <small class="d-block text-muted">{{ doc.type_piece_libelle || 'Sans type' }} · {{ taille(doc.taille) }} · {{ doc.ajoute_par_nom }}, {{ doc.ajoute_le | date:'dd/MM/yyyy HH:mm' }}</small>
+                    @if (doc.retire) { <small class="d-block">Retirée par {{ doc.retire_par_nom }} : {{ doc.motif_retrait }}</small> }
+                  </td>
+                  <td class="text-end">
+                    @if (!doc.retire && demande.actions?.ajouter_document) {
+                      <button type="button" class="btn btn-subtle-danger btn-icon btn-sm" title="Retirer" (click)="retirerPiece(doc)"><i class="ri-delete-bin-6-line"></i></button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td class="text-muted small">Aucune pièce jointe.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (demande.actions?.ajouter_document) {
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5"><input #champFichier type="file" class="form-control form-control-sm" (change)="choisirFichier($event)"
+                                         accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods"></div>
+            <div class="col-md-4">
+              <select class="form-select form-select-sm" [(ngModel)]="typePiece" aria-label="Type de pièce">
+                <option [ngValue]="null">— Type de pièce —</option>
+                @for (t of typesPieces; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
+              </select>
+            </div>
+            <div class="col-md-3"><button type="button" class="btn btn-sm btn-outline-primary w-100" [disabled]="!fichier" (click)="ajouterPiece(champFichier)">
+              <i class="ri-upload-2-line me-1"></i>Joindre</button></div>
+          </div>
+        }
+      </div>
+
+      <!-- Commentaires -->
+      <div class="lst-carte p-3 p-md-4 mb-3">
+        <h6 class="mb-3">Commentaires</h6>
+        @for (c of demande.commentaires; track c.id) {
+          <div class="border-start border-3 ps-2 mb-2"><small class="text-muted">{{ c.auteur_nom }} — {{ c.creee_le | date:'dd/MM/yyyy HH:mm' }}</small>
+            <div style="white-space: pre-line">{{ c.texte }}</div></div>
+        } @empty { <p class="text-muted small">Aucun commentaire.</p> }
+        <div class="d-flex gap-2 mt-2">
+          <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="commentaire" placeholder="Ajouter un commentaire…" aria-label="Commentaire"></textarea>
+          <button type="button" class="btn btn-sm btn-light align-self-end" [disabled]="!commentaire.trim()" (click)="commenter()">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <!-- Validation -->
+      @if (tache) {
+        <div class="lst-carte p-3 mb-3 border border-primary">
+          <h6 class="mb-1"><i class="ri-checkbox-circle-line me-1 text-primary"></i>Votre validation</h6>
+          <p class="small text-muted mb-2">Étape « {{ tache.etape }} »
+            @if (tache.pour_compte_de) { — pour le compte de <b>{{ tache.pour_compte_de }}</b> (délégation) }
+            @if (tache.auto_validation) { — vous êtes le demandeur }</p>
+          @if (peutModifierMontant) {
+            <label class="form-label small mb-1" for="montant-approuve">Montant approuvé</label>
+            <div class="input-group input-group-sm mb-2">
+              <input id="montant-approuve" type="number" min="0" class="form-control" [(ngModel)]="montantApprouve">
+              <span class="input-group-text">{{ demande.devise }}</span>
+            </div>
+          }
+          @if (champsCorrigeables.length) {
+            <div class="mb-2"><small class="text-muted d-block mb-1">Champs que vous pouvez corriger :</small>
+              <app-champs-demande [contenu]="corrections" [champs]="champsCorrigeables" [avecObjet]="false"></app-champs-demande></div>
+          }
+          <textarea class="form-control form-control-sm mb-2" rows="3" [(ngModel)]="motifValidation"
+                    placeholder="Commentaire (obligatoire pour un retour ou un rejet)" aria-label="Motif"></textarea>
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-success" [disabled]="enCours" (click)="agir('approuver')"><i class="ri-check-line me-1"></i>Approuver</button>
+            @if (tache.actions_autorisees.includes('retourner')) {
+              <button type="button" class="btn btn-outline-warning" [disabled]="enCours" (click)="agir('retourner')"><i class="ri-arrow-go-back-line me-1"></i>Retourner pour correction</button>
+            }
+            @if (tache.actions_autorisees.includes('rejeter')) {
+              <button type="button" class="btn btn-outline-danger" [disabled]="enCours" (click)="agir('rejeter')"><i class="ri-close-line me-1"></i>Rejeter</button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Actions du demandeur -->
+      @if (demande.actions?.soumettre || demande.actions?.annuler || demande.actions?.dupliquer || demande.actions?.supprimer) {
+        <div class="lst-carte p-3 mb-3">
+          <div class="d-grid gap-2">
+            @if (demande.actions?.soumettre) {
+              <button type="button" class="btn btn-primary" [disabled]="planChargement || enCours" (click)="ouvrirSoumission()">
+                @if (planChargement) { <span class="spinner-border spinner-border-sm me-1"></span> } @else { <i class="ri-send-plane-line me-1"></i> }
+                {{ demande.statut === 'a_corriger' ? 'Soumettre de nouveau' : 'Soumettre' }}
+              </button>
+            }
+            @if (demande.actions?.annuler) {
+              <button type="button" class="btn btn-outline-secondary" (click)="motifAnnulation = ''; annulationModal.show()"><i class="ri-forbid-line me-1"></i>Annuler la demande</button>
+            }
+            @if (demande.actions?.dupliquer) {
+              <button type="button" class="btn btn-light" (click)="dupliquer()"><i class="ri-file-copy-line me-1"></i>Dupliquer en nouvelle demande</button>
+            }
+            @if (demande.actions?.supprimer) {
+              <button type="button" class="btn btn-ghost-danger" (click)="supprimer()"><i class="ri-delete-bin-6-line me-1"></i>Supprimer le brouillon</button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Circuit -->
+      @if (cycleCourant) {
+        <div class="lst-carte p-3 mb-3">
+          <h6 class="mb-3">Circuit de validation
+            <small class="text-muted fw-normal">— cycle {{ cycleCourant.cycle }}, version {{ cycleCourant.version_workflow }}</small></h6>
+          <ol class="dd-etapes">
+            @for (e of cycleCourant.etapes; track e.id) {
+              <li>
+                <span class="dd-pt" [ngClass]="e.etat">
+                  @switch (e.etat) { @case ('approuvee') { <i class="ri-check-line"></i> } @case ('rejetee') { <i class="ri-close-line"></i> }
+                    @case ('retournee') { <i class="ri-arrow-go-back-line"></i> } @case ('sautee') { <i class="ri-skip-forward-line"></i> }
+                    @default { {{ e.ordre }} } }
+                </span>
+                <b class="small">{{ e.libelle }}</b> <span class="text-muted small">— {{ e.etat_libelle }}{{ e.reprise ? ' (reprise)' : '' }}</span>
+                @if (e.etat === 'sautee') { <div class="small text-muted">{{ e.motif_saut }}</div> }
+                @for (t of e.taches; track t.id) {
+                  @if (t.etat !== 'annulee' || t.decision) {
+                    <div class="small">
+                      <i class="me-1" [ngClass]="t.decision === 'approuvee' ? 'ri-check-line text-success' : t.decision === 'rejetee' ? 'ri-close-line text-danger' : t.decision === 'retournee' ? 'ri-arrow-go-back-line text-warning' : t.etat === 'en_attente' ? 'ri-time-line text-primary' : 'ri-subtract-line text-muted'"></i>
+                      {{ t.valideur }}@if (t.traitee_par && t.traitee_par !== t.valideur) { <span class="text-muted"> (par {{ t.traitee_par }})</span> }
+                      @if (t.traitee_le) { <span class="text-muted"> · {{ t.traitee_le | date:'dd/MM HH:mm' }}</span> }
+                    </div>
+                  }
+                }
+                @if (e.etat === 'a_venir' && e.valideurs_prevus.length) { <div class="small text-muted">Prévu : {{ e.valideurs_prevus.join(', ') }}</div> }
+              </li>
+            }
+          </ol>
+        </div>
+      }
+
+      <!-- Informations -->
+      <div class="lst-carte p-3 mb-3">
+        <h6 class="mb-2">Informations</h6>
+        <dl class="row small mb-0">
+          <dt class="col-5 text-muted fw-normal">Demandeur</dt><dd class="col-7">{{ demande.demandeur_nom }}</dd>
+          @if (demande.departement_libelle) { <dt class="col-5 text-muted fw-normal">Département</dt><dd class="col-7">{{ demande.departement_libelle }}</dd> }
+          @if (demande.agence_libelle) { <dt class="col-5 text-muted fw-normal">Agence</dt><dd class="col-7">{{ demande.agence_libelle }}</dd> }
+          @if (demande.n_plus_1_nom) { <dt class="col-5 text-muted fw-normal">N+1 retenu</dt><dd class="col-7">{{ demande.n_plus_1_nom }}</dd> }
+          <dt class="col-5 text-muted fw-normal">Créée le</dt><dd class="col-7">{{ demande.created_at | date:'dd/MM/yyyy HH:mm' }}</dd>
+          @if (demande.soumise_le) { <dt class="col-5 text-muted fw-normal">Soumise le</dt><dd class="col-7">{{ demande.soumise_le | date:'dd/MM/yyyy HH:mm' }}</dd> }
+          @if (demande.approuvee_le) { <dt class="col-5 text-muted fw-normal">Approuvée le</dt><dd class="col-7">{{ demande.approuvee_le | date:'dd/MM/yyyy HH:mm' }}</dd> }
+          @if (demande.statut_financier !== 'sans_objet') { <dt class="col-5 text-muted fw-normal">Paiement</dt><dd class="col-7">{{ demande.statut_financier_libelle }}</dd> }
+          @if (demande.origine_copie_reference) { <dt class="col-5 text-muted fw-normal">Copie de</dt><dd class="col-7"><a [routerLink]="['/demandes', demande.origine_copie]">{{ demande.origine_copie_reference }}</a></dd> }
+        </dl>
+      </div>
+
+      <!-- Historique -->
+      <div class="lst-carte p-3">
+        <h6 class="mb-2">Historique</h6>
+        <div class="dd-hist">
+          @for (a of historique; track a.id) {
+            <div class="d-flex gap-2 mb-2 small">
+              <i [class]="iconeAction(a.type)" class="text-muted mt-1"></i>
+              <div><b>{{ a.type_libelle }}</b>@if (a.etape_libelle) { <span class="text-muted"> — {{ a.etape_libelle }}</span> }
+                <div class="text-muted">{{ a.auteur_nom }}@if (a.pour_compte_de_nom) { pour {{ a.pour_compte_de_nom }} }
+                  · {{ a.horodatage | date:'dd/MM/yyyy HH:mm' }}@if (a.canal === 'mobile') { · mobile }</div>
+                @if (a.motif) { <div style="white-space: pre-line">{{ a.motif }}</div> }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Soumission : circuit prévu -->
+<div bsModal #soumissionModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Votre demande passera par…</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="soumissionModal.hide()"></button></div>
+      <div class="modal-body">
+        @if (blocages.length) {
+          <div class="alert alert-danger small">@for (b of blocages; track $index) { <div>{{ b }}</div> }
+            <div class="mt-1">La soumission est impossible tant que ce point n'est pas réglé. Les administrateurs en sont informés si vous soumettez.</div></div>
+        }
+        <ol class="list-group list-group-numbered">
+          @for (e of plan; track e.etape) {
+            <li class="list-group-item d-flex justify-content-between align-items-start" [class.text-muted]="e.statut === 'sautee'" [class.list-group-item-danger]="e.statut === 'bloquante'">
+              <div class="ms-2 me-auto">
+                <div class="fw-semibold">{{ e.libelle }}</div>
+                @if (e.statut === 'prevue') {
+                  <small>{{ noms(e) }}@if (e.mode === 'parallele') { — en parallèle ({{ e.regle_parallele === 'un_seul' ? 'une approbation suffit' : e.regle_parallele === 'quorum' ? 'quorum ' + e.quorum : 'tous' }}) }</small>
+                }
+                @if (e.raison) { <small class="d-block">{{ e.raison }}</small> }
+              </div>
+              <span class="badge rounded-pill" [ngClass]="e.statut === 'prevue' ? 'bg-primary' : e.statut === 'sautee' ? 'bg-secondary' : 'bg-danger'">
+                {{ e.statut === 'prevue' ? 'Prévue' : e.statut === 'sautee' ? 'Non concernée' : 'Bloquante' }}</span>
+            </li>
+          }
+        </ol>
+        @if (demande.statut === 'a_corriger') {
+          <label class="form-label mt-3 small" for="motif-resoumission">Ce que vous avez corrigé (facultatif)</label>
+          <textarea id="motif-resoumission" class="form-control form-control-sm" rows="2" [(ngModel)]="motifResoumission"></textarea>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="soumissionModal.hide()">Retour</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours || blocages.length > 0" (click)="soumettre()">
+          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> }Confirmer la soumission</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Annulation -->
+<div bsModal #annulationModal="bs-modal" class="modal fade">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Annuler la demande</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="annulationModal.hide()"></button></div>
+      <div class="modal-body">
+        <label class="form-label" for="motif-annulation">Motif <span class="text-danger">*</span></label>
+        <textarea id="motif-annulation" class="form-control" rows="3" [(ngModel)]="motifAnnulation"></textarea>
+        <p class="small text-muted mt-2 mb-0">Les valideurs en attente seront prévenus. Une demande annulée ne peut pas être réactivée.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="annulationModal.hide()">Retour</button>
+        <button type="button" class="btn btn-danger" [disabled]="!motifAnnulation.trim()" (click)="annuler()">Annuler la demande</button>
+      </div>
+    </div>
+  </div>
+</div>
+}

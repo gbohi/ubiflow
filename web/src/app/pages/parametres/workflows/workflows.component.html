@@ -1,0 +1,54 @@
+<div class="lst">
+  <app-page-entete titre="Circuits de validation" icone="ri-git-merge-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Demandes'}]"
+                   sousTitre="Un circuit versionné par type de demande : une modification ne touche jamais les demandes déjà soumises">
+  </app-page-entete>
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="lst-carte"><div class="list-group list-group-flush">
+        @for (t of types; track t.id) {
+          <button type="button" class="list-group-item list-group-item-action" [class.active]="type?.id === t.id" (click)="choisir(t)">
+            <b>{{ t.libelle }}</b>
+            <small class="d-block" [class.text-muted]="type?.id !== t.id">{{ t.circuit_publie ? 'Version ' + t.circuit_publie.numero + ' publiée' : 'Aucun circuit publié' }}</small>
+          </button>
+        }
+      </div></div>
+    </div>
+    <div class="col-lg-8">
+      @if (type) {
+        <div class="lst-carte p-3 mb-3">
+          <h6>Version publiée</h6>
+          @if (publiee) {
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <div><b>Version {{ publiee.numero }}</b> — {{ publiee.etapes.length }} étape(s), publiée le {{ publiee.publiee_le | date:'dd/MM/yyyy' }}
+                par {{ publiee.publiee_par_nom || '—' }} · {{ publiee.nb_demandes }} demande(s)
+                @if (publiee.commentaire_version) { <div class="small text-muted">{{ publiee.commentaire_version }}</div> }</div>
+              <div class="ms-auto d-flex gap-2">
+                <a class="btn btn-sm btn-light" [routerLink]="['/parametres/workflows', publiee.id]"><i class="ri-eye-line me-1"></i>Voir / simuler</a>
+                @if (!brouillon) { <button type="button" class="btn btn-sm btn-primary" (click)="nouvelle(publiee)"><i class="ri-file-copy-line me-1"></i>Modifier (nouvelle version)</button> }
+              </div>
+            </div>
+            <ol class="small mt-2 mb-0">@for (e of publiee.etapes; track e.id) { <li [class.text-muted]="!e.active">{{ e.libelle }}
+              @if (e.condition) { <span class="text-muted"> — si {{ e.description_condition }}</span> }</li> }</ol>
+          } @else {
+            <p class="text-muted small mb-2">Aucun circuit publié : les collaborateurs ne peuvent pas encore créer de demande de ce type.</p>
+            @if (!brouillon) { <button type="button" class="btn btn-sm btn-primary" (click)="nouvelle()"><i class="ri-add-line me-1"></i>Créer le circuit</button> }
+          }
+        </div>
+        @if (brouillon) {
+          <div class="lst-carte p-3 mb-3 border border-warning">
+            <div class="d-flex align-items-center"><div><h6 class="mb-0">Brouillon — version {{ brouillon.numero }}</h6>
+              <small class="text-muted">{{ brouillon.etapes.length }} étape(s), non publié</small></div>
+              <a class="btn btn-sm btn-warning ms-auto" [routerLink]="['/parametres/workflows', brouillon.id]"><i class="ri-pencil-line me-1"></i>Continuer</a></div>
+          </div>
+        }
+        @if (archivees.length) {
+          <div class="lst-carte p-3"><h6>Versions archivées</h6>
+            <ul class="list-unstyled small mb-0">@for (v of archivees; track v.id) {
+              <li class="mb-1"><a [routerLink]="['/parametres/workflows', v.id]">Version {{ v.numero }}</a> — publiée le {{ v.publiee_le | date:'dd/MM/yyyy' }} · {{ v.nb_demandes }} demande(s)</li> }</ul>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

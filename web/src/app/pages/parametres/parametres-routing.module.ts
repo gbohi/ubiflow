@@ -15,6 +15,12 @@ import { PosteComponent } from './poste/poste.component';
 import { ResponsabiliteComponent } from './responsabilite/responsabilite.component';
 import { OrganigrammeComponent } from './organigramme/organigramme.component';
 import { ImportCollaborateursComponent } from './import-collaborateurs/import-collaborateurs.component';
+import { TypesDemandeComponent } from './types-demande/types-demande.component';
+import { WorkflowsComponent } from './workflows/workflows.component';
+import { WorkflowEditeurComponent } from './workflow-editeur/workflow-editeur.component';
+import { JournalComponent } from './journal/journal.component';
+
+const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
 
 
 const routes: Routes = [
@@ -35,6 +41,14 @@ const routes: Routes = [
     title: 'Responsabilités | UbiFlow' },
   { path: 'organigramme', component: OrganigrammeComponent, canActivate: [RoleGuard], data: { roles: GESTIONNAIRES },
     title: 'Organigramme | UbiFlow' },
+  { path: 'types-demande', component: TypesDemandeComponent, canActivate: [RoleGuard], data: { roles: ADMIN_WORKFLOW },
+    title: 'Types de demande | UbiFlow' },
+  { path: 'workflows', component: WorkflowsComponent, canActivate: [RoleGuard], data: { roles: ADMIN_WORKFLOW },
+    title: 'Circuits de validation | UbiFlow' },
+  { path: 'workflows/:id', component: WorkflowEditeurComponent, canActivate: [RoleGuard], data: { roles: ADMIN_WORKFLOW },
+    title: 'Circuit de validation | UbiFlow' },
+  { path: 'journal', component: JournalComponent, canActivate: [RoleGuard], data: { roles: ['super_admin', 'admin', 'controleur'] },
+    title: "Journal d'activité | UbiFlow" },
   { path: 'import-collaborateurs', component: ImportCollaborateursComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
     title: 'Import des collaborateurs | UbiFlow' },
 ];

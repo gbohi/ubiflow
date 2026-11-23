@@ -1,0 +1,50 @@
+<div class="lst prm">
+  <app-page-entete [titre]="'Bonjour ' + prenom" icone="ri-home-4-line" sousTitre="Vos demandes et validations en un coup d'œil">
+    <a routerLink="/demandes/nouvelle" class="btn-ubi vert"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle demande</span></a>
+  </app-page-entete>
+
+  @if (aValider > 0) {
+    <a routerLink="/validations" class="alert alert-primary d-flex align-items-center text-decoration-none">
+      <i class="ri-checkbox-multiple-line fs-4 me-2"></i>
+      <span><b>{{ aValider }} validation{{ aValider > 1 ? 's' : '' }}</b> en attente de votre décision.</span>
+      <i class="ri-arrow-right-line ms-auto"></i>
+    </a>
+  }
+
+  <section class="prm-grp" aria-label="Mes demandes">
+    <h2><i class="ri-file-list-3-line" aria-hidden="true"></i>Mes demandes</h2>
+    <div class="prm-cartes">
+      @for (t of tuiles; track t.cle) {
+        <a class="prm-carte" [routerLink]="['/demandes']" [queryParams]="{ statut: t.cle }">
+          <span class="prm-pa" [ngClass]="t.teinte" aria-hidden="true"><i [class]="t.icone"></i></span>
+          <span class="prm-txt"><b>{{ t.libelle }}</b><small>Voir la liste</small></span>
+          @if (charge) { <span class="prm-n">{{ compteurs[t.cle] || 0 }}</span> }
+          <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="prm-grp" aria-label="Accès rapides">
+    <h2><i class="ri-flashlight-line" aria-hidden="true"></i>Accès rapides</h2>
+    <div class="prm-cartes">
+      <a class="prm-carte" routerLink="/validations">
+        <span class="prm-pa p-bl" aria-hidden="true"><i class="ri-checkbox-multiple-line"></i></span>
+        <span class="prm-txt"><b>À valider</b><small>Demandes qui attendent votre décision</small></span>
+        <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
+      </a>
+      <a class="prm-carte" routerLink="/delegations">
+        <span class="prm-pa p-or" aria-hidden="true"><i class="ri-user-shared-line"></i></span>
+        <span class="prm-txt"><b>Délégations</b><small>Confier vos validations pendant une absence</small></span>
+        <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
+      </a>
+      @if (gestionnaire) {
+        <a class="prm-carte" routerLink="/parametres/accueil">
+          <span class="prm-pa p-ve" aria-hidden="true"><i class="ri-settings-3-line"></i></span>
+          <span class="prm-txt"><b>Paramètres</b><small>Organisation, utilisateurs, référentiels</small></span>
+          <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
+        </a>
+      }
+    </div>
+  </section>
+</div>

@@ -1,4 +1,6 @@
-import { NgModule } from '@angular/core';
+import { LOCALE_ID, NgModule } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClient, HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
@@ -43,6 +45,9 @@ import { UserServiceEffects } from './store/UserService/user-service.effects';
 import { UserAgenceEffects } from './store/UserAgence/user-agence.effects';
 import { UserPosteEffects } from './store/UserPoste/user-poste.effects';
 import { UserCategoriesalarieEffects } from './store/UserCategoriesalarie/user-categoriesalarie.effects';
+
+// Nombres et dates au format français (1 250 000 ; 23/11/2026)
+registerLocaleData(localeFr);
 
 export function createTranslateLoader(http: HttpClient): any {
   return new TranslateHttpLoader(http, 'assets/i18n/', '.json');
@@ -102,6 +107,7 @@ export function createTranslateLoader(http: HttpClient): any {
      * L'intercepteur « fake backend » du template (faux utilisateurs
      * admin/123456 en localStorage) a été retiré.
      */
+    { provide: LOCALE_ID, useValue: 'fr-FR' },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
     provideHttpClient(withInterceptorsFromDi()),

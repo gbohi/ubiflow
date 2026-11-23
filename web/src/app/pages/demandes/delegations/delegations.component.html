@@ -1,0 +1,82 @@
+<div class="lst">
+  <app-page-entete titre="Délégations" icone="ri-user-shared-line" sousTitre="Confier temporairement ses validations à un collègue">
+    @if (adminWorkflow) {
+      <div class="btn-group btn-group-sm me-2">
+        <button type="button" class="btn" [class.btn-primary]="sens === ''" [class.btn-light]="sens !== ''" (click)="sens = ''; charger()">Les miennes</button>
+        <button type="button" class="btn" [class.btn-primary]="sens === 'toutes'" [class.btn-light]="sens !== 'toutes'" (click)="sens = 'toutes'; charger()">Toutes</button>
+      </div>
+    }
+    <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle délégation</span></button>
+  </app-page-entete>
+
+  <div class="lst-carte">
+    <div class="lst-table-wrap lst-cartes-wrap">
+      <table class="lst-table lst-cartes">
+        <thead><tr><th>Délégant</th><th>Délégataire</th><th>Période</th><th>Périmètre</th><th>État</th><th class="lst-c-act"></th></tr></thead>
+        <tbody>
+          @for (d of delegations; track d.id) {
+            <tr>
+              <td class="lst-c-principal"><b>{{ d.delegant_nom }}</b>@if (donnee(d)) { <small class="d-block text-muted">vous</small> }</td>
+              <td data-label="Délégataire">{{ d.delegataire_nom }}</td>
+              <td data-label="Période" class="text-nowrap">{{ d.date_debut | date:'dd/MM/yyyy' }} → {{ d.date_fin | date:'dd/MM/yyyy' }}</td>
+              <td data-label="Périmètre" class="small">
+                {{ d.types_demande_libelles?.length ? d.types_demande_libelles?.join(', ') : 'Tous les types' }}
+                · {{ d.responsabilites_libelles?.length ? d.responsabilites_libelles?.join(', ') : 'toutes les validations' }}
+                @if (d.motif) { <span class="d-block text-muted">{{ d.motif }}</span> }
+              </td>
+              <td data-label="État"><span class="lst-tag" [ngClass]="etats[d.etat || 'active'].classe">{{ etats[d.etat || 'active'].libelle }}</span></td>
+              <td class="lst-c-act">
+                @if ((d.etat === 'active' || d.etat === 'planifiee') && (donnee(d) || adminWorkflow)) {
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="revoquer(d)">Révoquer</button>
+                }
+              </td>
+            </tr>
+          }
+          @if (!delegations.length) {
+            <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein"><div class="lst-vide"><i class="ri-user-shared-line"></i>
+              <h5>Aucune délégation</h5><p>En cas d'absence, déléguez vos validations pour ne pas bloquer les demandes.</p></div></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div bsModal #ficheModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle délégation</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="ficheModal.hide()"></button></div>
+      <div class="modal-body">
+        @if (adminWorkflow) {
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="pour-autrui" [(ngModel)]="pourAutrui">
+            <label class="form-check-label" for="pour-autrui">Pour le compte d'un autre collaborateur</label>
+          </div>
+          @if (pourAutrui) {
+            <div class="mb-3"><label class="form-label">Délégant *</label>
+              <ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="fiche.delegant" placeholder="Rechercher…"></ng-select></div>
+          }
+        }
+        <div class="mb-3"><label class="form-label">Délégataire *</label>
+          <ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="fiche.delegataire" placeholder="Rechercher…"></ng-select></div>
+        <div class="row g-2 mb-3">
+          <div class="col"><label class="form-label">Du *</label><input type="date" class="form-control" [(ngModel)]="fiche.date_debut"></div>
+          <div class="col"><label class="form-label">Au *</label><input type="date" class="form-control" [(ngModel)]="fiche.date_fin"></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Types de demande <small class="text-muted">(vide = tous)</small></label>
+          <ng-select [items]="types" bindLabel="libelle" bindValue="id" [multiple]="true" [(ngModel)]="fiche.types_demande" placeholder="Tous les types"></ng-select></div>
+        <div class="mb-3"><label class="form-label">Responsabilités <small class="text-muted">(vide = toutes mes validations)</small></label>
+          <ng-select [items]="responsabilites" bindLabel="libelle" bindValue="id" [multiple]="true" [(ngModel)]="fiche.responsabilites" placeholder="Toutes"></ng-select>
+          <div class="form-text">Limiter à une responsabilité exclut les validations en tant que N+1.</div></div>
+        <div class="mb-2"><label class="form-label">Motif{{ pourAutrui ? ' *' : '' }}</label>
+          <input class="form-control" maxlength="255" [(ngModel)]="fiche.motif" placeholder="Ex. : congés annuels"></div>
+        <p class="small text-muted mb-0">Vous gardez la main : les validations restent aussi visibles pour vous. Chaque action du délégataire est tracée en votre nom et au sien.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="ficheModal.hide()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="enregistrer()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

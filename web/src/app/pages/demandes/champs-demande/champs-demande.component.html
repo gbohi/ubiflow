@@ -1,0 +1,82 @@
+@if (lectureSeule) {
+  <dl class="row mb-0 small">
+    <dt class="col-sm-4 text-muted fw-normal">Objet</dt><dd class="col-sm-8 fw-semibold">{{ contenu.objet || '—' }}</dd>
+    @if (avecMontant) {
+      <dt class="col-sm-4 text-muted fw-normal">Montant demandé</dt>
+      <dd class="col-sm-8 fw-semibold">{{ contenu.montant_demande ? (contenu.montant_demande | number:'1.0-2') + ' ' + contenu.devise : '—' }}</dd>
+    }
+    @for (c of champs; track c.code) {
+      <dt class="col-sm-4 text-muted fw-normal">{{ c.libelle }}</dt>
+      <dd class="col-sm-8" [class.text-pre]="c.nature === 'texte_long'" style="white-space: pre-line">{{ affichage(c) }}</dd>
+    }
+  </dl>
+} @else {
+  <div class="row g-3">
+    @if (avecObjet) {
+    <div class="col-12">
+      <label class="form-label" for="dem-objet">Objet <span class="text-danger">*</span></label>
+      <input id="dem-objet" class="form-control" maxlength="255" [(ngModel)]="contenu.objet" [class.is-invalid]="erreurDirecte('objet')"
+             placeholder="Ex. : Déjeuner avec la direction de la société X">
+      @if (erreurDirecte('objet')) { <div class="invalid-feedback">{{ erreurDirecte('objet') }}</div> }
+    </div>
+    @if (avecMontant) {
+      <div class="col-md-6">
+        <label class="form-label" for="dem-montant">Montant demandé <span class="text-danger">*</span></label>
+        <div class="input-group">
+          <input id="dem-montant" type="number" min="0" step="1" class="form-control" [(ngModel)]="contenu.montant_demande"
+                 [class.is-invalid]="erreurDirecte('montant_demande') || erreurDirecte('devise')">
+          <span class="input-group-text">{{ contenu.devise }}</span>
+        </div>
+        @if (erreurDirecte('montant_demande') || erreurDirecte('devise')) {
+          <div class="text-danger small mt-1">{{ erreurDirecte('montant_demande') || erreurDirecte('devise') }}</div>
+        }
+      </div>
+    }
+    }
+    @for (c of champs; track c.code) {
+      <div [class]="c.nature === 'texte_long' ? 'col-12' : 'col-md-6'">
+        @if (c.nature !== 'booleen') {
+          <label class="form-label" [for]="'ch-' + c.code">{{ c.libelle }} @if (c.obligatoire) { <span class="text-danger">*</span> }</label>
+        }
+        @switch (c.nature) {
+          @case ('texte_long') {
+            <textarea [id]="'ch-' + c.code" class="form-control" rows="3" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)"></textarea>
+          }
+          @case ('entier') {
+            <input [id]="'ch-' + c.code" type="number" min="0" step="1" class="form-control" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+          }
+          @case ('montant') {
+            <input [id]="'ch-' + c.code" type="number" min="0" class="form-control" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+          }
+          @case ('date') {
+            <input [id]="'ch-' + c.code" type="date" class="form-control" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+          }
+          @case ('datetime') {
+            <input [id]="'ch-' + c.code" type="datetime-local" class="form-control" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+          }
+          @case ('liste') {
+            <select [id]="'ch-' + c.code" class="form-select" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+              <option [ngValue]="undefined">— Choisir —</option>
+              @for (o of c.options; track o) { <option [ngValue]="o">{{ o }}</option> }
+            </select>
+          }
+          @case ('booleen') {
+            <div class="form-check form-switch mt-4">
+              <input class="form-check-input" type="checkbox" [id]="'ch-' + c.code" [(ngModel)]="contenu.donnees[c.code]">
+              <label class="form-check-label" [for]="'ch-' + c.code">{{ c.libelle }}</label>
+            </div>
+          }
+          @case ('collaborateur') {
+            <ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="contenu.donnees[c.code]"
+                       placeholder="Rechercher…" notFoundText="Aucun collaborateur"></ng-select>
+          }
+          @default {
+            <input [id]="'ch-' + c.code" class="form-control" maxlength="500" [(ngModel)]="contenu.donnees[c.code]" [class.is-invalid]="erreur(c.code)">
+          }
+        }
+        @if (c.aide) { <div class="form-text">{{ c.aide }}</div> }
+        @if (erreur(c.code)) { <div class="text-danger small mt-1">{{ erreur(c.code) }}</div> }
+      </div>
+    }
+  </div>
+}

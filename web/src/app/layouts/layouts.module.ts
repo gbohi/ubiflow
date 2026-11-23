@@ -26,6 +26,8 @@ import { SidebarComponent } from './sidebar/sidebar.component';
 import { FooterComponent } from './footer/footer.component';
 import { RightsidebarComponent } from './rightsidebar/rightsidebar.component';
 
+import { ClocheNotificationsComponent } from './cloche-notifications/cloche-notifications.component';
+
 @NgModule({
   declarations: [
     LayoutComponent,
@@ -34,6 +36,7 @@ import { RightsidebarComponent } from './rightsidebar/rightsidebar.component';
     SidebarComponent,
     FooterComponent,
     RightsidebarComponent,
+    ClocheNotificationsComponent,
   ],
   imports: [
     CommonModule,

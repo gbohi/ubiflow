@@ -1,0 +1,24 @@
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ModalModule } from 'ngx-bootstrap/modal';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { SharedModule } from 'src/app/shared/shared.module';
+
+import { DemandesRoutingModule } from './demandes-routing.module';
+import { ChampsDemandeComponent } from './champs-demande/champs-demande.component';
+import { MesDemandesComponent } from './mes-demandes/mes-demandes.component';
+import { NouvelleDemandeComponent } from './nouvelle-demande/nouvelle-demande.component';
+import { DemandeDetailComponent } from './demande-detail/demande-detail.component';
+import { AValiderComponent } from './a-valider/a-valider.component';
+import { DelegationsComponent } from './delegations/delegations.component';
+
+@NgModule({
+  declarations: [
+    ChampsDemandeComponent, MesDemandesComponent, NouvelleDemandeComponent, DemandeDetailComponent,
+    AValiderComponent, DelegationsComponent,
+  ],
+  imports: [CommonModule, FormsModule, SharedModule, ModalModule.forRoot(), NgSelectModule, DemandesRoutingModule],
+  exports: [ChampsDemandeComponent],
+})
+export class DemandesModule {}

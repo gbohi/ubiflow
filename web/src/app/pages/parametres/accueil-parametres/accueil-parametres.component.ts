@@ -35,7 +35,20 @@ export interface GroupeParametres {
 }
 
 /** Thèmes et cartes ; les rôles reprennent exactement ceux des routes */
+const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
+
 export const GROUPES_PARAMETRES: GroupeParametres[] = [
+  {
+    titre: 'Demandes', icone: 'ri-file-list-3-line', teinte: 'p-or',
+    cartes: [
+      { titre: 'Types de demande', description: 'Formulaires et pièces exigées', icone: 'ri-file-settings-line',
+        lien: '/parametres/types-demande', roles: ADMIN_WORKFLOW, motsCles: 'formulaire champ pièce' },
+      { titre: 'Circuits de validation', description: 'Étapes, valideurs, conditions, versions', icone: 'ri-git-merge-line',
+        lien: '/parametres/workflows', roles: ADMIN_WORKFLOW, motsCles: 'workflow circuit valideur étape' },
+      { titre: "Journal d'activité", description: 'Traçabilité des opérations', icone: 'ri-history-line',
+        lien: '/parametres/journal', roles: ['super_admin', 'admin', 'controleur'], motsCles: 'audit trace historique' },
+    ],
+  },
   {
     titre: 'Utilisateurs & accès', icone: 'ri-team-line', teinte: 'p-ve',
     cartes: [

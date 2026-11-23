@@ -1,0 +1,43 @@
+<div class="lst">
+  <app-page-entete titre="Nouvelle demande" icone="ri-add-circle-line"
+                   [fil]="[{label: 'Mes demandes', lien: '/demandes'}]"
+                   [sousTitre]="type ? type.libelle : 'Choisissez le type de demande'">
+    @if (type && types.length > 1) {
+      <button type="button" class="btn-ubi" (click)="type = null"><i class="ri-arrow-left-line"></i><span class="pe-lib">Changer de type</span></button>
+    }
+  </app-page-entete>
+
+  @if (chargement) {
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+  } @else if (!type) {
+    <div class="row g-3">
+      @for (t of types; track t.id) {
+        <div class="col-md-6 col-xl-4">
+          <button type="button" class="prm-carte w-100 text-start border-0" (click)="choisir(t)">
+            <span class="prm-pa p-ve" aria-hidden="true"><i [class]="t.icone || 'ri-file-text-line'"></i></span>
+            <span class="prm-txt"><b>{{ t.libelle }}</b><small>{{ t.description }}</small></span>
+            <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
+          </button>
+        </div>
+      } @empty {
+        <div class="col-12"><div class="lst-carte"><div class="lst-vide"><i class="ri-file-forbid-line"></i>
+          <h5>Aucun type de demande disponible</h5><p>Aucun circuit de validation n'est encore publié.</p></div></div></div>
+      }
+    </div>
+  } @else {
+    <div class="lst-carte p-3 p-md-4">
+      @if (type.description) { <p class="text-muted">{{ type.description }}</p> }
+      <app-champs-demande [contenu]="contenu" [champs]="type.champs || []" [avecMontant]="type.avec_montant" [erreurs]="erreurs"></app-champs-demande>
+      @if (type.exigences?.length) {
+        <p class="small text-muted mt-3 mb-0"><i class="ri-attachment-2 me-1"></i>Pièces à joindre après l'enregistrement :
+          @for (e of type.exigences; track e.id) { {{ e.type_piece_libelle }}{{ e.obligatoire ? ' (obligatoire)' : ' (facultative)' }}@if (!$last) { , } }</p>
+      }
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <a routerLink="/demandes" class="btn btn-light">Annuler</a>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="enregistrer()">
+          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> }Enregistrer le brouillon
+        </button>
+      </div>
+    </div>
+  }
+</div>

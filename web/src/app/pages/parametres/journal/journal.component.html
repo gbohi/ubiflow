@@ -1,0 +1,41 @@
+<div class="lst">
+  <app-page-entete titre="Journal d'activité" icone="ri-history-line" [compte]="total" unite="opération|opérations"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}]"></app-page-entete>
+  <div class="lst-carte">
+    <div class="lst-barre flex-wrap gap-2">
+      <div class="lst-recherche"><i class="ri-search-line"></i>
+        <input type="search" placeholder="Objet, motif, auteur…" aria-label="Rechercher" [(ngModel)]="filtres.search" (keyup.enter)="charger()"></div>
+      <input type="date" class="form-control form-control-sm w-auto" [(ngModel)]="filtres.du" aria-label="Du">
+      <input type="date" class="form-control form-control-sm w-auto" [(ngModel)]="filtres.au" aria-label="Au">
+      <select class="form-select form-select-sm w-auto" [(ngModel)]="filtres.action" aria-label="Type d'opération">
+        <option value="">Toutes les opérations</option><option value="parametrage">Paramétrage</option><option value="workflow">Circuits</option>
+        <option value="delegation">Délégations</option><option value="document">Pièces</option></select>
+      <button type="button" class="btn btn-sm btn-primary" (click)="charger()">Filtrer</button>
+    </div>
+    <div class="lst-table-wrap">
+      <table class="lst-table">
+        <thead><tr><th>Date</th><th>Auteur</th><th>Opération</th><th>Objet</th><th>Motif</th><th></th></tr></thead>
+        <tbody>
+          @for (l of lignes; track l.id) {
+            <tr>
+              <td class="small text-nowrap">{{ l.horodatage | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+              <td>{{ l.auteur_nom || 'Système' }}@if (l.pour_compte_de_nom) { <small class="d-block text-muted">pour {{ l.pour_compte_de_nom }}</small> }</td>
+              <td>{{ libelles[l.action] || l.action }}</td>
+              <td class="small">{{ l.objet_libelle }}<span class="d-block text-muted">{{ l.objet_type }} #{{ l.objet_id }}</span></td>
+              <td class="small">{{ l.motif || '—' }}</td>
+              <td>@if (l.avant || l.apres) { <button type="button" class="btn btn-link btn-sm p-0" (click)="detail = detail?.id === l.id ? null : l">Détail</button> }</td>
+            </tr>
+            @if (detail?.id === l.id) {
+              <tr><td colspan="6"><div class="row g-2 small">
+                <div class="col-md-6"><b>Avant</b><pre class="bg-light p-2 rounded mb-0" style="max-height: 240px">{{ json(l.avant) }}</pre></div>
+                <div class="col-md-6"><b>Après</b><pre class="bg-light p-2 rounded mb-0" style="max-height: 240px">{{ json(l.apres) }}</pre></div>
+              </div></td></tr>
+            }
+          }
+          @if (!lignes.length && !chargement) { <tr><td colspan="6" class="text-center text-muted py-4">Aucune opération.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+    <app-liste-pied [total]="total" [page]="page" [nbAffiches]="lignes.length" (pageChanged)="charger($event.page)"></app-liste-pied>
+  </div>
+</div>

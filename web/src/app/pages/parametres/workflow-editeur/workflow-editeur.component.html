@@ -1,0 +1,229 @@
+@if (version) {
+<div class="lst">
+  <app-page-entete [titre]="(type?.libelle || version.type_libelle) + ' — version ' + version.numero" icone="ri-git-merge-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Circuits de validation', lien: '/parametres/workflows'}]"
+                   [sousTitre]="version.etat_libelle + (version.publiee_le ? ' le ' + (version.publiee_le | date:'dd/MM/yyyy') : '') + ' · ' + version.nb_demandes + ' demande(s)'">
+    @if (modifiable) {
+      <button type="button" class="btn-ubi" (click)="supprimerBrouillon()"><i class="ri-delete-bin-6-line"></i><span class="pe-lib">Supprimer le brouillon</span></button>
+    } @else {
+      <button type="button" class="btn-ubi" (click)="nouvelleVersion()"><i class="ri-file-copy-line"></i><span class="pe-lib">Créer une nouvelle version à partir de celle-ci</span></button>
+    }
+  </app-page-entete>
+
+  @if (!modifiable) {
+    <div class="alert alert-info small"><i class="ri-lock-line me-1"></i>Version {{ version.etat_libelle.toLowerCase() }} : lecture seule.
+      Pour modifier le circuit, créez une nouvelle version ; les demandes déjà soumises garderont celle-ci.</div>
+  }
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <!-- Étapes -->
+      @for (e of version.etapes; track e.id; let i = $index) {
+        <div class="lst-carte p-3 mb-2" [class.opacity-50]="!e.active">
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge rounded-pill bg-primary mt-1">{{ e.ordre }}</span>
+            <div class="flex-grow-1">
+              <b>{{ e.libelle }}</b> <code class="small ms-1">{{ e.code }}</code>
+              @if (!e.active) { <span class="badge bg-secondary ms-1">désactivée</span> }
+              <div class="small">
+                @for (r of e.regles; track $index) { <span class="badge bg-primary-subtle text-primary me-1">{{ descriptionRegle(r) }}</span> }
+                @if (e.mode === 'parallele') { <span class="text-muted"> · en parallèle ({{ e.regle_parallele === 'un_seul' ? 'une approbation suffit' : e.regle_parallele === 'quorum' ? 'quorum ' + e.quorum : 'tous' }})</span> }
+              </div>
+              <div class="small text-muted">
+                @if (e.condition) { Seulement si {{ e.description_condition }} · }
+                Actions : {{ e.actions_autorisees.join(', ') }}
+                @if (e.champs_modifiables.length) { · peut corriger : {{ e.champs_modifiables.join(', ') }} }
+                · demandeur valideur : {{ libelle(autoValidations, e.auto_validation_demandeur).toLowerCase() }}
+                · sans valideur : {{ libelle(introuvable, e.valideur_introuvable).toLowerCase() }}
+              </div>
+            </div>
+            @if (modifiable) {
+              <div class="d-flex gap-1">
+                <button type="button" class="btn btn-light btn-icon btn-sm" title="Monter" [disabled]="i === 0" (click)="deplacer(i, -1)"><i class="ri-arrow-up-line"></i></button>
+                <button type="button" class="btn btn-light btn-icon btn-sm" title="Descendre" [disabled]="i === version.etapes.length - 1" (click)="deplacer(i, 1)"><i class="ri-arrow-down-line"></i></button>
+                <button type="button" class="btn btn-subtle-primary btn-icon btn-sm" title="Modifier" (click)="ouvrirEdition(e)"><i class="ri-pencil-line"></i></button>
+                <button type="button" class="btn btn-subtle-danger btn-icon btn-sm" title="Supprimer" (click)="supprimerEtape(e)"><i class="ri-delete-bin-6-line"></i></button>
+              </div>
+            }
+          </div>
+        </div>
+      } @empty {
+        <div class="lst-carte"><div class="lst-vide"><i class="ri-git-merge-line"></i><h5>Aucune étape</h5></div></div>
+      }
+      @if (modifiable && !edition) {
+        <button type="button" class="btn btn-outline-primary w-100 mt-1" (click)="nouvelleEtape()"><i class="ri-add-line me-1"></i>Ajouter une étape</button>
+      }
+
+      <!-- Édition d'une étape -->
+      @if (edition) {
+        <div class="lst-carte p-3 mt-3 border border-primary">
+          <h6 class="mb-3">{{ edition.id ? "Modifier l'étape" : 'Nouvelle étape' }}</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small">Libellé *</label><input class="form-control form-control-sm" [(ngModel)]="edition.libelle" placeholder="Ex. : Validation du DAF"></div>
+            <div class="col-md-3"><label class="form-label small">Code *</label><input class="form-control form-control-sm" [(ngModel)]="edition.code"></div>
+            <div class="col-md-3 d-flex align-items-end"><div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" id="et-active" [(ngModel)]="edition.active"><label class="form-check-label small" for="et-active">Active</label></div></div>
+          </div>
+
+          <h6 class="small text-uppercase text-muted mt-3">Valideurs</h6>
+          @for (r of edition.regles; track $index; let j = $index) {
+            <div class="row g-2 align-items-end mb-2">
+              <div class="col-md-3"><select class="form-select form-select-sm" [(ngModel)]="r.mode" aria-label="Mode de désignation">
+                <option value="responsabilite">Par responsabilité</option><option value="personne">Par personne</option><option value="relation">Par relation</option></select></div>
+              @if (r.mode === 'responsabilite') {
+                <div class="col-md-4"><select class="form-select form-select-sm" [(ngModel)]="r.responsabilite" (ngModelChange)="regleResponsabilite(r)" aria-label="Responsabilité">
+                  <option [ngValue]="null">— Responsabilité —</option>@for (x of responsabilites; track x.id) { <option [ngValue]="x.id">{{ x.libelle }}</option> }</select></div>
+                <div class="col-md-4"><select class="form-select form-select-sm" [(ngModel)]="r.perimetre" aria-label="Périmètre">
+                  @for (p of perimetres; track p[0]) { <option [value]="p[0]">{{ p[1] }}</option> }</select></div>
+              }
+              @if (r.mode === 'personne') {
+                <div class="col-md-8"><ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="r.personne" placeholder="Rechercher…"></ng-select></div>
+              }
+              @if (r.mode === 'relation') {
+                <div class="col-md-8"><select class="form-select form-select-sm" [(ngModel)]="r.relation" aria-label="Relation">
+                  @for (x of relations; track x[0]) { <option [value]="x[0]">{{ x[1] }}</option> }</select></div>
+              }
+              <div class="col-md-1"><button type="button" class="btn btn-subtle-danger btn-icon btn-sm" title="Retirer" (click)="edition.regles.splice(j, 1)"><i class="ri-close-line"></i></button></div>
+            </div>
+          }
+          <button type="button" class="btn btn-link btn-sm p-0" (click)="ajouterRegle()"><i class="ri-add-line"></i> Ajouter un valideur</button>
+
+          <div class="row g-2 mt-2">
+            <div class="col-md-4"><label class="form-label small">Plusieurs valideurs</label>
+              <select class="form-select form-select-sm" [(ngModel)]="edition.mode"><option value="sequentiel">L'un après l'autre (séquentiel)</option><option value="parallele">En même temps (parallèle)</option></select></div>
+            @if (edition.mode === 'parallele') {
+              <div class="col-md-4"><label class="form-label small">Règle</label>
+                <select class="form-select form-select-sm" [(ngModel)]="edition.regle_parallele"><option value="tous">Tous doivent approuver</option><option value="un_seul">Une approbation suffit</option><option value="quorum">Quorum</option></select></div>
+              @if (edition.regle_parallele === 'quorum') {
+                <div class="col-md-2"><label class="form-label small">Quorum</label><input type="number" min="1" class="form-control form-control-sm" [(ngModel)]="edition.quorum"></div>
+              }
+            }
+          </div>
+
+          <h6 class="small text-uppercase text-muted mt-3">Condition d'exécution</h6>
+          @if (conditionAvancee) {
+            <p class="small text-warning">Condition avancée (groupes imbriqués) : conservée telle quelle.</p>
+          } @else {
+            @if (conditionLignes.length > 1) {
+              <div class="mb-2 small">Exécuter l'étape si
+                <select class="form-select form-select-sm d-inline-block w-auto" [(ngModel)]="conditionGroupe"><option value="et">toutes</option><option value="ou">au moins une</option></select>
+                des conditions suivantes sont remplies :</div>
+            }
+            @for (l of conditionLignes; track $index; let k = $index) {
+              <div class="row g-2 align-items-center mb-2">
+                <div class="col-md-4"><select class="form-select form-select-sm" [(ngModel)]="l.champ" aria-label="Champ">
+                  @for (c of champsCondition; track c.code) { <option [value]="c.code">{{ c.libelle }}</option> }</select></div>
+                <div class="col-md-3"><select class="form-select form-select-sm" [(ngModel)]="l.op" aria-label="Opérateur">
+                  @for (o of operateurs; track o.code) { @if (o.code !== 'sous' || l.champ === 'departement') { <option [value]="o.code">{{ o.libelle }}</option> } }</select></div>
+                <div class="col-md-4">
+                  @if (l.op !== 'vide' && l.op !== 'non_vide') {
+                    @switch (natureChamp(l.champ)) {
+                      @case ('categorie') { <select class="form-select form-select-sm" [(ngModel)]="l.valeur" aria-label="Valeur">@for (c of categories; track c.id) { <option [ngValue]="c.id">{{ c.libelle }}</option> }</select> }
+                      @case ('departement') { <select class="form-select form-select-sm" [(ngModel)]="l.valeur" aria-label="Valeur">@for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.chemin || d.libelle_service }}</option> }</select> }
+                      @case ('agence') { <select class="form-select form-select-sm" [(ngModel)]="l.valeur" aria-label="Valeur">@for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }</select> }
+                      @case ('liste') { <select class="form-select form-select-sm" [(ngModel)]="l.valeur" aria-label="Valeur">@for (o of optionsChamp(l.champ); track o) { <option [ngValue]="o">{{ o }}</option> }</select> }
+                      @case ('montant') { <input type="number" class="form-control form-control-sm" [(ngModel)]="l.valeur" aria-label="Valeur"> }
+                      @case ('entier') { <input type="number" class="form-control form-control-sm" [(ngModel)]="l.valeur" aria-label="Valeur"> }
+                      @default { <input class="form-control form-control-sm" [(ngModel)]="l.valeur" aria-label="Valeur" [placeholder]="l.op === 'dans' || l.op === 'pas_dans' ? 'valeurs séparées par des virgules' : ''"> }
+                    }
+                  }
+                </div>
+                <div class="col-md-1"><button type="button" class="btn btn-subtle-danger btn-icon btn-sm" title="Retirer" (click)="conditionLignes.splice(k, 1)"><i class="ri-close-line"></i></button></div>
+              </div>
+            } @empty { <p class="small text-muted mb-1">Aucune condition : l'étape s'exécute toujours.</p> }
+            <button type="button" class="btn btn-link btn-sm p-0" (click)="ajouterLigneCondition()"><i class="ri-add-line"></i> Ajouter une condition</button>
+          }
+
+          <h6 class="small text-uppercase text-muted mt-3">Comportements</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><label class="form-label small">Actions possibles</label>
+              <div class="d-flex gap-3">
+                <div class="form-check"><input class="form-check-input" type="checkbox" checked disabled id="ac-app"><label class="form-check-label small" for="ac-app">Approuver</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="ac-ret" [checked]="edition.actions_autorisees.includes('retourner')" (change)="basculerAction('retourner')"><label class="form-check-label small" for="ac-ret">Retourner</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="ac-rej" [checked]="edition.actions_autorisees.includes('rejeter')" (change)="basculerAction('rejeter')"><label class="form-check-label small" for="ac-rej">Rejeter</label></div>
+              </div></div>
+            <div class="col-md-6"><label class="form-label small">Le valideur peut corriger</label>
+              <ng-select [items]="champsCorrigeables" bindLabel="libelle" bindValue="code"
+                         [multiple]="true" [(ngModel)]="edition.champs_modifiables" placeholder="Aucun champ"></ng-select></div>
+            <div class="col-md-4"><label class="form-label small">Si le demandeur est le valideur</label>
+              <select class="form-select form-select-sm" [(ngModel)]="edition.auto_validation_demandeur">@for (x of autoValidations; track x[0]) { <option [value]="x[0]">{{ x[1] }}</option> }</select></div>
+            <div class="col-md-4"><label class="form-label small">S'il a déjà validé une étape précédente</label>
+              <select class="form-select form-select-sm" [(ngModel)]="edition.meme_valideur_deja_passe">@for (x of memeValideur; track x[0]) { <option [value]="x[0]">{{ x[1] }}</option> }</select></div>
+            <div class="col-md-4"><label class="form-label small">Si aucun valideur n'est trouvé</label>
+              <select class="form-select form-select-sm" [(ngModel)]="edition.valideur_introuvable">@for (x of introuvable; track x[0]) { <option [value]="x[0]">{{ x[1] }}</option> }</select></div>
+            @if (edition.valideur_introuvable === 'secours') {
+              <div class="col-md-6"><label class="form-label small">Valideur de secours</label>
+                <ng-select [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="edition.valideur_secours" placeholder="Rechercher…"></ng-select></div>
+            }
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="btn btn-light btn-sm" (click)="edition = null">Annuler</button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="enregistrerEtape()">Enregistrer l'étape</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="col-xl-4">
+      @if (modifiable) {
+        <div class="lst-carte p-3 mb-3">
+          <h6>Publication</h6>
+          <label class="form-label small" for="reprise">Après un retour pour correction</label>
+          <select id="reprise" class="form-select form-select-sm mb-2" [(ngModel)]="version.reprise_apres_correction" (change)="enregistrerReprise()">
+            <option value="debut">Reprendre à la première étape</option>
+            <option value="etape_retour_autorisee">Reprendre à l'étape du retour si rien de sensible n'a changé</option>
+          </select>
+          <textarea class="form-control form-control-sm mb-2" rows="2" [(ngModel)]="commentairePublication" placeholder="Ce qui change dans cette version" aria-label="Commentaire de version"></textarea>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light btn-sm flex-fill" (click)="controler()"><i class="ri-shield-check-line me-1"></i>Contrôler</button>
+            <button type="button" class="btn btn-success btn-sm flex-fill" (click)="publier()"><i class="ri-upload-cloud-line me-1"></i>Publier</button>
+          </div>
+          @if (erreursControle?.length) {
+            <div class="alert alert-danger small mt-2 mb-0">@for (x of erreursControle; track $index) { <div>{{ x }}</div> }</div>
+          }
+        </div>
+      } @else {
+        <div class="lst-carte p-3 mb-3 small">
+          <h6>Version</h6>
+          <p class="mb-1">Publiée par {{ version.publiee_par_nom || '—' }}</p>
+          <p class="mb-1">Après correction : {{ version.reprise_apres_correction === 'debut' ? 'reprise à la première étape' : "reprise à l'étape du retour si rien de sensible n'a changé" }}</p>
+          @if (version.commentaire_version) { <p class="mb-0 text-muted">{{ version.commentaire_version }}</p> }
+        </div>
+      }
+
+      <div class="lst-carte p-3">
+        <h6>Simulation</h6>
+        <p class="small text-muted">Quel circuit suivrait une demande de ce collaborateur ? Rien n'est enregistré.</p>
+        <label class="form-label small">Demandeur</label>
+        <ng-select class="mb-2" [items]="collaborateurs" bindLabel="libelle" bindValue="id" [(ngModel)]="simDemandeur" placeholder="Rechercher…"></ng-select>
+        @if (type?.avec_montant) {
+          <label class="form-label small" for="sim-montant">Montant</label>
+          <input id="sim-montant" type="number" class="form-control form-control-sm mb-2" [(ngModel)]="simMontant">
+        }
+        @for (c of champsSimulation; track c.code) {
+          <label class="form-label small">{{ c.libelle }}</label>
+          @if (c.nature === 'liste') {
+            <select class="form-select form-select-sm mb-2" [(ngModel)]="simDonnees[c.code]"><option [ngValue]="null">—</option>@for (o of c.options || []; track o) { <option [ngValue]="o">{{ o }}</option> }</select>
+          } @else {
+            <input class="form-control form-control-sm mb-2" [(ngModel)]="simDonnees[c.code]">
+          }
+        }
+        <button type="button" class="btn btn-outline-primary btn-sm w-100" (click)="simuler()"><i class="ri-play-line me-1"></i>Simuler</button>
+        @if (simResultat) {
+          <div class="small mt-3">
+            <p class="mb-2 text-muted">{{ simResultat.departement || 'Sans département' }} · N+1 : {{ simResultat.n_plus_1?.nom || 'introuvable' }}</p>
+            <ol class="ps-3 mb-0">
+              @for (e of simResultat.plan; track e.etape) {
+                <li class="mb-1" [class.text-muted]="e.statut === 'sautee'" [class.text-danger]="e.statut === 'bloquante'">
+                  <b>{{ e.libelle }}</b> — @if (e.statut === 'prevue') { {{ noms(e) }} } @else { {{ e.statut === 'sautee' ? 'non concernée' : 'bloquante' }} }
+                  @if (e.raison) { <div class="text-muted">{{ e.raison }}</div> }
+                </li>
+              }
+            </ol>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+}

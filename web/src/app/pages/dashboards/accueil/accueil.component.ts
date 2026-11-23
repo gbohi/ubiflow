@@ -1,45 +1,42 @@
 // src/app/pages/dashboards/accueil/accueil.component.ts
 //
-// Accueil de l'application : message de bienvenue et accès rapides.
-// Les tableaux de bord métier viendront avec les modules de la plateforme.
+// Accueil : mes demandes par statut, validations en attente, accès rapides.
+// Les tableaux de bord par profil viendront au lot 6.
 
 import { Component, OnInit, inject } from '@angular/core';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
-import { GESTIONNAIRES, LIBELLES_ROLES, aUnRole, rolesUtilisateur } from 'src/app/core/helpers/roles';
+import { DemandesService } from 'src/app/core/services/demandes/demandes.service';
+import { GESTIONNAIRES, aUnRole } from 'src/app/core/helpers/roles';
 
 @Component({
   selector: 'app-accueil',
-  template: `
-    <div class="lst">
-      <app-page-entete [titre]="'Bonjour ' + prenom" icone="ri-home-4-line"
-                       sousTitre="Bienvenue sur UbiFlow"></app-page-entete>
-
-      <div class="lst-carte p-4">
-        @if (roles.length) {
-          <p class="mb-3">Vos rôles : <b>{{ roles.join(', ') }}</b></p>
-        }
-        @if (gestionnaire) {
-          <a class="btn btn-primary" routerLink="/parametres/accueil">
-            <i class="ri-settings-3-line me-1"></i> Paramètres
-          </a>
-        } @else {
-          <p class="text-muted mb-0">Les modules de la plateforme seront bientôt disponibles.</p>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './accueil.component.html',
 })
 export class AccueilComponent implements OnInit {
   private readonly tokenStorage = inject(TokenStorageService);
+  private readonly service = inject(DemandesService);
 
   prenom = '';
-  roles: string[] = [];
   gestionnaire = false;
+  aValider = 0;
+  compteurs: Record<string, number> = {};
+  charge = false;
+
+  readonly tuiles = [
+    { cle: 'brouillon', libelle: 'Brouillons', icone: 'ri-draft-line', teinte: 'p-gr' },
+    { cle: 'en_validation', libelle: 'En validation', icone: 'ri-loader-2-line', teinte: 'p-bl' },
+    { cle: 'a_corriger', libelle: 'À corriger', icone: 'ri-arrow-go-back-line', teinte: 'p-or' },
+    { cle: 'approuvee', libelle: 'Approuvées', icone: 'ri-checkbox-circle-line', teinte: 'p-ve' },
+    { cle: 'rejetee', libelle: 'Rejetées', icone: 'ri-close-circle-line', teinte: 'p-ro' },
+  ];
 
   ngOnInit(): void {
     const user = this.tokenStorage.getUser();
     this.prenom = user?.prenom || user?.username || '';
-    this.roles = rolesUtilisateur(user).map(r => LIBELLES_ROLES[r] ?? r);
     this.gestionnaire = aUnRole(user, GESTIONNAIRES);
+    this.service.compteurs().subscribe({
+      next: c => { this.compteurs = c.mes_demandes; this.aValider = c.a_valider; this.charge = true; },
+      error: () => this.charge = true,
+    });
   }
 }

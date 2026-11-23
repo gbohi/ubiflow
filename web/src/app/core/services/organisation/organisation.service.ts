@@ -90,6 +90,10 @@ export class OrganisationService {
     return this.http.get<any[]>(`${this.api}/allnopagin/agences/`);
   }
 
+  categoriesToutes(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api}/allnopagin/categoriesalaries/`);
+  }
+
   collaborateursTous(): Observable<any[]> {
     return this.http.get<any[]>(`${this.api}/allnopagin/users/`);
   }
@@ -199,5 +203,7 @@ export function aujourdhui(): string {
 
 /** Message d'erreur lisible (l'intercepteur renvoie déjà une chaîne) */
 export function messageErreur(err: any, defaut = 'Opération refusée.'): string {
-  return typeof err === 'string' && err ? err : defaut;
+  if (typeof err === 'string' && err) return err;
+  if (err && typeof err.message === 'string' && err.message) return err.message;
+  return defaut;
 }
