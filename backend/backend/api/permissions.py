@@ -67,6 +67,20 @@ def is_gestionnaire(user):
                 (user.is_superuser or get_roles(user) & GESTIONNAIRE_ROLES))
 
 
+# Rôles qui consultent toutes les demandes (périmètres affinés au lot 6)
+ROLES_GESTION_DEMANDES = ADMIN_ROLES | {ROLE_ADMIN_WORKFLOW, ROLE_DIRECTION, ROLE_CONTROLEUR, ROLE_COMPTABLE}
+
+
+def is_admin_workflow(user):
+    """Paramétrage des circuits : administrateurs et administrateurs des workflows."""
+    return bool(is_admin(user) or ROLE_ADMIN_WORKFLOW in get_roles(user))
+
+
+def voit_toutes_les_demandes(user):
+    return bool(user and user.is_authenticated and
+                (user.is_superuser or get_roles(user) & ROLES_GESTION_DEMANDES))
+
+
 def agences_gerees(user):
     """
     Agences dont un gestionnaire s'occupe : None pour un administrateur
@@ -131,3 +145,20 @@ class ReadGestionnaireWriteAdmin(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return is_gestionnaire(request.user)
         return is_admin(request.user)
+
+
+class IsAdminWorkflow(permissions.BasePermission):
+    message = "Action réservée aux administrateurs des workflows."
+
+    def has_permission(self, request, view):
+        return is_admin_workflow(request.user)
+
+
+class ReadAuthenticatedWriteAdminWorkflow(permissions.BasePermission):
+    """Lecture : tout utilisateur connecté. Écriture : administrateurs des workflows."""
+    message = "Modification réservée aux administrateurs des workflows."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return request.method in permissions.SAFE_METHODS or is_admin_workflow(request.user)

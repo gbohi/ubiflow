@@ -25,7 +25,6 @@ from datetime import datetime, time, timedelta
 
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill

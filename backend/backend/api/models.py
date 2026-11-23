@@ -251,3 +251,20 @@ class ImportCollaborateurs(models.Model):
 
     class Meta:
         ordering = ['-cree_le']
+
+
+# ============================================================
+# PARAMÈTRES SYSTÈME
+# ============================================================
+
+class ParametreSysteme(models.Model):
+    """Réglages globaux (une seule ligne)."""
+    devise_reference = models.CharField(max_length=3, default='XOF')
+    taille_max_piece_mo = models.PositiveIntegerField(default=10)
+    updated_at = models.DateTimeField(auto_now=True)
+    user_updated = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+
+    @classmethod
+    def charger(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

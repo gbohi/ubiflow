@@ -49,7 +49,11 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Local
-    'api',
+    'api',            # socle : organisation, utilisateurs, paramètres
+    'demandes',       # types de demande, demandes, pièces jointes
+    'workflow',       # moteur de workflow
+    'notifications',
+    'audit',
 ]
 
 AUTH_USER_MODEL = 'api.User'
