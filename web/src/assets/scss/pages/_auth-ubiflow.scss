@@ -4,10 +4,10 @@
 // sur petit écran, le panneau devient un bandeau en haut.
 // ============================================================
 
-$ub-marine:   #092440;
-$ub-marine-2: #0F3A6E;
-$ub-vert:     #5BD988;
-$ub-vert-2:   #3EC970;
+$ub-marine:   #05253E;
+$ub-marine-2: #0C3556;
+$ub-vert:     #51D78E;
+$ub-vert-2:   #3FC67D;
 $ub-gris:     #5A7090;
 $ub-indice:   #9BB0C5;
 $ub-bord:     #E2EAF4;
@@ -32,9 +32,7 @@ $ub-bord:     #E2EAF4;
   justify-content: space-between;
   padding: 48px 56px;
   color: #fff;
-  background:
-    radial-gradient(circle at 85% 15%, rgba($ub-vert, .18), transparent 40%),
-    linear-gradient(140deg, $ub-marine 0%, $ub-marine-2 100%);
+  background: $ub-marine;
 }
 
 .auth-ub-rond {
@@ -46,7 +44,9 @@ $ub-bord:     #E2EAF4;
 .auth-ub-rond-1 { width: 520px; height: 520px; right: -180px; bottom: -200px; }
 .auth-ub-rond-2 { width: 340px; height: 340px; right: -90px; bottom: -110px; border-color: rgba($ub-vert, .28); }
 
-.auth-ub-logo { height: 44px; align-self: flex-start; position: relative; }
+.auth-ub-marque { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; position: relative; }
+.auth-ub-logo { height: 52px; }
+.auth-ub-produit { font-size: 11.5px; letter-spacing: 1.4px; text-transform: uppercase; color: #8EA3B8; font-weight: 500; padding-left: 2px; }
 
 .auth-ub-message { position: relative; }
 
@@ -185,11 +185,10 @@ $ub-bord:     #E2EAF4;
   font-weight: 600;
   font-size: 15px;
   color: $ub-marine;
-  background: linear-gradient(90deg, $ub-vert 0%, $ub-vert-2 100%);
-  box-shadow: 0 10px 24px rgba($ub-vert-2, .35);
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: $ub-vert;
+  transition: background-color .15s ease;
 
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 28px rgba($ub-vert-2, .4); }
+  &:hover:not(:disabled) { background: $ub-vert-2; }
   &:focus-visible { outline: 3px solid rgba($ub-marine, .35); outline-offset: 2px; }
   &:disabled { opacity: .75; }
 }

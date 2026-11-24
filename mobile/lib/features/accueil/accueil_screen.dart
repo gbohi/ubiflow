@@ -13,6 +13,7 @@ import '../../core/widgets/remix.dart';
 import '../../shared/theme/app_theme.dart';
 import '../demandes/commun.dart';
 import '../demandes/demande_detail_screen.dart';
+import '../demandes/mes_demandes_screen.dart';
 import '../demandes/nouvelle_demande_screen.dart';
 import '../notifications/notifications_screen.dart';
 
@@ -67,7 +68,15 @@ class _AccueilScreenState extends State<AccueilScreen> {
     } else if ((lien ?? '').startsWith('/validations')) {
       widget.onOnglet?.call(2);
     } else if ((lien ?? '').startsWith('/demandes')) {
-      widget.onOnglet?.call(1);
+      // « /demandes?statut=… » ou « ?famille=mission » : liste filtrée ; « /demandes » : onglet Demandes
+      final params = Uri.tryParse(lien!)?.queryParameters ?? const {};
+      final statut = params['statut'] ?? '';
+      final missions = params['famille'] == 'mission';
+      if (statut.isNotEmpty || missions) {
+        _ouvrir(MesDemandesScreen(statutInitial: statut, missionsSeulement: missions));
+      } else {
+        widget.onOnglet?.call(1);
+      }
     }
   }
 
@@ -144,7 +153,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
           if (i > 0) const SizedBox(width: 8),
           Expanded(
             child: _ActionRapide(
-              libelle: '${actions[i]['code'] == 'MHP' ? 'Hors pays' : actions[i]['code'] == null ? 'Autre' : actions[i]['libelle']}',
+              libelle: '${actions[i]['libelle']}',
               icone: Remix.deClasse(actions[i]['icone'] as String?) ?? Remix.addCircle,
               onTap: () => _ouvrir(NouvelleDemandeScreen(codeType: actions[i]['code'] as String?)),
             ),
@@ -171,7 +180,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
         CarteListe(lignes: [
           if ((l['lignes'] as List? ?? []).isEmpty)
             ListTile(dense: true, title: Text('${l['vide'] ?? 'Rien à signaler.'}', style: const TextStyle(fontSize: 13))),
-          for (final ligne in List<Map>.from(l['lignes'] as List? ?? []).take(5))
+          // Les 2 plus récentes ; « Tout voir » ouvre la liste complète
+          for (final ligne in List<Map>.from(l['lignes'] as List? ?? []).take(2))
             _LigneDemande(ligne, devise, avecDemandeur: d['profil'] != 'collaborateur',
                 onTap: () => _ouvrir(DemandeDetailScreen(id: ligne['id'] as int))),
         ]),
@@ -352,9 +362,18 @@ class _ActionRapide extends StatelessWidget {
           child: Column(children: [
             Icon(icone, size: 20, color: const Color(0xFF1F9D5C)),
             const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(libelle, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+            // Deux lignes au plus, sans jamais couper un mot (« Remboursement » se réduit)
+            SizedBox(
+              height: 30,
+              child: Center(
+                child: libelle.contains(' ')
+                    ? Text(libelle, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, height: 1.25))
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(libelle, maxLines: 1, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      ),
+              ),
             ),
           ]),
         ),

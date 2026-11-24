@@ -153,3 +153,17 @@ class RechercheTests(JeuDeDonnees):
         ref = mes['demandes'][0]['reference']
         self.assertEqual(self.chercher(self.agent, ref)['demandes'][0]['reference'], ref)
         self.assertEqual(self.chercher(self.agent, 'a')['total'], 0)
+
+
+class FiltreFamilleTests(JeuDeDonnees):
+    def test_liste_limitee_aux_missions(self):
+        self.jeu_de_donnees()
+        self.en(self.agent)
+        r = self.client.get('/api/api/demandes/', {'famille': 'mission'})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data['results'])
+        self.assertTrue(all(d['type_code'] in ('MLO', 'MHP') for d in r.data['results']))
+        d = self.client.get('/api/api/accueil/', {'profil': 'collaborateur'}).data
+        prochaines = next(l for l in d['listes'] if l['cle'] == 'prochaines')
+        self.assertEqual(prochaines['lien_tout'], '/demandes?famille=mission')
+        self.assertIn('Mission locale', [a['libelle'] for a in d['actions_rapides']])

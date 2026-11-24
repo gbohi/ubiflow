@@ -8,7 +8,6 @@ import 'package:dio/dio.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../core/api/api_client.dart';
 import '../../core/widgets/common_widgets.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'password_rules.dart';
 
 /// Délai minimal entre deux envois de code SMS
@@ -315,8 +314,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 ),
                 Expanded(
                     child: Center(
-                  child: SvgPicture.asset('assets/images/logo_white.svg',
-                      height: 36),
+                  child: Image.asset('assets/images/ubipharm-logo-blanc.png',
+                      height: 36, semanticLabel: "UbiPharm Côte d'Ivoire"),
                 )),
                 const SizedBox(width: 40),
               ]),

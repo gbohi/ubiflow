@@ -32,7 +32,7 @@ export class MesDemandesComponent implements OnInit {
     { libelle: 'Étape en cours', champ: d => d.etape_en_cours ? `${d.etape_en_cours.libelle} (${d.etape_en_cours.valideurs.join(', ')})` : '' },
     { libelle: 'Date de la demande', champ: d => d.soumise_le || d.created_at, format: 'dateheure' },
   ];
-  get paramsExport(): Record<string, any> { return { vue: this.vue, statut: this.statut, type_demande: this.typeDemande, du: this.du, au: this.au, search: this.recherche.trim() }; }
+  get paramsExport(): Record<string, any> { return { vue: this.vue, statut: this.statut, type_demande: this.typeDemande, famille: this.famille, du: this.du, au: this.au, search: this.recherche.trim() }; }
 
   private readonly service = inject(DemandesService);
   private readonly route = inject(ActivatedRoute);
@@ -64,6 +64,8 @@ export class MesDemandesComponent implements OnInit {
   demandes: Demande[] = [];
   chargement = true;
   compteurs: Record<string, number> = {};
+  /** Famille de types (« mission ») : lien « Tout voir » des prochaines missions */
+  famille = '';
   private readonly recherche$ = new Subject<string>();
 
   ngOnInit(): void {
@@ -71,6 +73,7 @@ export class MesDemandesComponent implements OnInit {
     this.statut = p.get('statut') ?? '';
     this.vue = p.get('vue') === 'toutes' && this.gestion ? 'toutes' : 'mes';
     this.typeDemande = Number(p.get('type')) || null;
+    this.famille = p.get('famille') ?? '';
     this.du = p.get('du') ?? '';
     this.au = p.get('au') ?? '';
     this.service.types(true).subscribe(t => this.types = t);
@@ -82,8 +85,8 @@ export class MesDemandesComponent implements OnInit {
 
   charger(): void {
     this.chargement = true;
-    this.service.demandes({ vue: this.vue, statut: this.statut, type_demande: this.typeDemande ?? '', du: this.du, au: this.au,
-                            search: this.recherche.trim(), page: this.page })
+    this.service.demandes({ vue: this.vue, statut: this.statut, type_demande: this.typeDemande ?? '', famille: this.famille,
+                            du: this.du, au: this.au, search: this.recherche.trim(), page: this.page })
       .subscribe({
         next: r => { this.demandes = r.results; this.total = r.count; this.chargement = false; },
         error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
@@ -94,8 +97,14 @@ export class MesDemandesComponent implements OnInit {
     this.statut = cle;
     this.page = 1;
     this.router.navigate([], { queryParams: { statut: cle || null, vue: this.vue === 'toutes' ? 'toutes' : null,
-                                              type: this.typeDemande || null, du: this.du || null, au: this.au || null } });
+                                              type: this.typeDemande || null, famille: this.famille || null, du: this.du || null, au: this.au || null } });
     this.charger();
+  }
+
+  /** Titre de la page : « Mes missions » quand la liste est limitée aux missions */
+  get titre(): string {
+    if (this.vue === 'toutes') return 'Toutes les demandes';
+    return this.famille === 'mission' ? 'Mes missions' : 'Mes demandes';
   }
 
   changerVue(vue: 'mes' | 'toutes'): void {

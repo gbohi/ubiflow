@@ -112,7 +112,7 @@ class TypePieceViewSet(_JournalMixin, viewsets.ModelViewSet):
 
 class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
-    GET    /demandes/?vue=mes|toutes&statut=&type_demande=&du=AAAA-MM-JJ&au=AAAA-MM-JJ&search=
+    GET    /demandes/?vue=mes|toutes&statut=&type_demande=&famille=&du=AAAA-MM-JJ&au=AAAA-MM-JJ&search=
     POST   /demandes/                       brouillon
     PATCH  /demandes/{id}/                  brouillon / correction
     DELETE /demandes/{id}/                  brouillon jamais soumis
@@ -151,6 +151,8 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             qs = qs.filter(statut__in=p['statut'].split(','))
         if p.get('type_demande'):
             qs = qs.filter(type_demande_id=p['type_demande'])
+        if p.get('famille'):  # mission, simple, annulation
+            qs = qs.filter(type_demande__famille=p['famille'])
         qs = filtrer_par_dates(qs, p, 'soumise_le', 'created_at')
         etapes = EtapeInstance.objects.select_related('etape').prefetch_related(
             Prefetch('taches', queryset=Tache.objects.select_related('valideur')))

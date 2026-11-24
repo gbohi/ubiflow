@@ -16,9 +16,9 @@ class DemandesService {
   // ── Consultation ──────────────────────────────────────────
 
   /// Mes demandes (page 1, les plus récentes), filtrées par statut si besoin.
-  Future<List<Map<String, dynamic>>> mesDemandes({String statut = ''}) async {
-    final res = await apiClient.get('/demandes/',
-        params: {'vue': 'mes', if (statut.isNotEmpty) 'statut': statut, 'page_size': 50});
+  Future<List<Map<String, dynamic>>> mesDemandes({String statut = '', String famille = ''}) async {
+    final res = await apiClient.get('/demandes/', params: {
+      'vue': 'mes', if (statut.isNotEmpty) 'statut': statut, if (famille.isNotEmpty) 'famille': famille, 'page_size': 50});
     return _liste(res.data);
   }
 

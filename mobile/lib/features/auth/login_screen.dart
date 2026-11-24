@@ -1,7 +1,6 @@
 // lib/features/auth/login_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/providers/app_provider.dart';
@@ -114,44 +113,27 @@ class _LoginScreenState extends State<LoginScreen>
               child: SafeArea(
                 bottom: false,
                 child: SizedBox(
-                  height: 300,
+                  height: 280,
                   child: Stack(children: [
-                    // Assiette décorative
-                    Positioned(
-                      right: -40,
-                      top: 50,
-                      child: ExcludeSemantics(
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.accent.withOpacity(0.16)),
-                          alignment: Alignment.center,
-                          child: Container(
-                            width: 144,
-                            height: 144,
-                            decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.accent.withOpacity(0.22)),
-                            child: const Icon(Icons.restaurant_rounded,
-                                color: Colors.white, size: 64),
-                          ),
-                        ),
-                      ),
-                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SvgPicture.asset('assets/images/logo_white.svg',
-                                height: 34, semanticsLabel: 'UbiFlow'),
-                            const SizedBox(height: 50),
-                            const Text('Vos demandes\nen un clic',
+                            Image.asset('assets/images/ubipharm-logo-blanc.png',
+                                height: 44, semanticLabel: "UbiPharm Côte d'Ivoire"),
+                            const SizedBox(height: 10),
+                            Text('UBIFLOW · DEMANDES',
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.6),
+                                    fontSize: 11,
+                                    letterSpacing: 1.6,
+                                    fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 40),
+                            const Text('Vos demandes,\nsuivies de bout en bout.',
                                 style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 30,
+                                    fontSize: 26,
                                     height: 1.15,
                                     fontWeight: FontWeight.w800)),
                           ]),
@@ -277,15 +259,8 @@ class _LoginScreenState extends State<LoginScreen>
                             height: 54,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                gradient: AppColors.accentGradient,
+                                color: AppColors.accent,
                                 borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: AppColors.accentDark
-                                          .withOpacity(0.35),
-                                      blurRadius: 22,
-                                      offset: const Offset(0, 10)),
-                                ],
                               ),
                               child: ElevatedButton(
                                 onPressed: auth.loading ? null : _soumettre,

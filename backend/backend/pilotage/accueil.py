@@ -199,7 +199,7 @@ def collaborateur(user):
                '/demandes', 'Aucune demande en cours.'),
         _liste('prochaines', 'Mes prochaines missions', [_ligne(d, info=f"{_mission(d).get('ville_destination_libelle', '')} · départ le "
                                                                        f"{str(_mission(d).get('depart_le', ''))[8:10]}/{str(_mission(d).get('depart_le', ''))[5:7]}")
-                                                          for d in prochaines[:5]], None, 'Aucune mission à venir.'),
+                                                          for d in prochaines[:5]], '/demandes?famille=mission', 'Aucune mission à venir.'),
     ]
     return kpis, listes, []
 
@@ -351,7 +351,7 @@ def accueil(user, profil=None):
     elements, total = a_faire(user)
     from notifications.models import Notification
     notifs = Notification.objects.filter(destinataire=user).order_by('-creee_le')[:5]
-    actions = [{'libelle': 'Mission', 'icone': 'ri-road-map-line', 'lien': '/demandes/nouvelle', 'code': 'MLO'},
+    actions = [{'libelle': 'Mission locale', 'icone': 'ri-road-map-line', 'lien': '/demandes/nouvelle', 'code': 'MLO'},
                {'libelle': 'Mission hors pays', 'icone': 'ri-flight-takeoff-line', 'lien': '/demandes/nouvelle', 'code': 'MHP'},
                {'libelle': 'Remboursement', 'icone': 'ri-refund-2-line', 'lien': '/demandes/nouvelle', 'code': 'RMB'},
                {'libelle': 'Autre demande', 'icone': 'ri-add-circle-line', 'lien': '/demandes/nouvelle', 'code': None}]

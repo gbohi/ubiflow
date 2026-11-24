@@ -11,7 +11,11 @@ import 'demande_detail_screen.dart';
 import 'nouvelle_demande_screen.dart';
 
 class MesDemandesScreen extends StatefulWidget {
-  const MesDemandesScreen({super.key});
+  /// Filtre de statut à l'ouverture (« Tout voir » de l'accueil)
+  final String statutInitial;
+  /// Missions seulement (« Tout voir » des prochaines missions)
+  final bool missionsSeulement;
+  const MesDemandesScreen({super.key, this.statutInitial = '', this.missionsSeulement = false});
   @override
   State<MesDemandesScreen> createState() => _MesDemandesScreenState();
 }
@@ -22,11 +26,15 @@ class _MesDemandesScreenState extends State<MesDemandesScreen> {
     ('approuvee', 'Approuvées'), ('en_attente_cloture', 'À clôturer'), ('rejetee', 'Rejetées'),
     ('brouillon', 'Brouillons'),
   ];
-  String _statut = '';
-  late Future<List<Map<String, dynamic>>> _demandes = demandesService.mesDemandes();
+  late String _statut = widget.statutInitial;
+  late Future<List<Map<String, dynamic>>> _demandes = _liste();
+
+  Future<List<Map<String, dynamic>>> _liste() {
+    return demandesService.mesDemandes(statut: _statut, famille: widget.missionsSeulement ? 'mission' : '');
+  }
 
   Future<void> _recharger() async {
-    final f = demandesService.mesDemandes(statut: _statut);
+    final f = _liste();
     setState(() => _demandes = f);
     await f.catchError((_) => <Map<String, dynamic>>[]);
   }
@@ -43,7 +51,9 @@ class _MesDemandesScreenState extends State<MesDemandesScreen> {
         label: const Text('Nouvelle demande'),
       ),
       body: Column(children: [
-        const EnTeteMarine(titre: 'Mes demandes', sousTitre: 'Création, suivi, pièces jointes et clôture'),
+        EnTeteMarine(
+            titre: widget.missionsSeulement ? 'Mes missions' : 'Mes demandes',
+            sousTitre: widget.missionsSeulement ? 'Missions locales et hors pays' : 'Création, suivi, pièces jointes et clôture'),
         SizedBox(
           height: 52,
           child: ListView(
@@ -82,9 +92,9 @@ class _MesDemandesScreenState extends State<MesDemandesScreen> {
                 }
                 final demandes = snap.data ?? [];
                 if (demandes.isEmpty) {
-                  return ListView(children: const [
-                    SizedBox(height: 40),
-                    EmptyState(icon: Icons.description_outlined, title: 'Aucune demande'),
+                  return ListView(children: [
+                    const SizedBox(height: 40),
+                    EmptyState(icon: Icons.description_outlined, title: widget.missionsSeulement ? 'Aucune mission' : 'Aucune demande'),
                   ]);
                 }
                 return ListView.separated(
