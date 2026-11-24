@@ -32,6 +32,8 @@ _POLICES = Path(__file__).resolve().parent / 'polices'
 try:
     pdfmetrics.registerFont(TTFont('UbiSerif', str(_POLICES / 'DejaVuSerif.ttf')))
     pdfmetrics.registerFont(TTFont('UbiSerif-Bold', str(_POLICES / 'DejaVuSerif-Bold.ttf')))
+    pdfmetrics.registerFontFamily('UbiSerif', normal='UbiSerif', bold='UbiSerif-Bold', italic='UbiSerif',
+                                  boldItalic='UbiSerif-Bold')
     SERIF, SERIF_GRAS = 'UbiSerif', 'UbiSerif-Bold'
 except Exception:
     SERIF, SERIF_GRAS = 'Times-Roman', 'Times-Bold'
@@ -85,6 +87,20 @@ def _logo(param, largeur, hauteur):
             pass
     return Paragraph(f'<font color="#3C3C3C"><b>{_txt(param.raison_sociale or "Société")}</b></font>',
                      ParagraphStyle('lg', fontName=GRAS, fontSize=14, leading=17))
+
+
+def entete_formulaire(param, titre_html, formulaire, largeur):
+    """En-tête des formulaires qualité : logo | titre | identification, version, date, page."""
+    ident = (f"Identification : <b>{_txt(formulaire.get('identification') or '—')}</b><br/>"
+             f"Version : <b>{_txt(formulaire.get('version') or '—')}</b><br/>Date : <b>{_txt(formulaire.get('date') or '—')}</b><br/>"
+             f"Page : 1/1")
+    t = Table([[_logo(param, 48 * mm, 13 * mm), Paragraph(titre_html, ParagraphStyle('t', fontName=SERIF_GRAS, fontSize=12.5,
+                                                                                   leading=16, alignment=TA_CENTER)),
+                Paragraph(ident, ParagraphStyle('i', fontName=SERIF, fontSize=8.6, leading=11.5))]],
+              colWidths=[56 * mm, largeur - 56 * mm - 52 * mm, 52 * mm])
+    t.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 0.9, NOIR), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                           ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5)]))
+    return t
 
 
 def _nom_complet(u):
@@ -240,17 +256,8 @@ def note_de_frais(demande, user):
     h = []
 
     # En-tête du formulaire
-    titre = f"NOTE DE FRAIS DE MISSION<br/>{'HORS' if hors_pays else 'EN'} {_txt(pays.upper())}"
-    ident = (f"Identification : <b>{_txt(formulaire.get('identification') or '—')}</b><br/>"
-             f"Version : <b>{_txt(formulaire.get('version') or '—')}</b><br/>Date : <b>{_txt(formulaire.get('date') or '—')}</b><br/>"
-             f"Page : 1/1")
-    t = Table([[_logo(param, 48 * mm, 13 * mm), Paragraph(titre, ParagraphStyle('t', fontName=SERIF_GRAS, fontSize=12.5,
-                                                                              leading=16, alignment=TA_CENTER)),
-                Paragraph(ident, ParagraphStyle('i', fontName=SERIF, fontSize=8.6, leading=11.5))]],
-              colWidths=[56 * mm, L - 56 * mm - 52 * mm, 52 * mm])
-    t.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 0.9, NOIR), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                           ('TOPPADDING', (0, 0), (-1, -1), 5), ('BOTTOMPADDING', (0, 0), (-1, -1), 5)]))
-    h += [t, Spacer(1, 6 * mm)]
+    h += [entete_formulaire(param, f"NOTE DE FRAIS DE MISSION<br/>{'HORS' if hors_pays else 'EN'} {_txt(pays.upper())}",
+                            formulaire, L), Spacer(1, 6 * mm)]
 
     # Identification du salarié
     u = demande.demandeur
@@ -259,12 +266,11 @@ def note_de_frais(demande, user):
     objet = f"{demande.objet} — {m.get('ville_destination_libelle', '')}" + \
             (f" ({m.get('pays_destination_libelle')})" if hors_pays and m.get('pays_destination_libelle') else '') + \
             f", {periode(*_dates_mission(demande, m))} — réf. {demande.reference}"
-    info = Table([[Paragraph(f"<b>NOM :</b> {_txt(_nom_complet(u))}", n), Paragraph(f"<b>DATE :</b> {date_note:%d/%m/%Y}", n)],
-                  [Paragraph(f"<b>MATRICULE :</b> {_txt(u.username)}", n), ''],
-                  [Paragraph(f"<b>SERVICE :</b> {_txt(demande.departement.libelle_service if demande.departement_id else '')}", n), ''],
-                  [Paragraph(f"<b>OBJET :</b> {_txt(objet)}", n), '']], colWidths=[L - 50 * mm, 50 * mm])
-    info.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), ligne, NOIR), ('SPAN', (0, 1), (1, 1)), ('SPAN', (0, 2), (1, 2)),
-                              ('SPAN', (0, 3), (1, 3)),
+    info = Table([[Paragraph(f"<b>NOM :</b> {_txt(_nom_complet(u))}", n), Paragraph(f"<b>MATRICULE :</b> {_txt(u.username)}", n),
+                   Paragraph(f"<b>DATE :</b> {date_note:%d/%m/%Y}", n)],
+                  [Paragraph(f"<b>SERVICE :</b> {_txt(demande.departement.libelle_service if demande.departement_id else '')}", n), '', ''],
+                  [Paragraph(f"<b>OBJET :</b> {_txt(objet)}", n), '', '']], colWidths=[L - 95 * mm, 50 * mm, 45 * mm])
+    info.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), ligne, NOIR), ('SPAN', (0, 1), (2, 1)), ('SPAN', (0, 2), (2, 2)),
                               ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                               ('LEFTPADDING', (0, 0), (-1, -1), 7)]))
     h += [info]

@@ -22,6 +22,7 @@ export interface LigneBareme {
 export interface ParametreSysteme {
   devise_reference: string; taille_max_piece_mo: number; modifiable_devise?: boolean;
   raison_sociale?: string; adresse?: string; ville?: string; pays?: string; logo?: string | null;
+  telephone?: string; fax?: string; centre_impots?: string; regime_imposition?: string;
   formulaires?: Record<string, Record<string, string>>; jours_ouvres?: number[];
   canal_email?: boolean; canal_push?: boolean; email_configure?: boolean; push_configure?: boolean;
 }

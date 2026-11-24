@@ -6,7 +6,7 @@ import { TableauxDeBordComponent } from './tableaux-de-bord/tableaux-de-bord.com
 
 
 const routes: Routes = [
-  { path: '', component: AccueilComponent, title: 'Accueil | UbiFlow' },
+  { path: '', pathMatch: 'full', component: AccueilComponent, title: 'Accueil | UbiFlow' },
   { path: 'tableaux-de-bord', component: TableauxDeBordComponent, title: 'Tableaux de bord | UbiFlow' },
 ];
 

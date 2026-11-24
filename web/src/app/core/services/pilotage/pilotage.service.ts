@@ -21,6 +21,11 @@ export class PilotageService {
   private readonly api = `${environment.apiUrl}/api/api/tableaux-de-bord`;
   constructor(private http: HttpClient) {}
 
+  accueil(profil?: string): Observable<any> {
+    let p = new HttpParams();
+    if (profil) p = p.set('profil', profil);
+    return this.http.get<any>(`${environment.apiUrl}/api/api/accueil/`, { params: p });
+  }
   profils(): Observable<Profil[]> { return this.http.get<Profil[]>(`${this.api}/`); }
   tableau(profil: string, filtres: Record<string, any>): Observable<TableauDeBord> {
     let p = new HttpParams();

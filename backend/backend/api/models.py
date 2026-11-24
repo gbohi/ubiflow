@@ -297,6 +297,10 @@ class ParametreSysteme(models.Model):
     ville = models.CharField(max_length=100, blank=True, help_text='Lieu de signature (« Fait à … »)')
     pays = models.CharField(max_length=100, blank=True, help_text='Pays de la société (missions « en » / « hors » pays)')
     logo = models.ImageField(upload_to='societe/', null=True, blank=True)
+    telephone = models.CharField(max_length=50, blank=True)
+    fax = models.CharField(max_length=50, blank=True)
+    centre_impots = models.CharField(max_length=50, blank=True, help_text='CDI (ex. DGE)')
+    regime_imposition = models.CharField(max_length=50, blank=True)
     # Références des formulaires qualité, ex. {"note_frais_hors_pays": {"identification": "ENR-CPT-016", ...}}
     formulaires = models.JSONField(default=dict, blank=True)
     # Calendrier : jours ouvrés (0 = lundi … 6 = dimanche), jours fériés dans JourFerie

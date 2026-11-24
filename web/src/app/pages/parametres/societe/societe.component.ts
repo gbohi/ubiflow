@@ -12,6 +12,8 @@ import { OrganisationService, messageErreur } from 'src/app/core/services/organi
 const FORMULAIRES = [
   { cle: 'note_frais_hors_pays', libelle: 'Note de frais de mission hors pays' },
   { cle: 'note_frais_pays', libelle: 'Note de frais de mission dans le pays' },
+  { cle: 'demande_paiement', libelle: 'Demande de paiement (paiement, réception client)' },
+  { cle: 'demande_remboursement', libelle: 'Demande de remboursement' },
 ];
 
 @Component({
@@ -52,8 +54,9 @@ export class SocieteComponent implements OnInit {
   enregistrer(): void {
     if (!this.fiche || this.enCours) return;
     this.enCours = true;
-    const { raison_sociale, adresse, ville, pays, formulaires, canal_email, canal_push } = this.fiche;
-    this.service.enregistrerParametres({ raison_sociale, adresse, ville, pays, formulaires, canal_email, canal_push }).subscribe({
+    const { raison_sociale, adresse, ville, pays, telephone, fax, centre_impots, regime_imposition, formulaires, canal_email, canal_push } = this.fiche;
+    this.service.enregistrerParametres({ raison_sociale, adresse, ville, pays, telephone, fax, centre_impots, regime_imposition,
+                                         formulaires, canal_email, canal_push }).subscribe({
       next: () => {
         if (!this.logo) { this.fin(); return; }
         this.service.envoyerLogo(this.logo).subscribe({ next: () => this.fin(), error: e => this.echec(e) });

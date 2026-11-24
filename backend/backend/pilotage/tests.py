@@ -4,7 +4,7 @@ from decimal import Decimal
 from tresorerie.tests import TresorerieBase
 
 
-class TableauxDeBordTests(TresorerieBase):
+class JeuDeDonnees(TresorerieBase):
     def jeu_de_donnees(self):
         """Mission payée 190 000, FRC approuvée 500 000 (à payer), FRC en validation 300 000."""
         mission = self.creer_mission()
@@ -16,6 +16,9 @@ class TableauxDeBordTests(TresorerieBase):
                                                          'nombre_participants': 2, 'lieu': 'Plateau', 'justification': 'x'})
         self.soumettre(en_cours)
         return mission, frc, en_cours
+
+
+class TableauxDeBordTests(JeuDeDonnees):
 
     def tdb(self, user, profil, attendu=200, **filtres):
         self.en(user)
@@ -82,3 +85,37 @@ class TableauxDeBordTests(TresorerieBase):
         d = self.tdb(admin, 'administrateur')
         self.assertGreaterEqual(self.indicateur(d, 'circuits'), 7)
         self.assertGreaterEqual(self.indicateur(d, 'actifs'), 6)
+
+
+class AccueilTests(JeuDeDonnees):
+    def accueil(self, user, **params):
+        self.en(user)
+        r = self.client.get('/api/api/accueil/', params)
+        self.assertEqual(r.status_code, 200, getattr(r, 'data', None))
+        return r.data
+
+    def kpi(self, data, cle):
+        return next(k['valeur'] for k in data['kpis'] if k['cle'] == cle)
+
+    def test_accueil_par_profil(self):
+        self.jeu_de_donnees()
+        d = self.accueil(self.agent)
+        self.assertEqual(d['profil'], 'collaborateur')
+        self.assertEqual((self.kpi(d, 'toutes'), self.kpi(d, 'en_cours'), self.kpi(d, 'approuvees'), self.kpi(d, 'actions')), (3, 1, 2, 1))
+        self.assertTrue(any('clôturer' in a['texte'] for a in d['alertes']))
+        v = self.accueil(self.chef)
+        self.assertEqual(v['profil'], 'valideur')
+        self.assertEqual(self.kpi(v, 'a_valider'), 1)
+        self.assertEqual(len(v['listes'][0]['lignes']), 1)
+        f = self.accueil(self.caisse)
+        self.assertEqual(f['profil'], 'finances')
+        self.assertEqual(Decimal(self.kpi(f, 'attente')), Decimal('500000'))
+        self.assertEqual(f['listes'][0]['lignes'][0]['type_code'], 'FRC')
+        admin = self.user('adm', groupes=('admin',))
+        g = self.accueil(admin)
+        self.assertEqual(g['profil'], 'direction')
+        self.assertEqual((self.kpi(g, 'total'), Decimal(self.kpi(g, 'budget'))), (3, Decimal('690000')))
+        self.assertEqual({x['libelle'] for x in g['graphes'][0]['donnees']}, {'Missions locales', 'Réceptions client'})
+        # profil demandé explicitement
+        self.assertEqual(self.accueil(admin, profil='collaborateur')['profil'], 'collaborateur')
+        self.assertEqual(self.accueil(self.agent, profil='direction')['profil'], 'collaborateur')  # non autorisé

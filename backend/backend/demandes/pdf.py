@@ -40,6 +40,7 @@ _POLICES = Path(__file__).resolve().parent / 'polices'
 try:
     pdfmetrics.registerFont(TTFont('UbiSans', str(_POLICES / 'DejaVuSans.ttf')))
     pdfmetrics.registerFont(TTFont('UbiSans-Bold', str(_POLICES / 'DejaVuSans-Bold.ttf')))
+    pdfmetrics.registerFontFamily('UbiSans', normal='UbiSans', bold='UbiSans-Bold', italic='UbiSans', boldItalic='UbiSans-Bold')
     POLICE, GRAS = 'UbiSans', 'UbiSans-Bold'
 except Exception:  # police absente : polices standard (accents latins seulement)
     POLICE, GRAS = 'Helvetica', 'Helvetica-Bold'

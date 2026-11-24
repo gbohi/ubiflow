@@ -14,6 +14,15 @@ class ProfilsView(APIView):
         return Response(profils_accessibles(request.user))
 
 
+class AccueilView(APIView):
+    """GET /accueil/?profil= : accueil de synthèse (collaborateur, valideur, direction, finances)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .accueil import accueil
+        return Response(accueil(request.user, request.query_params.get('profil')))
+
+
 class TableauDeBordView(APIView):
     """
     GET /tableaux-de-bord/{profil}/?du=&au=&type_demande=&statut=&departement=&agence=&categorie=&demandeur=

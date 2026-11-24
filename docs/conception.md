@@ -850,6 +850,15 @@ tableaux de bord.
   circuit de validation complet (noms, dates, commentaires) et un QR code
   de vérification (page publique indiquant seulement si le document est
   authentique et son statut).
+- **Demande de paiement / de remboursement** au format du modèle papier de la
+  société (`documents_paiement.py`) pour les types simples avec montant :
+  en-tête des formulaires qualité, téléphone, fax, CDI et régime d'imposition
+  (Paramètres → Société), nom et prénoms, matricule, date, service, montant en
+  chiffres et en lettres, motif, bénéficiaire ; pour les frais de réception
+  client : client, lieu, date et participants. Cadre « À remplir
+  obligatoirement » repris du dernier règlement ; signatures Demandeur, Chef
+  comptable, Approbation DAF, Signataire, Bénéficiaire avec les noms du circuit.
+- Note de frais : nom, matricule et date sur la même ligne.
 
 ---
 
@@ -955,6 +964,22 @@ montants agrégés sont dans la devise de référence (taux figés).
 > filtres d'organisation (statut, département, agence, catégorie, demandeur)
 > s'appliquent au tableau Direction. Les profils de consultation sont limités
 > par leurs `PerimetreConsultation` (Paramètres → Périmètres de consultation).
+
+### Accueil de synthèse (Executive Overview)
+
+`GET /accueil/?profil=` (`pilotage/accueil.py`) choisit la vue selon le profil
+de l'utilisateur ; s'il en a plusieurs, un sélecteur permet d'en changer.
+
+| Vue | 4 indicateurs | Listes et graphiques |
+|---|---|---|
+| Collaborateur | Toutes mes demandes, En cours de validation, Approuvées, Actions attendues | Dernières demandes, prochaines missions, retournées pour correction, rapports de mission à soumettre |
+| Valideur | À valider, En retard, Validées aujourd'hui, Retournées ou rejetées | Mes validations en attente (bouton À valider) |
+| Direction générale | Total des demandes, En attente de validation, Missions en cours, Budget total approuvé | Répartition par catégorie, dépenses approuvées des 6 derniers mois, demandes nécessitant une attention particulière |
+| DAF / chef comptable | Montant total approuvé, En attente de paiement, Montant payé, Demandes à traiter | Approuvées à payer (en tête), paiements récents, missions avec frais complémentaires, répartition par département |
+
+Communs à toutes les vues : alertes, actions rapides (Mission, Mission hors
+pays, Remboursement, Autre demande ; Valider et Payer selon les droits),
+notifications récentes, dernières activités, raccourcis vers les modules.
 
 ---
 

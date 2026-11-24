@@ -10,6 +10,9 @@
         <span class="pe-lib">Documents</span></button>
       <ul *dropdownMenu class="dropdown-menu dropdown-menu-end" role="menu">
         <li><button type="button" class="dropdown-item" (click)="telechargerPdf('pdf')"><i class="ri-file-text-line me-2"></i>Fiche de la demande</button></li>
+        @if (!estMission && demande.reference && demande.montant_demande !== null && demande.type_famille === 'simple') {
+          <li><button type="button" class="dropdown-item" (click)="telechargerPdf('demande-paiement')"><i class="ri-bank-card-line me-2"></i>{{ demande.type_code === 'RMB' ? 'Demande de remboursement' : 'Demande de paiement' }}</button></li>
+        }
         @if (estMission) {
           @if (['approuvee', 'en_attente_cloture', 'cloturee'].includes(demande.statut)) {
             <li><button type="button" class="dropdown-item" (click)="telechargerPdf('ordre-mission')"><i class="ri-quill-pen-line me-2"></i>Ordre de mission</button></li>

@@ -19,6 +19,14 @@
             <div class="col-md-6"><label class="form-label" for="so-pa">Pays</label>
               <input id="so-pa" class="form-control" maxlength="100" [(ngModel)]="fiche.pays">
               <div class="form-text">Titre des notes de frais « en » / « hors » pays.</div></div>
+            <div class="col-md-6"><label class="form-label" for="so-tel">Téléphone</label>
+              <input id="so-tel" class="form-control" [(ngModel)]="fiche.telephone"></div>
+            <div class="col-md-6"><label class="form-label" for="so-fax">Fax</label>
+              <input id="so-fax" class="form-control" [(ngModel)]="fiche.fax"></div>
+            <div class="col-md-6"><label class="form-label" for="so-cdi">Centre des impôts (CDI)</label>
+              <input id="so-cdi" class="form-control" [(ngModel)]="fiche.centre_impots"></div>
+            <div class="col-md-6"><label class="form-label" for="so-reg">Régime d'imposition</label>
+              <input id="so-reg" class="form-control" [(ngModel)]="fiche.regime_imposition"></div>
           </div>
           <h6 class="mt-4 mb-3">Ordre de mission</h6>
           <div class="row g-3">

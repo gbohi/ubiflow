@@ -220,7 +220,7 @@ export class DemandesService {
   parentsPossibles(typeDemande: number) {
     return this.http.get<any[]>(`${this.api}/demandes/parents-possibles/`, { params: this.params({ type_demande: typeDemande }) });
   }
-  pdf(id: number, document: 'pdf' | 'ordre-mission' | 'note-frais' = 'pdf'): Observable<Blob> {
+  pdf(id: number, document: 'pdf' | 'ordre-mission' | 'note-frais' | 'demande-paiement' = 'pdf'): Observable<Blob> {
     return this.http.get(`${this.api}/demandes/${id}/${document}/`, { responseType: 'blob' });
   }
   enregistrerCloture(id: number, d: Partial<Cloture>) {

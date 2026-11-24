@@ -77,6 +77,13 @@ export class TableauxDeBordComponent implements OnInit {
       },
       error: e => this.toast.error(messageErreur(e)),
     });
+  }
+
+  /** Listes des filtres d'organisation : chargées seulement pour le tableau Direction */
+  private listesChargees = false;
+  private chargerListes(): void {
+    if (this.listesChargees) return;
+    this.listesChargees = true;
     this.organisation.departementsTous().subscribe(d => this.departements = d ?? []);
     this.organisation.agencesToutes().subscribe(a => this.agences = a ?? []);
     this.organisation.categoriesToutes().subscribe(c => this.categories = c ?? []);
@@ -88,6 +95,7 @@ export class TableauxDeBordComponent implements OnInit {
   choisir(code: string): void {
     if (!code) return;
     this.profil = code;
+    if (code === 'direction') this.chargerListes();
     this.router.navigate([], { queryParams: { profil: code }, replaceUrl: true });
     this.charger();
   }

@@ -52,9 +52,11 @@ export class GrapheColonnesComponent implements OnChanges {
   @Input() unite = 'montant';
   @Input() devise = '';
   @Input() titre = '';
+  @Input() L = 1100;
+  @Input() H = 280;
   @ViewChild('svg', { static: true }) svg!: ElementRef<SVGSVGElement>;
 
-  readonly L = 1100; readonly H = 280; readonly G = 52; readonly B = 22;
+  readonly G = 52; readonly B = 22;
   readonly couleurs = SERIES;
   mois: { libelle: string; v: number[] }[] = [];
   ticks: number[] = [0, 1];

@@ -395,3 +395,19 @@ class DecisionsTests(TresorerieBase):
         self.payer(frc, '450000')
         self.en(self.daf)
         self.assertEqual(self.client.post(url, {'montant': '400000', 'motif': 'x'}, format='json').status_code, 403)  # déjà payée
+
+
+class DemandePaiementPdfTests(TresorerieBase):
+    def test_demande_de_paiement(self):
+        from demandes.lettres import montant_en_lettres
+        self.assertEqual(montant_en_lettres(280000), 'Deux cent quatre-vingt mille francs CFA')
+        self.assertEqual(montant_en_lettres(2000000), 'Deux millions de francs CFA')
+        self.assertEqual(montant_en_lettres(71), 'Soixante et onze francs CFA')
+        frc = self.approuver_frc()
+        self.payer(frc, '500000', reference='CHQ-0012', mode='cheque')
+        self.en(self.agent)
+        r = self.client.get(f'/api/api/demandes/{frc}/demande-paiement/')
+        self.assertEqual((r.status_code, r['Content-Type']), (200, 'application/pdf'))
+        pk = self.creer_mission()
+        self.soumettre(pk)
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/demande-paiement/').status_code, 400)  # mission : note de frais

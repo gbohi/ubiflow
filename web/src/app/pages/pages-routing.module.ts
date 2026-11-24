@@ -3,11 +3,12 @@ import { RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
-    // Demandes, validations, délégations (adresses /demandes, /validations, /delegations)
-    path: '', loadChildren: () => import('./demandes/demandes.module').then(m => m.DemandesModule)
+    // Accueil (/) et tableaux de bord : en premier, sinon l'adresse vide reste sans page
+    path: '', loadChildren: () => import('./dashboards/dashboards.module').then(m => m.DashboardsModule)
   },
   {
-    path: '', loadChildren: () => import('./dashboards/dashboards.module').then(m => m.DashboardsModule)
+    // Demandes, validations, délégations, trésorerie (adresses /demandes, /validations, /delegations…)
+    path: '', loadChildren: () => import('./demandes/demandes.module').then(m => m.DemandesModule)
   },
   {
     // Rôle vérifié route par route dans ParametresRoutingModule

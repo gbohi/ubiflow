@@ -118,6 +118,7 @@ class ParametreSystemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParametreSysteme
         fields = ['devise_reference', 'taille_max_piece_mo', 'raison_sociale', 'adresse', 'ville', 'pays', 'logo',
+                  'telephone', 'fax', 'centre_impots', 'regime_imposition',
                   'formulaires', 'jours_ouvres', 'canal_email', 'canal_push', 'email_configure', 'push_configure',
                   'updated_at', 'modifiable_devise']
 

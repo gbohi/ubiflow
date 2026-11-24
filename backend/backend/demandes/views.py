@@ -275,6 +275,16 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         r['Content-Disposition'] = f'attachment; filename="ordre-de-mission-{demande.reference}.pdf"'
         return r
 
+    @action(detail=True, methods=['get'], url_path='demande-paiement')
+    def demande_paiement(self, request, pk=None):
+        """Demande de paiement / de remboursement au format de la société."""
+        from django.http import HttpResponse
+        from .documents_paiement import demande_de_paiement
+        demande = self.get_object()
+        r = HttpResponse(demande_de_paiement(demande, request.user), content_type='application/pdf')
+        r['Content-Disposition'] = f'attachment; filename="demande-de-paiement-{demande.reference}.pdf"'
+        return r
+
     @action(detail=True, methods=['get'], url_path='note-frais')
     def note_frais(self, request, pk=None):
         """Note de frais de mission (formulaire de la société)."""

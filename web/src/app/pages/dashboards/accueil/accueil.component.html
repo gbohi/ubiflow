@@ -1,55 +1,153 @@
-<div class="lst prm">
-  <app-page-entete [titre]="'Bonjour ' + prenom" icone="ri-home-4-line" sousTitre="Vos demandes et validations en un coup d'œil">
-    <a routerLink="/demandes/nouvelle" class="btn-ubi vert"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle demande</span></a>
-  </app-page-entete>
-
-  @if (aValider > 0) {
-    <a routerLink="/validations" class="alert alert-primary d-flex align-items-center text-decoration-none">
-      <i class="ri-checkbox-multiple-line fs-4 me-2"></i>
-      <span><b>{{ aValider }} validation{{ aValider > 1 ? 's' : '' }}</b> en attente de votre décision.</span>
-      <i class="ri-arrow-right-line ms-auto"></i>
-    </a>
+<div class="lst">
+  @if (chargement && !donnees) {
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
   }
-
-  <section class="prm-grp" aria-label="Mes demandes">
-    <h2><i class="ri-file-list-3-line" aria-hidden="true"></i>Mes demandes</h2>
-    <div class="prm-cartes">
-      @for (t of tuiles; track t.cle) {
-        <a class="prm-carte" [routerLink]="['/demandes']" [queryParams]="{ statut: t.cle }">
-          <span class="prm-pa" [ngClass]="t.teinte" aria-hidden="true"><i [class]="t.icone"></i></span>
-          <span class="prm-txt"><b>{{ t.libelle }}</b><small>Voir la liste</small></span>
-          @if (charge) { <span class="prm-n">{{ compteurs[t.cle] || 0 }}</span> }
-          <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
-        </a>
+  @if (donnees) {
+    <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+      <div>
+        <h3 class="mb-1" style="font-weight: 600">Bonjour, {{ donnees.prenom }}</h3>
+        <div class="text-muted">Voici le résumé de votre activité · {{ dateDuJour }}</div>
+      </div>
+      @if (donnees.profils.length > 1) {
+        <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Vue de l'accueil">
+          @for (p of donnees.profils; track p.code) {
+            <button type="button" class="btn" [class.btn-primary]="p.code === donnees.profil" [class.btn-light]="p.code !== donnees.profil"
+                    (click)="choisir(p.code)">{{ p.libelle }}</button>
+          }
+        </div>
       }
     </div>
-  </section>
 
-  <section class="prm-grp" aria-label="Accès rapides">
-    <h2><i class="ri-flashlight-line" aria-hidden="true"></i>Accès rapides</h2>
-    <div class="prm-cartes">
-      <a class="prm-carte" routerLink="/tableaux-de-bord">
-        <span class="prm-pa p-bl" aria-hidden="true"><i class="ri-dashboard-3-line"></i></span>
-        <span class="prm-txt"><b>Tableaux de bord</b><small>Indicateurs, graphiques, exports Excel et PDF</small></span>
-        <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
-      </a>
-      <a class="prm-carte" routerLink="/validations">
-        <span class="prm-pa p-bl" aria-hidden="true"><i class="ri-checkbox-multiple-line"></i></span>
-        <span class="prm-txt"><b>À valider</b><small>Demandes qui attendent votre décision</small></span>
-        <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
-      </a>
-      <a class="prm-carte" routerLink="/delegations">
-        <span class="prm-pa p-or" aria-hidden="true"><i class="ri-user-shared-line"></i></span>
-        <span class="prm-txt"><b>Délégations</b><small>Confier vos validations pendant une absence</small></span>
-        <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
-      </a>
-      @if (gestionnaire) {
-        <a class="prm-carte" routerLink="/parametres/accueil">
-          <span class="prm-pa p-ve" aria-hidden="true"><i class="ri-settings-3-line"></i></span>
-          <span class="prm-txt"><b>Paramètres</b><small>Organisation, utilisateurs, référentiels</small></span>
-          <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
-        </a>
+    <div [style.opacity]="chargement ? .55 : 1">
+      <!-- Indicateurs -->
+      <div class="acc-kpis mb-3" data-test="kpis">
+        @for (k of donnees.kpis; track k.cle) {
+          @if (lien(k.lien); as l) {
+            <a class="acc-kpi" [ngClass]="k.ton" [routerLink]="l.route" [queryParams]="l.params">
+              <span class="acc-ic"><i [class]="k.icone"></i></span>
+              <span><small>{{ k.libelle }}</small><b>{{ valeur(k) }}@if (k.format === 'montant') {<span class="acc-u">{{ donnees.devise }}</span>}</b>
+                <span class="acc-st">{{ k.sous_titre }}</span></span>
+            </a>
+          } @else {
+            <div class="acc-kpi" [ngClass]="k.ton">
+              <span class="acc-ic"><i [class]="k.icone"></i></span>
+              <span><small>{{ k.libelle }}</small><b>{{ valeur(k) }}@if (k.format === 'montant') {<span class="acc-u">{{ donnees.devise }}</span>}</b>
+                <span class="acc-st">{{ k.sous_titre }}</span></span>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Alertes -->
+      @if (donnees.alertes.length) {
+        <div class="d-grid gap-2 mb-3" data-test="alertes">
+          @for (a of donnees.alertes; track $index) {
+            <a class="acc-alerte" [ngClass]="a.ton" href="javascript:void(0)" (click)="ouvrir(a.lien)">
+              <i [class]="a.ton === 'alerte' ? 'ri-alarm-warning-line' : 'ri-error-warning-line'"></i>{{ a.texte }}<i class="ri-arrow-right-line ms-auto"></i></a>
+          }
+        </div>
       }
+
+      <div class="row g-3">
+        <div class="col-xl-8">
+          <!-- Actions rapides -->
+          <div class="acc-carte mb-3">
+            <div class="d-flex align-items-center mb-3"><h6>Actions rapides</h6><span class="small text-muted ms-2">Accès direct</span></div>
+            <div class="acc-actions">
+              @for (a of donnees.actions_rapides; track a.libelle) {
+                <a class="acc-action" [routerLink]="a.lien" [queryParams]="a.code ? { code: a.code } : {}"><i [class]="a.icone"></i><span>{{ a.libelle }}</span></a>
+              }
+              @if (donnees.profils.includes('valideur')) {
+                <a class="acc-action" routerLink="/validations"><i class="ri-checkbox-multiple-line"></i><span>Valider</span></a>
+              }
+              @if (donnees.profils.includes('finances')) {
+                <a class="acc-action" routerLink="/tresorerie/a-payer"><i class="ri-wallet-3-line"></i><span>Payer</span></a>
+              }
+            </div>
+          </div>
+
+          <!-- Graphiques légers -->
+          @if (donnees.graphes.length) {
+            <div class="row g-3 mb-3">
+              @for (g of donnees.graphes; track g.cle) {
+                <div [class]="donnees.graphes.length > 1 ? 'col-lg-6' : 'col-12'">
+                  <div class="acc-carte h-100">
+                    <h6 class="mb-2">{{ g.titre }}</h6>
+                    @if (g.type === 'barres') {
+                      @if (g.donnees.length) { <app-graphe-barres [donnees]="g.donnees" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="420" [LIB]="130"></app-graphe-barres> }
+                      @else { <div class="small text-muted py-3">Aucune donnée.</div> }
+                    } @else {
+                      <app-graphe-colonnes [donnees]="g.donnees" [series]="g.series" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="520" [H]="230"></app-graphe-colonnes>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Listes prioritaires -->
+          @for (l of donnees.listes; track l.cle) {
+            <div class="acc-carte mb-3" [attr.data-test]="'liste-' + l.cle">
+              <div class="d-flex align-items-center mb-1">
+                <h6>{{ l.titre }}</h6>
+                @if (l.lignes.length) { <span class="badge bg-light text-dark ms-2">{{ l.lignes.length }}</span> }
+                @if (lien(l.lien_tout); as t) { <a class="small ms-auto" [routerLink]="t.route" [queryParams]="t.params">Voir tout →</a> }
+              </div>
+              @for (r of l.lignes; track $index) {
+                <a class="acc-ligne" [routerLink]="['/demandes', r.id]">
+                  <span class="lst-av carre" [ngClass]="teinte(r.type_code)"><i [class]="icone(r.type_icone)"></i></span>
+                  <span class="flex-grow-1 min-w-0">
+                    <span class="acc-titre d-block text-truncate">{{ r.objet || r.type }}</span>
+                    <span class="acc-sous">{{ r.reference }} · {{ r.type }}@if (l.cle !== 'dernieres' && l.cle !== 'prochaines' && l.cle !== 'a_corriger' && l.cle !== 'rapports') { · {{ r.demandeur }} }
+                      @if (r.etape) { · {{ r.etape }} } @if (r.info) { · {{ r.info }} }</span>
+                  </span>
+                  @if (r.montant) { <span class="text-nowrap fw-semibold small">{{ montant(r.montant) }}</span> }
+                  @if (l.cle === 'validations') {
+                    @if (r.retard) { <span class="lst-tag t-ro">En retard</span> }
+                    <span class="btn btn-sm btn-primary text-nowrap">À valider</span>
+                  } @else if (l.cle !== 'paiements' && l.cle !== 'a_payer') {
+                    <span class="lst-tag" [ngClass]="classes[r.statut]">{{ r.statut_libelle }}</span>
+                  }
+                </a>
+              } @empty {
+                <div class="small text-muted py-2">{{ l.vide }}</div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="col-xl-4">
+          <!-- Notifications récentes -->
+          <div class="acc-carte mb-3">
+            <div class="d-flex align-items-center mb-1"><h6>Notifications récentes</h6>
+              <a routerLink="/notifications/preferences" class="small ms-auto" title="Préférences"><i class="ri-settings-4-line"></i></a></div>
+            @for (n of donnees.notifications; track n.id) {
+              <div class="acc-notif" [class.non-lue]="!n.lue" style="cursor: pointer" (click)="ouvrir(n.lien)">
+                <b class="d-block">{{ n.titre }}</b><span class="text-muted small">{{ depuis(n.creee_le) }}</span>
+              </div>
+            } @empty { <div class="small text-muted py-2">Aucune notification.</div> }
+          </div>
+          <!-- Dernières activités -->
+          <div class="acc-carte mb-3">
+            <h6 class="mb-1">Dernières activités</h6>
+            @for (a of donnees.activites; track $index) {
+              <a class="acc-notif d-block text-decoration-none text-reset" [routerLink]="['/demandes', a.demande]">
+                <b class="d-block">{{ a.type }} · {{ a.reference }}</b>
+                <span class="small text-muted">{{ a.auteur }} · {{ depuis(a.le) }}</span>
+              </a>
+            } @empty { <div class="small text-muted py-2">Aucune activité récente.</div> }
+          </div>
+          <!-- Raccourcis -->
+          <div class="acc-carte">
+            <h6 class="mb-2">Raccourcis</h6>
+            <div class="d-flex flex-wrap gap-2">
+              @for (r of donnees.raccourcis; track r.lien) {
+                <a class="btn btn-light btn-sm" [routerLink]="r.lien"><i [class]="r.icone + ' me-1'"></i>{{ r.libelle }}</a>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </section>
+  }
 </div>

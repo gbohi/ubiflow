@@ -106,7 +106,8 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Lieux | `pays/`, `villes/`, `distances/` (+ `entre/?a=&b=`) | `missions/` |
 | Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
 | Clôture | `demandes/{id}/cloture/` (+ `soumettre/`, `valider/`, `retourner/`), `missions/clotures/` (à contrôler) | `missions/cloture.py` |
-| Documents | `demandes/{id}/pdf/`, `ordre-mission/`, `note-frais/` ; `annuler-admin/`, `corriger-montant/` | `demandes/pdf.py`, `demandes/documents_mission.py` |
+| Documents | `demandes/{id}/pdf/`, `ordre-mission/`, `note-frais/`, `demande-paiement/` ; `annuler-admin/`, `corriger-montant/` | `demandes/pdf.py`, `demandes/documents_mission.py`, `demandes/documents_paiement.py` |
+| Accueil de synthèse | `accueil/?profil=` | `pilotage/accueil.py` |
 | Tableaux de bord | `tableaux-de-bord/`, `tableaux-de-bord/{profil}/` ; `perimetres-consultation/` | `pilotage/indicateurs.py` |
 | Notifications | `notifications/preferences/`, `notifications/appareils/` ; `jours-feries/` | `notifications/canaux.py`, `workflow/services_planifies.py` |
 | Trésorerie | `tresorerie/a-payer/` (+ `?export=xlsx`), `tresorerie/reglements/` (+ `annuler/`), `tresorerie/reversements/` (+ `percevoir/`, `abandonner/`), `demandes/parents-possibles/` | `tresorerie/services.py` |

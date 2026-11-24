@@ -33,9 +33,12 @@ export class GrapheBarresComponent implements OnChanges {
   @Input() unite = 'montant';
   @Input() devise = '';
   @Input() titre = '';
+  /** Largeur logique du dessin : plus petite = texte plus grand dans un conteneur étroit. */
+  @Input() L = 640;
+  @Input() LIB = 170;
   @ViewChild('svg', { static: true }) svg!: ElementRef<SVGSVGElement>;
 
-  readonly L = 640; readonly LIB = 170; readonly EP = 14; readonly PAS = 26;
+  readonly EP = 14; readonly PAS = 26;
   readonly couleur = BARRE;
   lignes: { libelle: string; v: number }[] = [];
   max = 1;
