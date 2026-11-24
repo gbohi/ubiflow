@@ -30,12 +30,40 @@ const espace = () => new Paragraph({ spacing: { after: 60 }, children: [] });
 
 const contenu = [
   new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: 'UbiFlow', font: F, size: 26, bold: true, color: VERT })] }),
-  new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: 'Annulations, paiements et contrôles des demandes' })] }),
-  p('Support de formation — règles de gestion validées le 24/11/2026', { run: { color: GRIS } }),
-  p('Ce document présente, pour les demandeurs, les valideurs, la comptabilité et les administrateurs, les règles appliquées par UbiFlow pour annuler une demande, la payer, récupérer un trop-perçu et repérer les situations à risque.'),
+  new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: 'Règles de gestion et utilisation d\'UbiFlow' })] }),
+  p('Support de formation — web et application mobile — mis à jour le 24/11/2026', { run: { color: GRIS } }),
+  p('Ce document présente, pour les demandeurs, les valideurs, la direction, la comptabilité et les administrateurs, l\'utilisation d\'UbiFlow et les règles qu\'il applique : créer et suivre une demande, la valider, l\'annuler, la payer, récupérer un trop-perçu, clôturer une mission, suivre les délais et l\'activité.'),
+  tableau(['Profil', 'Sections utiles'], [
+    ['Demandeur (tout collaborateur)', '1, 2, 3, 7, 9, 11, 12'],
+    ['Valideur (N+1, DG, DAF, chef comptable…)', '1, 3, 6, 8, 9, 12'],
+    ['Comptabilité', '1, 4, 5, 7, 10, 11'],
+    ['Direction générale', '1, 6, 10'],
+    ['Administrateur', 'Toutes, en particulier 3, 6, 8, 10'],
+  ], [4300, 5000]),
 
-  h1('1. Annuler une demande'),
-  h2('1.1 Selon le statut de la demande'),
+  h1('1. La page d\'accueil'),
+  p('À la connexion, la page d\'accueil présente une synthèse adaptée au profil de l\'utilisateur. Une personne qui a plusieurs profils (par exemple la DAF, qui est aussi valideuse et demandeuse) change de vue avec les boutons en haut à droite.'),
+  tableau(['Vue', 'Les 4 indicateurs', 'Listes et graphiques'], [
+    ['Collaborateur', 'Toutes mes demandes, En cours de validation, Approuvées, Actions attendues', 'Mes dernières demandes, prochaines missions, demandes retournées pour correction, rapports de mission à soumettre'],
+    ['Valideur', 'À valider, En retard, Validées aujourd\'hui, Retournées ou rejetées', 'Mes validations en attente, avec un bouton « À valider »'],
+    ['Direction générale', 'Total des demandes, En attente de validation, Missions en cours, Budget total approuvé', 'Répartition par catégorie, dépenses approuvées des 6 derniers mois, demandes nécessitant une attention particulière'],
+    ['DAF / chef comptable', 'Montant total approuvé, En attente de paiement, Montant payé, Demandes à traiter', 'Demandes approuvées à payer (en tête), paiements récents, missions avec frais complémentaires, répartition par département'],
+  ], [1900, 3600, 3800]),
+  espace(),
+  puce([b('Alertes : '), 'bandeaux orange ou rouges (demande à corriger, mission à clôturer, reversement à effectuer). Un clic ouvre la liste concernée.']),
+  puce([b('Actions rapides : '), 'Mission, Mission hors pays, Remboursement, Autre demande ; Valider et Payer selon les droits.']),
+  puce([b('Colonne de droite : '), 'notifications récentes, dernières activités sur mes demandes, raccourcis vers les modules.']),
+
+  h1('2. Créer et suivre une demande'),
+  puce('Menu « Nouvelle demande » (ou une action rapide) : choisir le type (étape 1/2), puis remplir le formulaire (étape 2/2).'),
+  puce('Le formulaire reprend les champs propres au type : client, lieu et participants pour une réception client, bénéficiaire et mode de paiement pour une demande de paiement, date et nature de la dépense pour un remboursement…'),
+  puce([b('Missions : '), 'ville de départ, destination, dates et heures, moyen de transport, autres frais (hébergement, visa, billet d\'avion). L\'estimation des frais (indemnités journalières, transport, frais) est recalculée pendant la saisie avec les barèmes en vigueur.']),
+  puce([b('Frais complémentaires et demande d\'annulation : '), 'choisir la demande concernée dans la liste proposée.']),
+  puce('« Enregistrer le brouillon » garde la demande modifiable ; « Soumettre » l\'envoie dans le circuit de validation. Les pièces exigées à la soumission doivent être jointes avant.'),
+  puce('Après soumission, la fiche montre le statut, le circuit (étape en cours et valideurs prévus), l\'historique et les commentaires. Une demande retournée pour correction redevient modifiable : le demandeur la corrige puis clique sur « Soumettre à nouveau ».'),
+
+  h1('3. Annuler une demande'),
+  h2('3.1 Selon le statut de la demande'),
   tableau(['Statut', 'Annulation', 'Comment'], [
     ['Brouillon (jamais soumis)', 'Pas d\'annulation : suppression', 'Bouton « Supprimer le brouillon ».'],
     ['En validation', 'Oui, directement', 'Bouton « Annuler la demande », motif obligatoire. Les validations en cours sont arrêtées et les valideurs prévenus.'],
@@ -47,14 +75,14 @@ const contenu = [
   ], [2300, 2500, 4500]),
   espace(),
   p([b('Paramétrage. '), 'Les statuts où le demandeur annule lui-même sa demande se règlent par type (Paramètres → Types de demande). Par défaut : en validation et à corriger.']),
-  h2('1.2 Autres règles'),
+  h2('3.2 Autres règles'),
   puce('Une seule demande d\'annulation en cours par demande.'),
   puce('Tant qu\'une demande d\'annulation est en cours, la demande d\'origine ne peut pas être payée.'),
   puce('Une demande d\'annulation ne peut pas elle-même faire l\'objet d\'une demande d\'annulation ; le demandeur peut l\'annuler directement tant qu\'elle est en validation.'),
   puce('Un valideur ne peut pas annuler : il approuve, retourne (motif) ou rejette (motif).'),
   puce([b('Décision n° 1 : '), 'un administrateur peut annuler la demande d\'un autre collaborateur (absence, doublon, départ), avec un motif obligatoire tracé dans l\'historique.']),
 
-  h1('2. Payer une demande'),
+  h1('4. Payer une demande'),
   puce('La comptabilité paie depuis l\'écran « À payer » (Trésorerie) ou depuis la fiche de la demande.'),
   puce('Paiement en plusieurs fois si le type l\'autorise, sinon en une fois ; jamais plus que le reste à payer.'),
   puce('Chaque paiement indique la date, le mode (virement, chèque, espèces, mobile money), la référence, le bénéficiaire et, si exigé par le type, le justificatif.'),
@@ -63,13 +91,13 @@ const contenu = [
   puce('Un paiement saisi par erreur est annulé par un administrateur des finances, avec un motif ; il reste visible, barré.'),
   puce([b('Décision n° 3 : '), 'aucune interdiction n\'est appliquée lorsqu\'un comptable paie sa propre demande ou enregistre son propre reversement. La séparation approbation / paiement reste paramétrable par type de demande.']),
 
-  h1('3. Reversements'),
+  h1('5. Reversements'),
   p('Un reversement est une somme que le demandeur doit rendre à la société : annulation après paiement, ou clôture d\'une mission dont les dépenses réelles sont inférieures au montant payé.'),
   puce('La comptabilité enregistre la perception (date, mode, référence, justificatif) dans l\'écran « Reversements ».'),
   puce('Un administrateur des finances peut abandonner un reversement, avec un motif obligatoire.'),
   puce([b('Décision n° 4 : '), 'un administrateur des finances ne peut pas abandonner un reversement qui le concerne.']),
 
-  h1('4. Décisions complémentaires du 24/11/2026'),
+  h1('6. Décisions complémentaires du 24/11/2026'),
   tableau(['N°', 'Situation', 'Décision'], [
     ['1', 'Annulation par un administrateur', 'Autorisée, motif obligatoire, tracée.'],
     ['2', 'Demande clôturée mais erronée', 'Demande d\'annulation possible ; le montant payé devient un reversement.'],
@@ -90,22 +118,66 @@ const contenu = [
   puce([b('Réaffectation d\'une validation : '), 'lien « réaffecter » à côté du valideur en attente, dans le circuit de la fiche.']),
   puce([b('Points d\'attention (doublon, chevauchement, régularisation) : '), 'bandeau orange en haut de la fiche et icône dans la liste « À payer ».']),
 
-  h1('5. Clôturer une mission'),
+  h1('7. Clôturer une mission'),
   puce('Une mission approuvée passe « En attente de clôture ». Elle peut être payée pendant ce temps.'),
   puce('Au retour, le demandeur ouvre la fiche et remplit « Clôture de la mission » : dates réelles, dépenses réelles (hôtel, transport, téléphone, divers, réception, détaxe, autres frais à refacturer) et observations. Les indemnités journalières sont calculées : jours réels × tarif de la mission.'),
-  puce('Il joint le rapport de mission (obligatoire) dans « Pièces jointes », puis clique sur « Soumettre la clôture ». La saisie est enregistrée automatiquement au fur et à mesure.'),
+  puce('Sur le web, la saisie est enregistrée automatiquement au fur et à mesure ; sur mobile, bouton « Déclarer mes dépenses réelles » puis « Enregistrer et recalculer ». Le solde (à rembourser à la société ou reste dû au demandeur) s\'affiche aussitôt.'),
+  puce('Il joint le rapport de mission (obligatoire) — sur mobile, bouton « Joindre » à côté de la pièce, photo ou fichier — puis clique sur « Soumettre la clôture ». La soumission est refusée tant qu\'une pièce obligatoire manque.'),
   puce('La comptabilité contrôle depuis « Clôtures à contrôler » : elle valide, ou retourne au demandeur avec un motif.'),
   puce('À la validation : si l\'avance reçue dépasse les dépenses réelles, un reversement est créé ; si elle est inférieure, le reste est payé au demandeur ; au-delà de l\'engagé, le demandeur fait une demande de frais complémentaires.'),
   puce('La mission est clôturée quand elle est payée et qu\'aucun reversement n\'est attendu. La note de frais est alors remplie avec les montants réels.'),
 
-  h1('6. Documents et exports'),
+  h1('8. Délais, rappels et escalades'),
+  puce('Chaque étape d\'un circuit peut avoir un délai de traitement, un rappel et une escalade, exprimés en heures ouvrées (24 heures par jour ouvré). Réglage : Paramètres → Circuits de validation, fiche de l\'étape.'),
+  puce('Les week-ends et les jours fériés ne comptent pas. Les jours ouvrés et le calendrier des jours fériés se gèrent dans Paramètres → Calendrier ; les fêtes à date variable (fêtes musulmanes) sont à saisir chaque année.'),
+  puce([b('Rappel : '), 'le valideur reçoit un rappel une fois le délai de rappel passé, puis un par jour tant que la validation attend.']),
+  puce([b('Escalade : '), 'une fois le délai d\'escalade passé, le N+1 du valideur, l\'administrateur ou une personne désignée est prévenu (une seule fois, tracé dans l\'historique). La validation reste au valideur ; l\'administrateur peut la réaffecter.']),
+  puce('Les validations en retard sont signalées dans « À valider » et comptées dans les tableaux de bord.'),
+  puce([b('Rappel de clôture : '), 'quelques jours après la date de retour, le demandeur d\'une mission non clôturée reçoit un rappel, puis un par semaine.']),
+
+  h1('9. Notifications et délégations'),
+  h2('9.1 Notifications'),
+  puce('Chaque événement (validation attendue, demande approuvée, retournée, rejetée, paiement effectué, clôture attendue, reversement…) crée une notification dans l\'application (cloche en haut de l\'écran).'),
+  puce('Selon l\'événement, elle est aussi envoyée par e-mail et en notification push sur le téléphone. Un appui sur la notification ouvre directement la demande.'),
+  puce('Chacun choisit ses canaux dans « Préférences de notification » (icône réglages du bloc « Notifications récentes » de la page d\'accueil). « Validation attendue » et « Rappel de validation » ne peuvent pas être désactivés.'),
+  puce('L\'administrateur active ou coupe les canaux e-mail et push pour toute la société (Paramètres → Société).'),
+  h2('9.2 Délégations'),
+  puce('Un valideur absent confie ses validations à un collègue pour une période : menu « Délégations » (web) ou Profil → Mes délégations (mobile).'),
+  puce('Sur le web, la délégation peut être limitée à certains types de demande ou à certaines responsabilités ; sur mobile, elle couvre toutes les validations.'),
+  puce('Le délégataire voit les validations dans son « À valider », avec la mention « pour le compte de ». La délégation peut être révoquée à tout moment.'),
+
+  h1('10. Tableaux de bord'),
+  puce('Menu « Tableaux de bord » : Mes demandes, Mes validations, Direction, Comptabilité, Administration, selon les droits.'),
+  puce('Filtres : période, et pour la direction : statut, département, agence, catégorie, demandeur. Chaque graphique a une vue « Tableau ».'),
+  puce('Chaque tableau de bord s\'exporte en Excel (une feuille par bloc) et en PDF.'),
+  puce([b('Périmètres de consultation : '), 'un contrôleur ou un profil de consultation ne voit que les départements ou agences qui lui sont attribués (Paramètres → Périmètres de consultation).']),
+
+  h1('11. Documents et exports'),
   puce('Chaque liste a un bouton « Exporter » (Excel ou PDF) qui reprend toutes les lignes correspondant aux filtres, numérotées.'),
   puce('Chaque demande se télécharge en PDF de présentation (menu « Documents » de la fiche) : statut, montants, demandeur, contenu, circuit de validation, paiements, pièces.'),
-  puce('Le même menu propose, pour les missions, l\'ordre de mission (une fois la mission approuvée) et la note de frais de mission, au format de la société (Paramètres → Société).'),
+  puce('Pour les missions, le même menu propose l\'ordre de mission (une fois la mission approuvée) et la note de frais (nom, matricule et date sur la même ligne), au format de la société.'),
+  puce([b('Demande de paiement / de remboursement : '), 'pour les demandes de paiement, de remboursement et de frais de réception client, le menu « Documents » produit le formulaire papier de la société : nom et prénoms, matricule, service, montant en chiffres et en lettres, motif, bénéficiaire, cadre « À remplir obligatoirement » repris du règlement, signatures. Pour une réception client, le client, le lieu, la date et le nombre de participants y figurent.']),
+  puce('Les mentions de ces documents (logo, téléphone, fax, centre des impôts, régime d\'imposition, références qualité des formulaires) se règlent dans Paramètres → Société.'),
+
+  h1('12. L\'application mobile'),
+  p('L\'application UbiFlow (Android et iPhone) se connecte avec le même matricule et le même mot de passe que le web. Elle comporte quatre onglets : Accueil, Demandes, À valider, Profil.'),
+  tableau(['Je veux…', 'Sur mobile'], [
+    ['Voir ma synthèse', 'Onglet Accueil : mêmes indicateurs et listes que sur le web, selon mon profil.'],
+    ['Créer une demande', 'Action rapide de l\'accueil ou bouton « Nouvelle demande » de l\'onglet Demandes ; pour une mission, l\'estimation des frais s\'affiche pendant la saisie.'],
+    ['Joindre un justificatif', 'Fiche de la demande → « Ajouter une pièce » : prendre une photo, choisir dans la galerie ou choisir un fichier (PDF, Word, Excel).'],
+    ['Télécharger un document', 'Icône PDF en haut de la fiche : fiche, ordre de mission, note de frais, demande de paiement.'],
+    ['Valider', 'Onglet À valider → fiche → Approuver, Retourner pour correction ou Rejeter (commentaire obligatoire pour retourner ou rejeter).'],
+    ['Clôturer une mission', 'Fiche → « Déclarer mes dépenses réelles » → joindre le rapport → « Soumettre la clôture ».'],
+    ['Être prévenu', 'Notifications push (à autoriser au premier lancement) et cloche de l\'accueil.'],
+    ['Déléguer mes validations', 'Onglet Profil → Mes délégations → Déléguer.'],
+  ], [2600, 6700]),
+  espace(),
+  p([b('Restent sur le web : '), 'l\'administration et le paramétrage (types, circuits, barèmes, calendrier, société), la trésorerie (paiements, reversements, contrôle des clôtures), la correction d\'un montant par un valideur, la délégation limitée à certains types et les tableaux de bord détaillés avec leurs exports.']),
 ];
 
+
 const doc = new Document({
-  creator: 'UbiFlow', title: 'Annulations, paiements et contrôles des demandes',
+  creator: 'UbiFlow', title: 'Règles de gestion et utilisation d\'UbiFlow',
   styles: {
     default: { document: { run: { font: F, size: 22 } } },
     paragraphStyles: [
@@ -118,7 +190,7 @@ const doc = new Document({
   sections: [{
     properties: { page: { margin: { top: 1300, bottom: 1200, left: 1300, right: 1300 } } },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
-      new TextRun({ text: 'UbiFlow — règles de gestion — page ', font: F, size: 16, color: GRIS }),
+      new TextRun({ text: 'UbiFlow — support de formation — page ', font: F, size: 16, color: GRIS }),
       new TextRun({ children: [PageNumber.CURRENT], font: F, size: 16, color: GRIS })] })] }) },
     children: contenu,
   }],

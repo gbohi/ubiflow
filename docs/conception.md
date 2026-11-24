@@ -896,7 +896,7 @@ tableaux de bord.
 > désactivés quand Firebase les refuse). Chaque canal peut être coupé par
 > l'administrateur (Paramètres → Société). L'enregistrement du jeton par
 > l'application mobile se branchera quand le projet Firebase de la société
-> sera créé (`google-services.json` / `GoogleService-Info.plist`).
+> sera créé (fait au lot 7 : configuration par `--dart-define`, voir README).
 
 ---
 
