@@ -20,88 +20,61 @@ $ub-bord:     #E2EAF4;
 }
 
 // ── Panneau de marque ─────────────────────────────────────────
-// L'élément <app-auth-panneau> est l'enfant flex : il porte la largeur
-.auth-ub > app-auth-panneau { flex: 1.15; display: flex; }
+// Page entière en marine ; le pictogramme UbiPharm, très grand et presque
+// invisible, passe derrière la carte de connexion.
+.auth-ub {
+  background: url('/assets/images/ubipharm-filigrane.svg') no-repeat right -330px top -150px / 1180px auto, $ub-marine;
+  overflow: hidden;
+}
+.auth-ub > app-auth-panneau { flex: 1.2; display: flex; }
 
 .auth-ub-panneau {
   flex: 1;
   position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 48px 56px;
+  padding: 72px 40px 56px 96px;
   color: #fff;
-  background: $ub-marine;
 }
 
-.auth-ub-rond {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba($ub-vert, .18);
-  pointer-events: none;
-}
-.auth-ub-rond-1 { width: 520px; height: 520px; right: -180px; bottom: -200px; }
-.auth-ub-rond-2 { width: 340px; height: 340px; right: -90px; bottom: -110px; border-color: rgba($ub-vert, .28); }
-
-.auth-ub-marque { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; position: relative; }
-.auth-ub-logo { height: 52px; }
-.auth-ub-produit { font-size: 11.5px; letter-spacing: 1.4px; text-transform: uppercase; color: #8EA3B8; font-weight: 500; padding-left: 2px; }
-
-.auth-ub-message { position: relative; }
+.auth-ub-marque { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.auth-ub-logo { height: 50px; }
+.auth-ub-produit { font-size: 11.5px; letter-spacing: 1.6px; text-transform: uppercase; color: #8EA3B8; font-weight: 500; padding-left: 2px; }
 
 .auth-ub-titre {
-  font-size: 40px;
-  line-height: 1.2;
-  font-weight: 700;
+  font-size: 46px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -1.2px;
   color: #fff;
-  max-width: 480px;
+  max-width: 620px;
   margin: 0;
   span { color: $ub-vert; }
 }
 .auth-ub-titre-court { display: none; }
 
-.auth-ub-sous-titre {
-  margin: 14px 0 0;
-  font-size: 16px;
-  color: rgba(#fff, .75);
-  max-width: 440px;
-}
+.auth-ub-sous-titre { margin: 22px 0 0; font-size: 16px; line-height: 1.6; color: #A9BBCD; max-width: 470px; }
 
-.auth-ub-atouts {
+.auth-ub-parcours {
   list-style: none;
+  display: flex;
   padding: 0;
-  margin: 36px 0 0;
-  display: grid;
-  gap: 16px;
-  max-width: 440px;
-
-  li {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    padding: 14px 16px;
-    border-radius: 14px;
-    background: rgba(#fff, .06);
-    border: 1px solid rgba(#fff, .1);
-  }
-  b { display: block; font-size: 14px; font-weight: 600; }
-  small { font-size: 12.5px; color: rgba(#fff, .65); }
+  margin: 46px 0 0;
+  max-width: 560px;
+  li { flex: 1; position: relative; }
+  li:not(:last-child)::after { content: ''; position: absolute; top: 15px; left: 30px; right: 0; height: 1.5px; background: rgba($ub-vert, .35); }
+  b { display: block; margin-top: 12px; font-size: 14px; font-weight: 600; }
+  small { color: #8EA3B8; font-size: 12px; }
+}
+.auth-ub-pt {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid rgba($ub-vert, .55); color: $ub-vert; background: $ub-marine;
+  display: grid; place-items: center; font-size: 13px; font-weight: 600; position: relative; z-index: 1;
+  .fin & { background: $ub-vert; color: $ub-marine; border-color: $ub-vert; }
 }
 
-.auth-ub-ico {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: rgba($ub-vert, .18);
-  color: $ub-vert;
-  font-size: 21px;
-}
-
-.auth-ub-copyright { position: relative; margin: 0; font-size: 12px; color: rgba(#fff, .5); }
+.auth-ub-copyright { position: relative; margin: 0; font-size: 12.5px; color: #6F86A0; }
 
 // ── Zone du formulaire ────────────────────────────────────────
 .auth-ub-zone {
@@ -109,12 +82,12 @@ $ub-bord:     #E2EAF4;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px;
+  padding: 48px 96px 48px 24px;
 }
 
-.auth-ub-carte { width: 100%; max-width: 400px; }
+.auth-ub-carte { width: 100%; max-width: 440px; background: #fff; border-radius: 22px; padding: 44px 42px 36px; }
 
-.auth-ub-h2 { font-size: 26px; font-weight: 700; color: $ub-marine; margin: 0; }
+.auth-ub-h2 { font-size: 26px; font-weight: 600; letter-spacing: -.4px; color: $ub-marine; margin: 0; }
 .auth-ub-aide { color: $ub-gris; font-size: 14px; margin: 6px 0 28px; }
 
 .auth-ub .form-label { font-size: 13px; font-weight: 600; color: $ub-marine; }
@@ -125,7 +98,7 @@ $ub-bord:     #E2EAF4;
   .form-control {
     height: 50px;
     padding: 0 46px;
-    border: 1.5px solid $ub-bord;
+    border: 1px solid #D6DEE7;
     border-radius: 12px;
     background: #fff;
     font-size: 14px;
@@ -133,8 +106,8 @@ $ub-bord:     #E2EAF4;
 
     &::placeholder { color: $ub-indice; }
     &:focus {
-      border-color: $ub-vert;
-      box-shadow: 0 0 0 4px rgba($ub-vert, .15);
+      border-color: $ub-marine;
+      box-shadow: 0 0 0 3px rgba($ub-marine, .08);
     }
     &.is-invalid { border-color: var(--#{$prefix}danger); background-image: none; }
   }
@@ -169,9 +142,35 @@ $ub-bord:     #E2EAF4;
 
 .auth-ub-lien {
   font-size: 13px;
-  font-weight: 500;
-  color: $ub-marine-2;
-  &:hover { color: $ub-vert-2; }
+  font-weight: 600;
+  color: #1F9D5C;
+  &:hover { color: $ub-marine; }
+}
+
+// Page « Application mobile » : une ligne par plateforme
+.auth-ub-store {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid #E3E8EF; border-radius: 12px; margin-bottom: 10px;
+  > i { font-size: 26px; color: $ub-marine; }
+  b { display: block; font-size: 14px; color: $ub-marine; }
+  small { font-size: 12.5px; color: $ub-gris; }
+  &.actif { border-color: $ub-vert; background: #F3FBF7; }
+}
+
+// Application mobile : liens Android et iPhone sous le bouton
+.auth-ub-stores {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid #EDF1F5;
+  small { flex: 1; color: $ub-gris; font-size: 12.5px; }
+  a {
+    display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+    border: 1px solid #DDE4EB; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: $ub-marine;
+    i { font-size: 16px; }
+    &:hover, &:focus-visible { border-color: $ub-marine; color: $ub-marine; }
+  }
 }
 
 .auth-ub-bouton {
@@ -226,9 +225,11 @@ $ub-bord:     #E2EAF4;
 @media (max-width: 991.98px) {
   .auth-ub { flex-direction: column; }
   .auth-ub > app-auth-panneau { flex: none; }
-  .auth-ub-panneau { flex: none; width: 100%; padding: 28px 24px 32px; }
-  .auth-ub-logo { height: 36px; }
-  .auth-ub-titre, .auth-ub-sous-titre, .auth-ub-atouts, .auth-ub-copyright, .auth-ub-rond-1 { display: none; }
-  .auth-ub-titre-court { display: block; margin: 20px 0 0; font-size: 22px; font-weight: 700; line-height: 1.25; color: #fff; }
-  .auth-ub-zone { padding: 28px 20px 36px; align-items: flex-start; }
+  .auth-ub { background-size: 700px auto; background-position: right -260px top -120px; }
+  .auth-ub-panneau { flex: none; width: 100%; padding: 28px 24px 8px; }
+  .auth-ub-logo { height: 38px; }
+  .auth-ub-titre, .auth-ub-sous-titre, .auth-ub-parcours, .auth-ub-copyright { display: none; }
+  .auth-ub-titre-court { display: block; margin: 22px 0 0; font-size: 24px; font-weight: 600; line-height: 1.2; color: #fff; }
+  .auth-ub-zone { padding: 20px 16px 36px; align-items: flex-start; }
+  .auth-ub-carte { padding: 32px 24px 28px; }
 }

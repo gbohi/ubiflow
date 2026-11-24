@@ -4,8 +4,8 @@
 
     <main class="auth-ub-zone">
         <div class="auth-ub-carte">
-            <h2 class="auth-ub-h2">Bon retour parmi nous</h2>
-            <p class="auth-ub-aide">Connectez-vous avec votre matricule pour accéder à UbiFlow.</p>
+            <h2 class="auth-ub-h2">Connexion</h2>
+            <p class="auth-ub-aide">Utilisez votre matricule et votre mot de passe UbiFlow.</p>
 
             <!-- (ngSubmit) : la touche Entrée valide le formulaire -->
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
@@ -76,12 +76,12 @@
                 </button>
             </form>
 
-            <p class="auth-ub-securite"><i class="ri-shield-check-line" aria-hidden="true"></i>
-                Connexion sécurisée — vos données restent internes à UbiPharm</p>
-            <p class="auth-ub-contact">Un problème pour vous connecter ? Contactez votre administrateur.</p>
-            <p class="auth-ub-appli">
-                <a routerLink="/telecharger"><i class="ri-smartphone-line" aria-hidden="true"></i>Télécharger l'application mobile</a>
-            </p>
+            <!-- Application mobile : page publique de téléchargement -->
+            <div class="auth-ub-stores">
+                <small>Application mobile</small>
+                <a routerLink="/auth/telecharger" [queryParams]="{ plateforme: 'android' }"><i class="ri-google-play-fill" aria-hidden="true"></i>Android</a>
+                <a routerLink="/auth/telecharger" [queryParams]="{ plateforme: 'ios' }"><i class="ri-apple-fill" aria-hidden="true"></i>iPhone</a>
+            </div>
         </div>
     </main>
 </div>

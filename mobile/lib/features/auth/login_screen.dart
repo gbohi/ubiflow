@@ -1,6 +1,7 @@
 // lib/features/auth/login_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/providers/app_provider.dart';
@@ -70,259 +71,197 @@ class _LoginScreenState extends State<LoginScreen>
     await _login();
   }
 
-  InputDecoration _decoration(
-      String indice, IconData icone, bool erreur, bool isDark,
-      {Widget? suffixe}) {
+  // Champs translucides sur le marine (bordure verte au focus)
+  InputDecoration _decoration(String indice, IconData icone, bool erreur, {Widget? suffixe}) {
     final rayon = BorderRadius.circular(14);
-    OutlineInputBorder bord(Color c, [double l = 1.5]) => OutlineInputBorder(
-        borderRadius: rayon, borderSide: BorderSide(color: c, width: l));
-    final normal = erreur
-        ? AppColors.error
-        : (isDark ? AppColors.darkBorder : AppColors.lightBorder);
+    OutlineInputBorder bord(Color c, [double l = 1]) =>
+        OutlineInputBorder(borderRadius: rayon, borderSide: BorderSide(color: c, width: l));
+    final normal = erreur ? const Color(0xFFFF8A80) : Colors.white.withOpacity(0.14);
     return InputDecoration(
       hintText: indice,
-      prefixIcon: Icon(icone,
-          color: isDark ? AppColors.darkTextHint : AppColors.lightTextHint),
+      hintStyle: TextStyle(color: Colors.white.withOpacity(0.45)),
+      filled: true,
+      fillColor: Colors.white.withOpacity(0.06),
+      prefixIcon: Icon(icone, color: const Color(0xFF8EA3B8)),
       suffixIcon: suffixe,
-      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: 17),
       enabledBorder: bord(normal),
       border: bord(normal),
-      focusedBorder: bord(erreur ? AppColors.error : AppColors.accent, 2),
-      errorBorder: bord(AppColors.error),
-      focusedErrorBorder: bord(AppColors.error, 2),
+      focusedBorder: bord(erreur ? const Color(0xFFFF8A80) : AppColors.accent, 1.5),
+      errorBorder: bord(const Color(0xFFFF8A80)),
+      focusedErrorBorder: bord(const Color(0xFFFF8A80), 1.5),
+      errorStyle: const TextStyle(color: Color(0xFFFF8A80)),
     );
   }
 
+  static const _etiquette = TextStyle(color: Color(0xFFA9BBCD), fontSize: 12.5, fontWeight: FontWeight.w500);
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
     final erreur = auth.error != null && !_erreurMasquee ? auth.error : null;
-    final etiquette = Theme.of(context).textTheme.labelLarge;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: SingleChildScrollView(
-          child: Column(children: [
-            // ── En-tête de bienvenue ──────────────────────────
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(gradient: AppColors.heroGradient),
-              child: SafeArea(
-                bottom: false,
-                child: SizedBox(
-                  height: 280,
-                  child: Stack(children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Image.asset('assets/images/ubipharm-logo-blanc.png',
-                                height: 44, semanticLabel: "UbiPharm Côte d'Ivoire"),
-                            const SizedBox(height: 10),
-                            Text('UBIFLOW · DEMANDES',
-                                style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontSize: 11,
-                                    letterSpacing: 1.6,
-                                    fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 40),
-                            const Text('Vos demandes,\nsuivies de bout en bout.',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 26,
-                                    height: 1.15,
-                                    fontWeight: FontWeight.w800)),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
+        body: Stack(children: [
+          // Pictogramme UbiPharm, très grand et presque invisible
+          Positioned(
+            right: -170,
+            top: -60,
+            child: ExcludeSemantics(
+              child: Opacity(
+                opacity: 0.06,
+                child: Image.asset('assets/images/ubipharm-monogramme-vert.png', width: 470),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Image.asset('assets/images/ubipharm-logo-blanc.png', height: 40, semanticLabel: "UbiPharm Côte d'Ivoire"),
+                      const SizedBox(height: 10),
+                      Text('UBIFLOW · DEMANDES',
+                          style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 10.5, letterSpacing: 1.6,
+                              fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 48),
+                      Semantics(
+                        header: true,
+                        child: const Text('Connexion',
+                            style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: -0.6)),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 28),
+
+                  SlideTransition(
+                    position: _slideAnim,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        // Erreur du serveur (identifiants, réseau…)
+                        if (erreur != null)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF8A80).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFF8A80).withOpacity(0.4)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8A80), size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text(erreur, style: const TextStyle(color: Colors.white, fontSize: 13))),
+                            ]),
+                          ),
+
+                        const Text('Matricule', style: _etiquette),
+                        const SizedBox(height: 7),
+                        TextFormField(
+                          controller: _usernameCtrl,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
+                          autocorrect: false,
+                          onChanged: _onSaisie,
+                          style: const TextStyle(color: Colors.white, fontSize: 15),
+                          cursorColor: AppColors.accent,
+                          decoration: _decoration('Votre matricule', Icons.person_outline_rounded, erreur != null),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Le matricule est requis' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        const Text('Mot de passe', style: _etiquette),
+                        const SizedBox(height: 7),
+                        TextFormField(
+                          controller: _passwordCtrl,
+                          obscureText: _obscure,
+                          textInputAction: TextInputAction.done,
+                          onChanged: _onSaisie,
+                          onFieldSubmitted: (_) => _soumettre(),
+                          style: const TextStyle(color: Colors.white, fontSize: 15),
+                          cursorColor: AppColors.accent,
+                          decoration: _decoration(
+                            'Votre mot de passe',
+                            Icons.lock_outline_rounded,
+                            erreur != null,
+                            suffixe: IconButton(
+                              tooltip: _obscure ? 'Afficher le mot de passe' : 'Masquer le mot de passe',
+                              icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                  color: const Color(0xFF8EA3B8)),
+                              onPressed: () => setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Le mot de passe est requis' : null,
+                        ),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () =>
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                            child: const Text('Mot de passe oublié ?',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: FilledButton(
+                            onPressed: auth.loading ? null : _soumettre,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.accent,
+                              disabledBackgroundColor: AppColors.accent.withOpacity(0.7),
+                              foregroundColor: AppColors.primary,
+                              disabledForegroundColor: AppColors.primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: auth.loading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2.4, color: AppColors.primary, semanticsLabel: 'Connexion en cours'))
+                                : const Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward_rounded, size: 20),
+                                  ]),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        Center(
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.verified_user_outlined, size: 15, color: AppColors.accent),
+                            const SizedBox(width: 6),
+                            Text("Connexion sécurisée · UbiPharm Côte d'Ivoire",
+                                style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 12)),
                           ]),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text('Un souci ? Contactez votre gestionnaire',
+                              style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 12)),
+                        ),
+                      ]),
                     ),
-                  ]),
-                ),
+                  ),
+                ]),
               ),
             ),
-
-            // ── Formulaire (feuille qui remonte sur l'en-tête) ─
-            SlideTransition(
-              position: _slideAnim,
-              child: Transform.translate(
-                offset: const Offset(0, -30),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                  decoration: BoxDecoration(
-                    color:
-                        isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(30)),
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Erreur du serveur (identifiants, réseau…)
-                          if (erreur != null)
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.errorLight,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(children: [
-                                const Icon(Icons.error_outline_rounded,
-                                    color: AppColors.error, size: 18),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                    child: Text(erreur,
-                                        style: const TextStyle(
-                                            color: AppColors.error,
-                                            fontSize: 13))),
-                              ]),
-                            ),
-
-                          Text('Matricule', style: etiquette),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _usernameCtrl,
-                            keyboardType: TextInputType.text,
-                            textInputAction: TextInputAction.next,
-                            autocorrect: false,
-                            onChanged: _onSaisie,
-                            decoration: _decoration(
-                                'Votre matricule',
-                                Icons.person_outline_rounded,
-                                erreur != null,
-                                isDark),
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? 'Le matricule est requis'
-                                : null,
-                          ),
-                          const SizedBox(height: 16),
-
-                          Text('Mot de passe', style: etiquette),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _passwordCtrl,
-                            obscureText: _obscure,
-                            textInputAction: TextInputAction.done,
-                            onChanged: _onSaisie,
-                            onFieldSubmitted: (_) => _soumettre(),
-                            decoration: _decoration(
-                                'Votre mot de passe',
-                                Icons.lock_outline_rounded,
-                                erreur != null,
-                                isDark,
-                                suffixe: IconButton(
-                                  tooltip: _obscure
-                                      ? 'Afficher le mot de passe'
-                                      : 'Masquer le mot de passe',
-                                  icon: Icon(
-                                    _obscure
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
-                                    color: AppColors.lightTextSecondary,
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _obscure = !_obscure),
-                                )),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? 'Le mot de passe est requis'
-                                : null,
-                          ),
-
-                          // Mot de passe oublié : juste sous le champ
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ForgotPasswordScreen())),
-                              child: Text('Mot de passe oublié ?',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? AppColors.accent
-                                          : AppColors.primaryLight)),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Bouton connexion (vert, comme « Réserver »)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: AppColors.accent,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: auth.loading ? null : _soumettre,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  disabledBackgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  foregroundColor: AppColors.primary,
-                                  disabledForegroundColor: AppColors.primary,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14)),
-                                ),
-                                child: auth.loading
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2.4,
-                                            color: AppColors.primary,
-                                            semanticsLabel:
-                                                'Connexion en cours'))
-                                    : const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                            Text('Se connecter',
-                                                style: TextStyle(
-                                                    fontSize: 15.5,
-                                                    fontWeight:
-                                                        FontWeight.w700)),
-                                            SizedBox(width: 10),
-                                            Icon(Icons.arrow_forward_rounded,
-                                                size: 20),
-                                          ]),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 22),
-                          Center(
-                            child: Text.rich(
-                              TextSpan(
-                                text: 'Un souci ? ',
-                                children: [
-                                  TextSpan(
-                                      text: 'Contactez votre gestionnaire',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark
-                                              ? AppColors.darkTextPrimary
-                                              : AppColors.primary)),
-                                ],
-                              ),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                        ]),
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
   }

@@ -9,13 +9,15 @@ import { AccountRoutingModule } from './account-routing.module';
 import { LoginComponent } from './login/login.component';
 import { MotDePasseOublieComponent } from './mot-de-passe-oublie/mot-de-passe-oublie.component';
 
+import { TelechargerComponent } from './telecharger/telecharger.component';
 import { AuthPanneauComponent } from './auth-panneau/auth-panneau.component';
 
 @NgModule({
   declarations: [
     LoginComponent,
     MotDePasseOublieComponent,
-    AuthPanneauComponent
+    AuthPanneauComponent,
+    TelechargerComponent
   ],
   imports: [
     CommonModule,

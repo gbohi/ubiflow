@@ -5,25 +5,18 @@
   </div>
 
   <div class="auth-ub-message">
-    <h1 class="auth-ub-titre">Vos demandes, <span>suivies de bout en bout.</span></h1>
+    <h1 class="auth-ub-titre">Vos demandes,<br>de la saisie <span>au paiement.</span></h1>
     <p class="auth-ub-titre-court">{{ titreCourt }}</p>
-    <p class="auth-ub-sous-titre">Soumettez, validez et suivez les demandes de l'entreprise en un seul endroit.</p>
+    <p class="auth-ub-sous-titre">Missions, remboursements, frais de réception : soumettez, validez et suivez chaque demande au même endroit, sur le web ou sur votre téléphone.</p>
 
-    <ul class="auth-ub-atouts">
-      <li>
-        <span class="auth-ub-ico"><i class="ri-file-list-3-line"></i></span>
-        <span><b>Demandes en ligne</b><small>Saisie simple, pièces jointes</small></span>
-      </li>
-      <li>
-        <span class="auth-ub-ico"><i class="ri-git-merge-line"></i></span>
-        <span><b>Circuits de validation</b><small>Selon votre organisation</small></span>
-      </li>
-      <li>
-        <span class="auth-ub-ico"><i class="ri-history-line"></i></span>
-        <span><b>Traçabilité</b><small>Chaque étape est historisée</small></span>
-      </li>
-    </ul>
+    <!-- Le parcours réel d'une demande -->
+    <ol class="auth-ub-parcours" aria-label="Parcours d'une demande">
+      <li><span class="auth-ub-pt">1</span><b>Saisir</b><small>en 2 minutes</small></li>
+      <li><span class="auth-ub-pt">2</span><b>Valider</b><small>N+1, DG, DAF</small></li>
+      <li><span class="auth-ub-pt">3</span><b>Payer</b><small>comptabilité</small></li>
+      <li class="fin"><span class="auth-ub-pt"><i class="ri-check-line" aria-hidden="true"></i></span><b>Clôturer</b><small>rapport et solde</small></li>
+    </ol>
   </div>
 
-  <p class="auth-ub-copyright">© {{ annee }} UbiPharm Côte d'Ivoire</p>
+  <p class="auth-ub-copyright">© {{ annee }} UbiPharm Côte d'Ivoire · Grossiste-répartiteur pharmaceutique</p>
 </aside>
