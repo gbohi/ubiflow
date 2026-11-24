@@ -1,0 +1,111 @@
+@if (cloture) {
+  <div class="lst-carte p-3 p-md-4 mb-3" data-test="cloture">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <h6 class="mb-0">Clôture de la mission</h6>
+      <span class="lst-tag" [ngClass]="{ 't-ve': cloture.etat === 'validee', 't-or': cloture.etat === 'retournee', 't-bl': cloture.etat === 'soumise' }">{{ cloture.etat_libelle }}</span>
+      @if (sauvegarde) { <span class="small text-muted ms-auto"><span class="spinner-border spinner-border-sm me-1"></span>enregistrement…</span> }
+    </div>
+
+    @if (cloture.etat === 'retournee' && cloture.motif_retour) {
+      <div class="alert alert-warning small"><i class="ri-arrow-go-back-line me-1"></i>Retournée par {{ cloture.controlee_par }} : {{ cloture.motif_retour }}</div>
+    }
+    @if (cloture.etat === 'soumise') {
+      <div class="alert alert-info small mb-3"><i class="ri-time-line me-1"></i>Soumise le {{ cloture.soumise_le | date:'dd/MM/yyyy HH:mm' }}
+        @if (cloture.controle) { — en attente du contrôle ({{ cloture.controle === 'comptable' ? 'comptabilité' : cloture.controle }}). }</div>
+    }
+    @if (cloture.etat === 'validee') {
+      <div class="alert alert-success small mb-3"><i class="ri-check-double-line me-1"></i>Validée le {{ cloture.controlee_le | date:'dd/MM/yyyy HH:mm' }}
+        @if (cloture.controlee_par) { par {{ cloture.controlee_par }} }.</div>
+    }
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="cl-depart">Départ réel</label>
+        <input id="cl-depart" type="date" class="form-control" [(ngModel)]="saisie.depart_reel" (ngModelChange)="modifier()"
+               [disabled]="!modifiable" [class.is-invalid]="erreur('depart_reel')">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="cl-retour">Retour réel</label>
+        <input id="cl-retour" type="date" class="form-control" [(ngModel)]="saisie.retour_reel" (ngModelChange)="modifier()" [min]="saisie.depart_reel"
+               [disabled]="!modifiable" [class.is-invalid]="erreur('retour_reel')">
+        @if (erreur('retour_reel')) { <div class="invalid-feedback">{{ erreur('retour_reel') }}</div> }
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Indemnités journalières</label>
+        <div class="form-control bg-light">{{ calcul['jours'] ?? '—' }} jour(s) × {{ calcul['tarif_jour'] | montant:calcul['devise_tarif'] }}</div>
+      </div>
+
+      @for (r of rubriques; track r.cle) {
+        <div class="col-md-6 col-xl-4">
+          <label class="form-label" [for]="'cl-' + r.cle">{{ r.libelle }} <small class="text-muted">({{ devise }})</small></label>
+          <input [id]="'cl-' + r.cle" type="number" min="0" class="form-control" [(ngModel)]="saisie.depenses[r.cle]" (ngModelChange)="modifier()"
+                 [disabled]="!modifiable" placeholder="0">
+          @if (r.aide) { <div class="form-text">{{ r.aide }}</div> }
+          @if (r.detail && (saisie.depenses[r.cle] > 0 || saisie.depenses[r.detail])) {
+            <input class="form-control form-control-sm mt-1" [placeholder]="'Détail : ' + r.libelle.toLowerCase()" [(ngModel)]="saisie.depenses[r.detail]"
+                   (ngModelChange)="modifier()" [disabled]="!modifiable" [attr.aria-label]="'Détail ' + r.libelle">
+          }
+        </div>
+      }
+      <div class="col-12">
+        <label class="form-label" for="cl-obs">Observations et déroulement de la mission</label>
+        <textarea id="cl-obs" class="form-control" rows="2" [(ngModel)]="saisie.observations" (ngModelChange)="modifier()" [disabled]="!modifiable"></textarea>
+      </div>
+    </div>
+
+    @if (cloture.pieces_cloture.length) {
+      <div class="mt-3 small">
+        <b>Pièces de clôture :</b>
+        @for (p of cloture.pieces_cloture; track p.id) {
+          <span class="ms-2"><i [class]="p.fournie ? 'ri-checkbox-circle-fill text-success' : 'ri-error-warning-line text-danger'"></i>
+            {{ p.libelle }}{{ p.obligatoire ? '' : ' (facultatif)' }}</span>
+        }
+        @if (modifiable) { <span class="text-muted d-block mt-1">Joignez-les dans « Pièces jointes » ci-dessous (type de pièce correspondant).</span> }
+      </div>
+    }
+
+    <div class="table-responsive mt-3">
+      <table class="table table-sm align-middle mb-0">
+        <tbody>
+          <tr><td>Total des dépenses réelles</td><td class="text-end fw-semibold" data-test="total-reel">{{ calcul['total'] | montant:devise }}</td></tr>
+          <tr><td>Avance reçue (mission et frais complémentaires payés)</td><td class="text-end">{{ calcul['avance'] | montant:devise }}</td></tr>
+          @if (+calcul['a_rembourser'] > 0) {
+            <tr class="table-warning"><td><b>À rembourser à la société</b> (reversement)</td><td class="text-end fw-semibold">{{ calcul['a_rembourser'] | montant:devise }}</td></tr>
+          }
+          @if (+calcul['a_reverser'] > 0) {
+            <tr class="table-info"><td><b>Reste dû au demandeur</b></td><td class="text-end fw-semibold">{{ calcul['a_reverser'] | montant:devise }}</td></tr>
+          }
+          @if (+calcul['depassement'] > 0) {
+            <tr class="table-danger"><td colspan="2" class="small">Dépenses supérieures à l'engagé ({{ calcul['engage_total'] | montant:devise }}) de
+              <b>{{ calcul['depassement'] | montant:devise }}</b> : faites une demande de frais complémentaires pour ce montant.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+      @if (modifiable) {
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="soumettre()"><i class="ri-send-plane-line me-1"></i>Soumettre la clôture</button>
+      }
+      @if (cloture.actions.controler) {
+        <button type="button" class="btn btn-outline-warning" (click)="motifRetour = ''; retourModal.show()"><i class="ri-arrow-go-back-line me-1"></i>Retourner</button>
+        <button type="button" class="btn btn-success" [disabled]="enCours" (click)="valider()"><i class="ri-check-double-line me-1"></i>Valider la clôture</button>
+      }
+    </div>
+  </div>
+
+  <div bsModal #retourModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Retourner les éléments de clôture</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="retourModal.hide()"></button></div>
+      <div class="modal-body">
+        <label class="form-label" for="cl-motif">Motif <span class="text-danger">*</span></label>
+        <textarea id="cl-motif" class="form-control" rows="3" [(ngModel)]="motifRetour" placeholder="Pièce manquante, montant à justifier…"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="retourModal.hide()">Fermer</button>
+        <button type="button" class="btn btn-warning" [disabled]="enCours || !motifRetour.trim()" (click)="retourner()">Retourner</button>
+      </div>
+    </div></div>
+  </div>
+}

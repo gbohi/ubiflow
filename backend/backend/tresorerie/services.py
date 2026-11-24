@@ -67,7 +67,7 @@ def statut_financier(demande):
     """Statut financier déduit des montants et des reversements (§4.2)."""
     if demande.reversements.filter(etat='a_percevoir').exists():
         return StatutFinancier.REVERSEMENT_ATTENDU
-    paye, approuve = demande.montant_paye or Decimal('0'), demande.montant_approuve or Decimal('0')
+    paye, approuve = demande.montant_paye or Decimal('0'), demande.montant_du or Decimal('0')
     if demande.statut == StatutDemande.ANNULEE:
         return StatutFinancier.SOLDEE if paye > 0 or demande.reversements.exists() else StatutFinancier.SANS_OBJET
     if demande.statut not in STATUTS_PAYABLES | {StatutDemande.CLOTUREE}:
@@ -84,15 +84,25 @@ def statut_financier(demande):
 def mettre_a_jour(demande, user=None, infos=None):
     """Recalcule le statut financier ; mode de clôture A : clôture dès que la demande est payée."""
     demande.statut_financier = statut_financier(demande)
+    regle = StatutFinancier.PAYEE, StatutFinancier.SANS_OBJET
     if (demande.statut == StatutDemande.APPROUVEE and demande.type_demande.mode_cloture == 'automatique'
-            and demande.statut_financier in (StatutFinancier.PAYEE, StatutFinancier.SANS_OBJET)):
+            and demande.statut_financier in regle):
         demande.statut, demande.cloturee_le = StatutDemande.CLOTUREE, timezone.now()
         demande.statut_financier = statut_financier(demande)
         moteur.tracer(demande, 'cloture', auteur=user, infos=infos,
                       motif='Clôture automatique : demande payée.' if (demande.montant_approuve or 0) > 0
                       else 'Clôture automatique : demande sans montant.')
+    elif demande.statut == StatutDemande.EN_ATTENTE_CLOTURE and demande.statut_financier in regle:
+        # Mode B (§9) : éléments de clôture validés, demande payée, aucun reversement à percevoir
+        from missions.models import ClotureMission
+        if ClotureMission.objects.filter(demande=demande, etat='validee').exists() or (
+                demande.type_demande.famille != 'mission' and demande.montant_retenu is not None):
+            demande.statut, demande.cloturee_le = StatutDemande.CLOTUREE, timezone.now()
+            demande.statut_financier = statut_financier(demande)
+            moteur.tracer(demande, 'cloture', auteur=user, infos=infos,
+                          motif='Demande clôturée : éléments de clôture validés, paiements soldés.')
     demande.save(update_fields=['statut', 'statut_financier', 'cloturee_le', 'montant_paye', 'montant_reverse',
-                                'updated_at'])
+                                'montant_retenu', 'updated_at'])
     return demande
 
 

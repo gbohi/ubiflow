@@ -209,6 +209,28 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
                                    infos_requete(request))
         return self._detail(demande)
 
+    @action(detail=True, methods=['get', 'patch'], url_path='cloture')
+    def cloture(self, request, pk=None):
+        """Éléments de clôture d'une mission : lecture, saisie { depart_reel, retour_reel, depenses, observations }."""
+        from missions import cloture as svc
+        demande = self.get_object()
+        if request.method == 'PATCH':
+            svc.enregistrer(demande, request.user, request.data)
+        return Response(svc.serialiser(demande, svc.obtenir(demande), request.user))
+
+    @action(detail=True, methods=['post'], url_path=r'cloture/(?P<quoi>soumettre|valider|retourner)')
+    def cloture_action(self, request, pk=None, quoi=None):
+        from missions import cloture as svc
+        demande = self.get_object()
+        infos = infos_requete(request)
+        if quoi == 'soumettre':
+            svc.soumettre(demande, request.user, infos)
+        elif quoi == 'valider':
+            svc.valider(demande, request.user, infos)
+        else:
+            svc.retourner(demande, request.user, request.data.get('motif', ''), infos)
+        return self._detail(self.get_object())
+
     @action(detail=True, methods=['post'], url_path='annuler-admin')
     def annuler_admin(self, request, pk=None):
         """Annulation par un administrateur (décision 1) : { motif }."""

@@ -240,6 +240,7 @@ class DemandeDetailSerializer(DemandeListeSerializer):
     reversements = serializers.SerializerMethodField()
     rattachees = serializers.SerializerMethodField()
     synthese = serializers.SerializerMethodField()
+    cloture = serializers.SerializerMethodField()
 
     class Meta:
         model = Demande
@@ -251,7 +252,7 @@ class DemandeDetailSerializer(DemandeListeSerializer):
             'mes_taches', 'origine_copie', 'origine_copie_reference', 'demande_parent', 'motif_annulation',
             'annulee_le', 'type_famille', 'type_parametres', 'mission', 'calcul', 'demande_parent_reference',
             'demande_parent_type', 'cloturee_le', 'reglements', 'reversements', 'rattachees', 'synthese',
-            'paiement_fractionne']
+            'paiement_fractionne', 'cloture', 'montant_retenu']
 
     paiement_fractionne = serializers.ReadOnlyField(source='type_demande.paiement_fractionne_autorise')
 
@@ -274,6 +275,12 @@ class DemandeDetailSerializer(DemandeListeSerializer):
                  'montant_demande': d.montant_demande, 'devise': d.devise}
                 for d in obj.demandes_rattachees.select_related('type_demande').order_by('created_at')
                 if d.statut != 'brouillon' or d.demandeur_id == user.pk]
+
+    def get_cloture(self, obj):
+        if obj.type_demande.famille != 'mission' or obj.statut not in ('en_attente_cloture', 'cloturee'):
+            return None
+        from missions import cloture
+        return cloture.serialiser(obj, cloture.obtenir(obj), self.context['request'].user)
 
     def get_synthese(self, obj):
         if obj.type_demande.famille != 'mission':

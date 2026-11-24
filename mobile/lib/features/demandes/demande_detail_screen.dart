@@ -135,6 +135,16 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
         CarteListe(lignes: [for (final (l, v) in resumeMission(d['mission'] as Map)) _ligne(l, v)]),
         const SizedBox(height: 12),
       ],
+      if (d['cloture'] is Map) ...[
+        const LibelleSection('Clôture de la mission'),
+        CarteListe(lignes: [
+          for (final (l, v) in resumeCloture(d['cloture'] as Map, d['devise'] as String? ?? '')) _ligne(l, v),
+          if ((d['cloture'] as Map)['actions']?['modifier'] == true)
+            const ListTile(dense: true, leading: Icon(Icons.info_outline),
+                title: Text('Déclarez vos dépenses réelles et joignez le rapport depuis le web.', style: TextStyle(fontSize: 12))),
+        ]),
+        const SizedBox(height: 12),
+      ],
       if (aDesPaiements(d)) ...[
         const LibelleSection('Paiements'),
         CarteListe(lignes: [for (final (l, v) in resumePaiements(d)) _ligne(l, v)]),

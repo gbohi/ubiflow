@@ -82,3 +82,20 @@ bool aDesPaiements(Map d) =>
     d['statut_financier'] != 'sans_objet' ||
     (d['reglements'] as List? ?? []).isNotEmpty ||
     (d['reversements'] as List? ?? []).isNotEmpty;
+
+// ── Clôture des missions (lot 5) ──────────────────────────────
+
+/// Clôture d'une mission : état, dates réelles, dépenses réelles, solde.
+List<(String, String)> resumeCloture(Map cloture, String devise) {
+  final c = Map<String, dynamic>.from(cloture['calcul'] as Map? ?? {});
+  final lignes = <(String, String)>[('État', '${cloture['etat_libelle'] ?? '—'}')];
+  if (cloture['depart_reel'] != null) {
+    lignes.add(('Dates réelles', 'du ${dateCourte(cloture['depart_reel']).split(' ').first} au ${dateCourte(cloture['retour_reel']).split(' ').first}'));
+  }
+  if (c['total'] != null) lignes.add(('Dépenses réelles', montant(c['total'], devise)));
+  if (c['avance'] != null) lignes.add(('Avance reçue', montant(c['avance'], devise)));
+  if ((num.tryParse('${c['a_rembourser']}') ?? 0) > 0) lignes.add(('À rembourser à la société', montant(c['a_rembourser'], devise)));
+  if ((num.tryParse('${c['a_reverser']}') ?? 0) > 0) lignes.add(('Reste dû au demandeur', montant(c['a_reverser'], devise)));
+  if ((cloture['motif_retour'] as String? ?? '').isNotEmpty) lignes.add(('Motif du retour', '${cloture['motif_retour']}'));
+  return lignes;
+}

@@ -19,6 +19,12 @@ de validation paramétrables. État d'avancement (voir `docs/conception.md`,
   règlements fractionnés, séparation approbation / paiement, reversements ;
   types **demande de paiement (PAI)**, **remboursement (RMB)**, **frais
   complémentaires de mission (FCM)** et **demande d'annulation (ANN)**.
+- **Lot 5 — Clôture** : clôture des missions par le demandeur (dates et dépenses
+  réelles aux rubriques de la note de frais, rapport), contrôle par la
+  comptabilité, reversement du trop-perçu ; ordre de mission et note de frais au
+  format de la société ; décisions du 24/11/2026 (annulation par un
+  administrateur, alertes de doublon / chevauchement / régularisation…), voir
+  `docs/formation/`.
 
 | Dossier    | Contenu                                                        |
 |------------|----------------------------------------------------------------|
@@ -94,6 +100,8 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Barèmes | `baremes/per-diem/`, `baremes/kilometrique/`, `baremes/transport-ville/`, `baremes/forfait-hors-pays/`, `baremes/taux-change/`, `parametres-systeme/` | `baremes/` |
 | Lieux | `pays/`, `villes/`, `distances/` (+ `entre/?a=&b=`) | `missions/` |
 | Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
+| Clôture | `demandes/{id}/cloture/` (+ `soumettre/`, `valider/`, `retourner/`), `missions/clotures/` (à contrôler) | `missions/cloture.py` |
+| Documents | `demandes/{id}/pdf/`, `ordre-mission/`, `note-frais/` ; `annuler-admin/`, `corriger-montant/` | `demandes/pdf.py`, `demandes/documents_mission.py` |
 | Trésorerie | `tresorerie/a-payer/` (+ `?export=xlsx`), `tresorerie/reglements/` (+ `annuler/`), `tresorerie/reversements/` (+ `percevoir/`, `abandonner/`), `demandes/parents-possibles/` | `tresorerie/services.py` |
 
 Règles principales :

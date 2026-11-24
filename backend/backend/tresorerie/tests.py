@@ -154,7 +154,7 @@ class AnnulationTests(TresorerieBase):
 
     def test_annulation_avant_paiement(self):
         mission = self.mission_approuvee()
-        self.assertEqual(mission.statut, 'approuvee')
+        self.assertEqual(mission.statut, 'en_attente_cloture')  # mode B : la mission attend sa clôture
         self.en(self.agent)
         self.assertTrue(self.client.get(f'/api/api/demandes/{mission.pk}/').data['actions']['demander_annulation'])
         ann = self.demander_annulation(mission.pk)

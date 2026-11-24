@@ -8,6 +8,7 @@ import { AValiderComponent } from './a-valider/a-valider.component';
 import { DelegationsComponent } from './delegations/delegations.component';
 import { APayerComponent } from './a-payer/a-payer.component';
 import { ReversementsComponent } from './reversements/reversements.component';
+import { CloturesComponent } from './clotures/clotures.component';
 import { RoleGuard } from 'src/app/core/guards/role.guard';
 import { ROLES_TRESORERIE } from 'src/app/core/services/tresorerie/tresorerie.service';
 
@@ -20,6 +21,8 @@ const routes: Routes = [
   { path: 'delegations', component: DelegationsComponent, title: 'Délégations | UbiFlow' },
   { path: 'tresorerie/a-payer', component: APayerComponent, canActivate: [RoleGuard], data: { roles: ROLES_TRESORERIE },
     title: 'À payer | UbiFlow' },
+  { path: 'tresorerie/clotures', component: CloturesComponent, canActivate: [RoleGuard],
+    data: { roles: [...ROLES_TRESORERIE, 'controleur'] }, title: 'Clôtures à contrôler | UbiFlow' },
   { path: 'tresorerie/reversements', component: ReversementsComponent, canActivate: [RoleGuard],
     data: { roles: ROLES_TRESORERIE }, title: 'Reversements | UbiFlow' },
 ];

@@ -17,6 +17,7 @@ export const MENU: MenuItem[] = [
     { id: 13, label: 'Délégations', icon: 'ri-user-shared-line', link: '/delegations' },
     { id: 15, label: 'Trésorerie', isTitle: true, roles: TRESORERIE },
     { id: 16, label: 'À payer', icon: 'ri-wallet-3-line', link: '/tresorerie/a-payer', roles: TRESORERIE },
+    { id: 18, label: 'Clôtures à contrôler', icon: 'ri-file-check-line', link: '/tresorerie/clotures', roles: [...TRESORERIE, 'controleur'] },
     { id: 17, label: 'Reversements', icon: 'ri-arrow-go-back-line', link: '/tresorerie/reversements', roles: TRESORERIE },
     { id: 20, label: 'Administration', isTitle: true, roles: [...new Set([...GESTIONNAIRES, ...ADMIN_WORKFLOW, ...JOURNAL, ...FINANCES])] },
     { id: 21, label: 'Types de demande', icon: 'ri-file-settings-line', link: '/parametres/types-demande', roles: ADMIN_WORKFLOW },

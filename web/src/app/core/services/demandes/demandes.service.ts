@@ -76,9 +76,18 @@ export interface Demande {
   rattachees?: { id: number; reference: string | null; type_libelle: string; type_code: string; objet: string; statut: string;
                  statut_libelle: string; montant_approuve: string | null; montant_demande: string | null; devise: string }[];
   synthese?: { engage_total: string; paye_total: string; solde_total: string; complements: any[] } | null;
+  cloture?: Cloture | null; montant_retenu?: string | null;
   actions?: { modifier: boolean; soumettre: boolean; supprimer: boolean; annuler: boolean; dupliquer: boolean;
               ajouter_document: boolean; commenter: boolean; payer?: boolean; demander_annulation?: boolean;
               frais_complementaires?: boolean; annuler_admin?: boolean; corriger_montant?: boolean; reaffecter?: boolean };
+}
+
+export interface Cloture {
+  etat: 'brouillon' | 'soumise' | 'retournee' | 'validee'; etat_libelle: string; depart_reel: string | null; retour_reel: string | null;
+  depenses: Record<string, string>; observations: string; soumise_le: string | null; controlee_le: string | null;
+  controlee_par: string | null; motif_retour: string; controle: string | null; calcul: Record<string, any>;
+  pieces_cloture: { id: number; libelle: string; obligatoire: boolean; fournie: boolean }[];
+  actions: { modifier: boolean; controler: boolean };
 }
 
 export interface EntreePlan {
@@ -211,6 +220,13 @@ export class DemandesService {
   pdf(id: number, document: 'pdf' | 'ordre-mission' | 'note-frais' = 'pdf'): Observable<Blob> {
     return this.http.get(`${this.api}/demandes/${id}/${document}/`, { responseType: 'blob' });
   }
+  enregistrerCloture(id: number, d: Partial<Cloture>) {
+    return this.http.patch<Cloture>(`${this.api}/demandes/${id}/cloture/`, d, detaille());
+  }
+  actionCloture(id: number, quoi: 'soumettre' | 'valider' | 'retourner', motif = '') {
+    return this.http.post<Demande>(`${this.api}/demandes/${id}/cloture/${quoi}/`, { motif }, detaille());
+  }
+  cloturesAControler() { return this.http.get<any[]>(`${this.api}/missions/clotures/`); }
   compteurs() {
     return this.http.get<{ mes_demandes: Record<string, number>; a_valider: number }>(`${this.api}/demandes/compteurs/`);
   }

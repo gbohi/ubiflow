@@ -52,4 +52,14 @@ void main() {
     expect(lignes[4].$2, '${montant(100000, 'XOF')} · Virement · VIR-1');
     expect(aDesPaiements({'statut_financier': 'sans_objet'}), isFalse);
   });
+
+  test('clôture', () {
+    final lignes = resumeCloture({
+      'etat_libelle': 'Validée', 'depart_reel': '2026-12-01', 'retour_reel': '2026-12-03', 'motif_retour': '',
+      'calcul': {'total': '155000.00', 'avance': '190000.00', 'a_rembourser': '35000.00', 'a_reverser': '0.00'},
+    }, 'XOF');
+    expect(lignes.map((l) => l.$1).toList(),
+        ['État', 'Dates réelles', 'Dépenses réelles', 'Avance reçue', 'À rembourser à la société']);
+    expect(lignes[1].$2, 'du 01/12/2026 au 03/12/2026');
+  });
 }

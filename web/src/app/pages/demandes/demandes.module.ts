@@ -17,12 +17,14 @@ import { RecapMissionComponent } from './recap-mission/recap-mission.component';
 import { PaiementModalComponent } from './paiement-modal/paiement-modal.component';
 import { APayerComponent } from './a-payer/a-payer.component';
 import { ReversementsComponent } from './reversements/reversements.component';
+import { ClotureMissionComponent } from './cloture-mission/cloture-mission.component';
+import { CloturesComponent } from './clotures/clotures.component';
 
 @NgModule({
   declarations: [
     ChampsDemandeComponent, MesDemandesComponent, NouvelleDemandeComponent, DemandeDetailComponent,
     AValiderComponent, DelegationsComponent, MissionFormComponent, RecapMissionComponent,
-    PaiementModalComponent, APayerComponent, ReversementsComponent,
+    PaiementModalComponent, APayerComponent, ReversementsComponent, ClotureMissionComponent, CloturesComponent,
   ],
   imports: [CommonModule, FormsModule, SharedModule, ModalModule.forRoot(), NgSelectModule, DemandesRoutingModule],
   exports: [ChampsDemandeComponent],

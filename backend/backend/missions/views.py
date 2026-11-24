@@ -91,3 +91,27 @@ class CalculerMissionView(APIView):
         if not isinstance(mission, dict):
             raise ErreurMetier({'mission': 'Format invalide.'})
         return Response(apercu(request.user, type_demande, mission, demande))
+
+
+class CloturesAControlerView(APIView):
+    """GET /missions/clotures/?etat=soumise : clôtures que l'utilisateur peut contrôler."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .cloture import peut_controler
+        from .models import ClotureMission
+        etat = request.query_params.get('etat', 'soumise')
+        qs = (ClotureMission.objects.filter(etat=etat).select_related('demande__type_demande', 'demande__demandeur')
+              .order_by('soumise_le'))
+        lignes = []
+        for c in qs:
+            d = c.demande
+            if not peut_controler(d, request.user):
+                continue
+            lignes.append({'id': d.pk, 'reference': d.reference, 'type_libelle': d.type_demande.libelle,
+                           'type_code': d.type_demande.code, 'type_icone': d.type_demande.icone,
+                           'demandeur_nom': f"{d.demandeur.nom} {d.demandeur.prenom}".strip(), 'objet': d.objet,
+                           'montant_approuve': d.montant_approuve, 'montant_paye': d.montant_paye, 'devise': d.devise,
+                           'soumise_le': c.soumise_le, 'etat': c.etat, 'etat_libelle': c.get_etat_display(),
+                           'total_reel': (c.calcul or {}).get('total')})
+        return Response(lignes)

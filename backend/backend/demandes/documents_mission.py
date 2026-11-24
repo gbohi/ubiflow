@@ -63,6 +63,14 @@ def _jour(iso):
     return timezone.localtime(_date_heure(iso)).date()
 
 
+def _dates_mission(demande, m):
+    """Dates réelles déclarées à la clôture, sinon dates prévues."""
+    c = getattr(demande, 'cloture', None) if hasattr(demande, 'cloture') else None
+    if c is not None and c.depart_reel and c.retour_reel:
+        return c.depart_reel, c.retour_reel
+    return _jour(m['depart_le']), _jour(m['retour_le'])
+
+
 def _logo(param, largeur, hauteur):
     """Logo téléversé (Paramètres → Société), sinon la raison sociale en toutes lettres."""
     if param.logo:
@@ -212,7 +220,9 @@ def note_de_frais(demande, user):
     total_charges = D('hotel') + D('transport') + D('indemnites') + D('telephone') + D('divers') + D('reception') - D('detaxe')
     total_refacturer = D('a_refacturer')
     total = total_charges + total_refacturer
-    avance = Decimal(str(demande.montant_paye or 0))
+    # Avance reçue : mission et frais complémentaires payés (calculée à la clôture), sinon le payé de la mission
+    avance = Decimal(str(v['avance'])) if v.get('source') == 'reel' and v.get('avance') is not None \
+        else Decimal(str(demande.montant_paye or 0))
     a_rembourser = max(avance - total, Decimal('0'))   # le salarié rend la différence à la société
     a_reverser = max(total - avance, Decimal('0'))     # la société doit la différence au salarié
 
@@ -248,7 +258,7 @@ def note_de_frais(demande, user):
     date_note = timezone.localtime(demande.cloturee_le).date() if demande.cloturee_le else timezone.localdate()
     objet = f"{demande.objet} — {m.get('ville_destination_libelle', '')}" + \
             (f" ({m.get('pays_destination_libelle')})" if hors_pays and m.get('pays_destination_libelle') else '') + \
-            f", {periode(_jour(m['depart_le']), _jour(m['retour_le']))} — réf. {demande.reference}"
+            f", {periode(*_dates_mission(demande, m))} — réf. {demande.reference}"
     info = Table([[Paragraph(f"<b>NOM :</b> {_txt(_nom_complet(u))}", n), Paragraph(f"<b>DATE :</b> {date_note:%d/%m/%Y}", n)],
                   [Paragraph(f"<b>SERVICE :</b> {_txt(demande.departement.libelle_service if demande.departement_id else '')}", n), ''],
                   [Paragraph(f"<b>OBJET :</b> {_txt(objet)}", n), '']], colWidths=[L - 50 * mm, 50 * mm])
@@ -261,8 +271,9 @@ def note_de_frais(demande, user):
     M = lambda x: fmt(x, ref) if x else ''
     ij = 'INDEMNITÉS JOURNALIÈRES :<br/>Nbre de jours : ' + (
         f"{v['jours']} à {fmt(Decimal(str(v['tarif_jour'])), v.get('devise_tarif') or ref)}" if v.get('jours') else '……… à ………')
-    divers = 'DIVERS :' + (f"<br/><font size='7.5'>{_txt(' ; '.join(v.get('divers_detail') or []))}</font>"
-                           if v.get('divers_detail') else '')
+    detail = v.get('divers_detail') or []
+    detail = ' ; '.join(detail) if isinstance(detail, list) else str(detail)
+    divers = 'DIVERS :' + (f"<br/><font size='7.5'>{_txt(detail)}</font>" if detail else '')
     lignes = [
         ['DESCRIPTION', 'MONTANT', 'CONTRÔLE'],
         [f"CHARGES {_txt(societe_court)}", '', ''],

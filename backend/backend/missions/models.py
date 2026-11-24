@@ -6,6 +6,7 @@ frais) sont stockées dans `Demande.donnees`, validées par ce module : elles
 sont ainsi versionnées, dupliquées et comparées comme le contenu de tout
 autre type de demande.
 """
+from django.conf import settings
 from django.db import models
 
 
@@ -80,3 +81,30 @@ class LigneCalcul(models.Model):
 
     class Meta:
         ordering = ['version_contenu', 'ordre', 'id']
+
+
+class ClotureMission(models.Model):
+    """
+    Éléments de clôture d'une mission (§9, mode B) : dates réelles, dépenses réelles
+    par rubrique de la note de frais, observations ; contrôle facultatif par un rôle.
+    Montants en devise de référence.
+    """
+    ETATS = [('brouillon', 'En cours de saisie'), ('soumise', 'Soumise au contrôle'), ('retournee', 'Retournée'),
+             ('validee', 'Validée')]
+    RUBRIQUES = ['hotel', 'transport', 'telephone', 'divers', 'reception', 'detaxe', 'a_refacturer']
+    demande = models.OneToOneField('demandes.Demande', on_delete=models.CASCADE, related_name='cloture')
+    etat = models.CharField(max_length=10, choices=ETATS, default='brouillon')
+    depart_reel = models.DateField(null=True, blank=True)
+    retour_reel = models.DateField(null=True, blank=True)
+    depenses = models.JSONField(default=dict, blank=True)  # {rubrique: "montant", divers_detail, a_refacturer_detail}
+    observations = models.TextField(blank=True)
+    calcul = models.JSONField(default=dict, blank=True)    # récapitulatif figé à la validation
+    soumise_le = models.DateTimeField(null=True, blank=True)
+    controlee_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name='+')
+    controlee_le = models.DateTimeField(null=True, blank=True)
+    motif_retour = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Clôture {self.demande}"

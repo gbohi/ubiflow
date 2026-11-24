@@ -164,6 +164,8 @@ class Demande(models.Model):
     montant_approuve = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
     montant_paye = models.DecimalField(max_digits=16, decimal_places=2, default=0)
     montant_reverse = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    # Montant définitivement dû au demandeur après la clôture (dépenses réelles retenues, plafonnées à l'approuvé)
+    montant_retenu = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
 
     demande_parent = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True,
                                        related_name='demandes_rattachees')
@@ -185,10 +187,15 @@ class Demande(models.Model):
         return self.reference or f'Brouillon #{self.pk}'
 
     @property
+    def montant_du(self):
+        """Montant à payer : dépenses retenues à la clôture si elle a eu lieu, sinon montant approuvé."""
+        return self.montant_retenu if self.montant_retenu is not None else self.montant_approuve
+
+    @property
     def solde(self):
-        if self.montant_approuve is None:
+        if self.montant_du is None:
             return None
-        return self.montant_approuve - self.montant_paye
+        return max(self.montant_du - self.montant_paye, 0)
 
 
 class VersionContenu(models.Model):

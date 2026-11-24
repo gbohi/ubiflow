@@ -524,6 +524,10 @@ def _a_une_tache_en_attente(demande, user):
 def peut_ajouter_document(demande, user):
     if demande.demandeur_id == user.pk and demande.statut in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER):
         return True
+    if demande.demandeur_id == user.pk and demande.statut == StatutDemande.EN_ATTENTE_CLOTURE:
+        from missions.models import ClotureMission
+        etat = ClotureMission.objects.filter(demande=demande).values_list('etat', flat=True).first()
+        return etat in (None, 'brouillon', 'retournee')  # rapport et justificatifs de clôture
     return demande.statut == StatutDemande.EN_VALIDATION and _a_une_tache_en_attente(demande, user)
 
 

@@ -277,6 +277,8 @@ def finaliser(instance, infos=None):
     if demande.montant_approuve is None:
         demande.montant_approuve = demande.montant_demande
     demande.statut, demande.approuvee_le = StatutDemande.APPROUVEE, timezone.now()
+    if demande.type_demande.mode_cloture == 'demandeur':
+        demande.statut = StatutDemande.EN_ATTENTE_CLOTURE  # mode B : le demandeur clôturera (§9)
     demande.save()
     tracer(demande, 'approbation_finale', instance=instance, infos=infos,
            motif='Toutes les étapes du circuit sont validées.')

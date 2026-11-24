@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.6 — référence pour le développement. Toute évolution de règle
+Version 1.7 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -809,6 +809,18 @@ Conditions de clôture (mode B), toutes requises :
    (`controleur` ou comptable), qui peut les **retourner** au demandeur
    avec motif.
 
+> **Mise en œuvre (lot 5)** : modèle `ClotureMission` (app `missions`). Les
+> dépenses réelles reprennent les rubriques de la note de frais de la société
+> (hôtel, transport, indemnités = jours réels × tarif figé, téléphone, divers,
+> réception, détaxe déduite, autres à refacturer), en devise de référence. Le
+> contrôle se règle par type (`parametres.controle_cloture`, comptabilité par
+> défaut pour MLO et MHP). À la validation : `Demande.montant_retenu` = dépenses
+> réelles moins les frais complémentaires approuvés, plafonné au montant approuvé ;
+> reversement du trop-perçu ; reste à payer si les dépenses dépassent le payé ;
+> au-delà de l'engagé, le demandeur fait une demande de frais complémentaires.
+> Les décisions du 24/11/2026 (annulations, contrôles, alertes) sont décrites dans
+> `docs/formation/regles-annulations-paiements-controles.docx`.
+
 Rappels automatiques au demandeur après le retour de mission
 (`delai_cloture_jours`) ; demandes non clôturées visibles dans les
 tableaux de bord.
@@ -967,7 +979,7 @@ barèmes, trésorerie, reporting avancé.
 | **2. Moteur et socle** ✅ | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
 | **3. Barèmes et missions** ✅ | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** ✅ | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
-| **5. Clôture** | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
+| **5. Clôture** ✅ | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
 | **6. Pilotage et canaux** | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
 | **7. Mobile** | Périmètre du §16 | Parcours demandeur et valideur complets sur Android et iOS |
 
