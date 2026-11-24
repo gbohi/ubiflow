@@ -2,7 +2,7 @@
   <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
 } @else if (demande) {
 <div class="lst">
-  <app-page-entete [titre]="demande.reference || 'Brouillon'" icone="ri-file-text-line"
+  <app-page-entete [titre]="demande.reference || 'Brouillon'" [icone]="demande.type_icone || 'ri-file-text-line'"
                    [fil]="[{label: 'Mes demandes', lien: '/demandes'}]" [sousTitre]="demande.type_libelle + ' — ' + demande.demandeur_nom">
     <span class="lst-tag fs-6" [ngClass]="classes[demande.statut]">{{ demande.statut_libelle }}</span>
   </app-page-entete>

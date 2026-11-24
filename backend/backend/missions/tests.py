@@ -297,3 +297,16 @@ class BaremesApiTests(MissionBase):
         self.assertEqual(r.status_code, 400)
         r = self.client.get(f'/api/api/distances/entre/?a={self.abidjan.pk}&b={self.bouake.pk}')
         self.assertEqual(r.data['km'], 350)
+
+
+class FiltreParTypeTests(MissionBase):
+    def test_filtre_des_listes_par_type(self):
+        self.soumettre(self.creer_mission())
+        self.soumettre(self.creer())  # FRC
+        self.en(self.agent)
+        r = self.client.get(f'/api/api/demandes/?type_demande={self.mlo.pk}').data['results']
+        self.assertEqual([(d['type_code'], d['type_icone']) for d in r], [('MLO', 'ri-road-map-line')])
+        self.en(self.chef)  # N+1 des deux demandes
+        self.assertEqual(self.client.get('/api/api/taches/').data['count'], 2)
+        r = self.client.get(f'/api/api/taches/?type_demande={self.frc.pk}').data['results']
+        self.assertEqual([t['demande']['type_code'] for t in r], ['FRC'])

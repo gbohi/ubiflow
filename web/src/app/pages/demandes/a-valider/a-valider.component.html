@@ -8,6 +8,13 @@
   </app-page-entete>
 
   <div class="lst-carte">
+    <div class="lst-barre">
+      <select class="form-select form-select-sm w-auto" aria-label="Type de demande" data-test="filtre-type"
+              [(ngModel)]="typeDemande" (ngModelChange)="filtrer()">
+        <option [ngValue]="null">Tous les types</option>
+        @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
+      </select>
+    </div>
     <div class="lst-table-wrap lst-cartes-wrap">
       <table class="lst-table lst-cartes">
         <thead><tr><th>Demande</th><th>Demandeur</th><th>Objet</th><th>Montant</th><th>Étape</th>
@@ -16,7 +23,7 @@
           @for (t of taches; track t.id) {
             <tr (click)="ouvrir(t)" style="cursor: pointer">
               <td class="lst-c-principal">
-                <div class="lst-qui"><span class="lst-av carre"><i class="ri-file-text-line"></i></span>
+                <div class="lst-qui"><span class="lst-av carre" [ngClass]="teinte(t.demande.type_code)" [title]="t.demande.type_libelle"><i [class]="icone(t.demande.type_icone)"></i></span>
                   <span><b>{{ t.demande.reference }}</b><small class="d-block">{{ t.demande.type_libelle }}</small></span></div>
               </td>
               <td data-label="Demandeur">{{ t.demande.demandeur }}</td>

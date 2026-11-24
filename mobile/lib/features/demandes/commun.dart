@@ -28,3 +28,28 @@ class PastilleDemande extends StatelessWidget {
     return PastilleStatut(label: s.$1, ton: s.$2, icone: s.$3);
   }
 }
+
+/// Icône et couleur d'un type de demande (même repère que sur le web).
+const Map<String, (IconData, Color)> typesDemande = {
+  'MLO': (Icons.alt_route_rounded, Color(0xFF1E9E5A)),
+  'MHP': (Icons.flight_takeoff_rounded, Color(0xFF1F4E8C)),
+  'FRC': (Icons.restaurant_rounded, Color(0xFFC98A16)),
+  'PAI': (Icons.payments_outlined, Color(0xFFD64545)),
+  'RMB': (Icons.currency_exchange_rounded, Color(0xFF1E9E5A)),
+  'FCM': (Icons.post_add_rounded, Color(0xFF1F4E8C)),
+};
+
+class IconeTypeDemande extends StatelessWidget {
+  final String? code;
+  const IconeTypeDemande(this.code, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = typesDemande[code] ?? (Icons.description_outlined, Colors.blueGrey);
+    return Container(
+      width: 38, height: 38,
+      decoration: BoxDecoration(color: t.$2.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+      child: Icon(t.$1, color: t.$2, size: 20),
+    );
+  }
+}

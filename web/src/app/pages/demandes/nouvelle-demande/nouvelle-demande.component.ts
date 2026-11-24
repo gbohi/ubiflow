@@ -6,7 +6,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { DemandesService, TypeDemande } from 'src/app/core/services/demandes/demandes.service';
+import { DemandesService, TypeDemande, iconeType, teinteType } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { ContenuDemande } from '../champs-demande/champs-demande.component';
 
@@ -20,6 +20,8 @@ export class NouvelleDemandeComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastrService);
 
+  readonly icone = iconeType;
+  readonly teinte = teinteType;
   types: TypeDemande[] = [];
   type: TypeDemande | null = null;
   contenu: ContenuDemande = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
@@ -39,6 +41,16 @@ export class NouvelleDemandeComponent implements OnInit {
       },
       error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
     });
+  }
+
+  /** Changement de type depuis le formulaire (la saisie propre à l'ancien type est abandonnée) */
+  changerType(id: number): void {
+    const t = this.types.find(x => x.id === id);
+    if (t && t.id !== this.type?.id) {
+      const objet = this.contenu.objet;
+      this.choisir(t);
+      this.contenu.objet = objet;
+    }
   }
 
   choisir(t: TypeDemande): void {

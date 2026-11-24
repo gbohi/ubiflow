@@ -270,6 +270,11 @@ app-page-entete { display: block; }
   object-fit: cover;
   overflow: hidden;
   &.carre { border-radius: 10px; background: var(--ubi-fond); color: var(--ubi-gris); font-size: 17px; }
+  // Teinte par type de demande (voir teinteType)
+  &.carre.p-ve { background: #EAFBF1; color: var(--ubi-vert2); }
+  &.carre.p-or { background: #FEF4E4; color: #C98A16; }
+  &.carre.p-ro { background: #FDE8E4; color: var(--ubi-rouge); }
+  &.carre.p-bl { background: #E8F0FD; color: var(--ubi-navy2); }
 }
 
 // Badges lisibles

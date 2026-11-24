@@ -8,7 +8,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { CLASSES_STATUT, Demande, DemandesService } from 'src/app/core/services/demandes/demandes.service';
+import { CLASSES_STATUT, Demande, DemandesService, TypeDemande, iconeType, teinteType } from 'src/app/core/services/demandes/demandes.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { aUnRole } from 'src/app/core/helpers/roles';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
@@ -28,6 +28,10 @@ export class MesDemandesComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly classes = CLASSES_STATUT;
+  readonly icone = iconeType;
+  readonly teinte = teinteType;
+  types: TypeDemande[] = [];
+  typeDemande: number | null = null;
   readonly filtres = [
     { cle: '', libelle: 'Toutes' }, { cle: 'brouillon', libelle: 'Brouillons' },
     { cle: 'en_validation', libelle: 'En validation' }, { cle: 'a_corriger', libelle: 'À corriger' },
@@ -50,6 +54,8 @@ export class MesDemandesComponent implements OnInit {
     const p = this.route.snapshot.queryParamMap;
     this.statut = p.get('statut') ?? '';
     this.vue = p.get('vue') === 'toutes' && this.gestion ? 'toutes' : 'mes';
+    this.typeDemande = Number(p.get('type')) || null;
+    this.service.types(true).subscribe(t => this.types = t);
     this.recherche$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => { this.page = 1; this.charger(); });
     this.charger();
@@ -58,7 +64,8 @@ export class MesDemandesComponent implements OnInit {
 
   charger(): void {
     this.chargement = true;
-    this.service.demandes({ vue: this.vue, statut: this.statut, search: this.recherche.trim(), page: this.page })
+    this.service.demandes({ vue: this.vue, statut: this.statut, type_demande: this.typeDemande ?? '',
+                            search: this.recherche.trim(), page: this.page })
       .subscribe({
         next: r => { this.demandes = r.results; this.total = r.count; this.chargement = false; },
         error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
@@ -68,7 +75,8 @@ export class MesDemandesComponent implements OnInit {
   choisirStatut(cle: string): void {
     this.statut = cle;
     this.page = 1;
-    this.router.navigate([], { queryParams: { statut: cle || null, vue: this.vue === 'toutes' ? 'toutes' : null } });
+    this.router.navigate([], { queryParams: { statut: cle || null, vue: this.vue === 'toutes' ? 'toutes' : null,
+                                              type: this.typeDemande || null } });
     this.charger();
   }
 

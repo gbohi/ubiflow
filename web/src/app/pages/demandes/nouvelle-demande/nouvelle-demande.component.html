@@ -1,20 +1,18 @@
 <div class="lst">
   <app-page-entete titre="Nouvelle demande" icone="ri-add-circle-line"
                    [fil]="[{label: 'Mes demandes', lien: '/demandes'}]"
-                   [sousTitre]="type ? type.libelle : 'Choisissez le type de demande'">
-    @if (type && types.length > 1) {
-      <button type="button" class="btn-ubi" (click)="type = null"><i class="ri-arrow-left-line"></i><span class="pe-lib">Changer de type</span></button>
-    }
+                   [sousTitre]="type ? 'Étape 2 sur 2 : informations de la demande' : 'Étape 1 sur 2 : choisissez le type de demande'">
   </app-page-entete>
 
   @if (chargement) {
     <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
   } @else if (!type) {
+    <h6 class="mb-3">Quel type de demande voulez-vous faire ?</h6>
     <div class="row g-3">
       @for (t of types; track t.id) {
         <div class="col-md-6 col-xl-4">
           <button type="button" class="prm-carte w-100 text-start border-0" (click)="choisir(t)">
-            <span class="prm-pa p-ve" aria-hidden="true"><i [class]="t.icone || 'ri-file-text-line'"></i></span>
+            <span class="prm-pa" [ngClass]="teinte(t.code) || 'p-ve'" aria-hidden="true"><i [class]="icone(t.icone)"></i></span>
             <span class="prm-txt"><b>{{ t.libelle }}</b><small>{{ t.description }}</small></span>
             <i class="ri-arrow-right-s-line prm-fl" aria-hidden="true"></i>
           </button>
@@ -26,7 +24,16 @@
     </div>
   } @else {
     <div class="lst-carte p-3 p-md-4">
-      @if (type.description) { <p class="text-muted">{{ type.description }}</p> }
+      <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-3 rounded border bg-light-subtle" data-test="type-choisi">
+        <span class="prm-pa" [ngClass]="teinte(type.code) || 'p-ve'" aria-hidden="true"><i [class]="icone(type.icone)"></i></span>
+        <div class="flex-grow-1">
+          <label class="form-label small text-muted mb-1" for="dem-type">Type de demande</label>
+          <select id="dem-type" class="form-select fw-semibold" [ngModel]="type.id" (ngModelChange)="changerType($event)">
+            @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
+          </select>
+          @if (type.description) { <div class="form-text">{{ type.description }}</div> }
+        </div>
+      </div>
       <app-champs-demande [contenu]="contenu" [champs]="type.champs || []" [avecMontant]="type.avec_montant && !estMission" [erreurs]="erreurs"></app-champs-demande>
       @if (estMission) {
         <hr class="my-3">

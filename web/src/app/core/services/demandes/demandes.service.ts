@@ -56,7 +56,7 @@ export interface MaTache {
 
 export interface Demande {
   id: number; reference: string | null; type_demande: number; type_code: string; type_libelle: string;
-  demandeur: number; demandeur_nom: string; objet: string; montant_demande: string | null;
+  type_icone?: string; demandeur: number; demandeur_nom: string; objet: string; montant_demande: string | null;
   montant_approuve: string | null; devise: string; statut: string; statut_libelle: string;
   statut_financier: string; statut_financier_libelle: string; soumise_le: string | null; approuvee_le: string | null;
   created_at: string; updated_at: string;
@@ -89,7 +89,7 @@ export interface Action {
 export interface Tache {
   id: number; etat: string; decision: string; etape: string; actions_autorisees: string[]; champs_modifiables: string[];
   valideur_nom: string; pour_compte_de: string | null; auto_validation: boolean; ouverte_le: string; traitee_le: string | null;
-  demande: { id: number; reference: string; objet: string; type_libelle: string; type_code: string; demandeur: string;
+  demande: { id: number; reference: string; objet: string; type_libelle: string; type_code: string; type_icone?: string; demandeur: string;
              montant_demande: string | null; devise: string; statut: string; soumise_le: string };
 }
 
@@ -123,6 +123,11 @@ export interface Notification {
   id: number; evenement: string; titre: string; message: string; lien: string; demande: number | null;
   demande_reference: string | null; lue: boolean; creee_le: string;
 }
+
+/** Teinte de la pastille d'un type de demande (listes, cartes) */
+const TEINTES_TYPE: Record<string, string> = { MLO: 'p-ve', MHP: 'p-bl', FRC: 'p-or', PAI: 'p-ro', RMB: 'p-ve', FCM: 'p-bl' };
+export function teinteType(code?: string | null): string { return TEINTES_TYPE[code ?? ''] ?? ''; }
+export function iconeType(icone?: string | null): string { return icone || 'ri-file-text-line'; }
 
 const detaille = () => ({ context: new HttpContext().set(ERREURS_DETAILLEES, true) });
 
@@ -197,8 +202,8 @@ export class DemandesService {
   }
 
   // ── Validations ───────────────────────────────────────────
-  taches(etat = 'en_attente', page = 1) {
-    return this.http.get<{ count: number; results: Tache[] }>(`${this.api}/taches/`, { params: this.params({ etat, page }) });
+  taches(etat = 'en_attente', page = 1, type_demande?: number | null) {
+    return this.http.get<{ count: number; results: Tache[] }>(`${this.api}/taches/`, { params: this.params({ etat, page, type_demande }) });
   }
   agir(tache: number, action: 'approuver' | 'rejeter' | 'retourner', motif: string, modifications?: any) {
     return this.http.post<{ demande: number; statut: string; statut_libelle: string }>(

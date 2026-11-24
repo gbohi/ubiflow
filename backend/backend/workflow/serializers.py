@@ -123,7 +123,7 @@ class TacheSerializer(serializers.ModelSerializer):
     def get_demande(self, obj):
         d = obj.etape_instance.instance.demande
         return {'id': d.pk, 'reference': d.reference, 'objet': d.objet, 'type_libelle': d.type_demande.libelle,
-                'type_code': d.type_demande.code, 'demandeur': nom(d.demandeur),
+                'type_code': d.type_demande.code, 'type_icone': d.type_demande.icone, 'demandeur': nom(d.demandeur),
                 'montant_demande': d.montant_demande, 'devise': d.devise, 'statut': d.statut,
                 'soumise_le': d.soumise_le}
 

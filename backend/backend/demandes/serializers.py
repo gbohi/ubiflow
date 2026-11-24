@@ -100,6 +100,7 @@ class _EtapeEnCoursMixin:
 class DemandeListeSerializer(_EtapeEnCoursMixin, serializers.ModelSerializer):
     type_code = serializers.ReadOnlyField(source='type_demande.code')
     type_libelle = serializers.ReadOnlyField(source='type_demande.libelle')
+    type_icone = serializers.ReadOnlyField(source='type_demande.icone')
     demandeur_nom = serializers.SerializerMethodField()
     statut_libelle = serializers.CharField(source='get_statut_display', read_only=True)
     statut_financier_libelle = serializers.CharField(source='get_statut_financier_display', read_only=True)
@@ -107,7 +108,7 @@ class DemandeListeSerializer(_EtapeEnCoursMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Demande
-        fields = ['id', 'reference', 'type_demande', 'type_code', 'type_libelle', 'demandeur', 'demandeur_nom',
+        fields = ['id', 'reference', 'type_demande', 'type_code', 'type_libelle', 'type_icone', 'demandeur', 'demandeur_nom',
                   'objet', 'montant_demande', 'montant_approuve', 'devise', 'statut', 'statut_libelle',
                   'statut_financier', 'statut_financier_libelle', 'soumise_le', 'approuvee_le', 'created_at',
                   'updated_at', 'etape_en_cours']

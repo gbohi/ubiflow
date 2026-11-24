@@ -112,6 +112,7 @@ class _CarteDemande extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        leading: IconeTypeDemande(demande['type_code'] as String?),
         title: Text(demande['reference'] as String? ?? 'Brouillon',
             style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

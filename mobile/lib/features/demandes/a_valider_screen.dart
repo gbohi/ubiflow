@@ -63,6 +63,7 @@ class _AValiderScreenState extends State<AValiderScreen> {
                       margin: EdgeInsets.zero,
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        leading: IconeTypeDemande(d['type_code'] as String?),
                         title: Text('${d['reference']} — ${d['demandeur']}',
                             style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
