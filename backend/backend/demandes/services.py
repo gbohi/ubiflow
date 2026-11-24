@@ -19,6 +19,7 @@ from workflow import moteur
 from workflow.erreurs import ErreurMetier, Interdit
 from workflow.models import Tache
 
+from . import extensions
 from .models import (
     CompteurReference, Demande, Document, StatutDemande, StatutFinancier, VersionContenu,
 )
@@ -97,6 +98,23 @@ def valider_donnees(type_demande, donnees, complet=False):
     return propres
 
 
+def valider_contenu(type_demande, donnees, complet=False):
+    """Champs du formulaire + données propres à la famille (ex. `mission`)."""
+    donnees = donnees or {}
+    erreurs, propres = {}, {}
+    try:
+        propres = valider_donnees(type_demande, donnees, complet)
+    except ErreurMetier as e:
+        erreurs.update(e.detail)
+    try:
+        propres.update(extensions.pour(type_demande).valider(type_demande, donnees, complet))
+    except ErreurMetier as e:
+        erreurs.update(e.detail)
+    if erreurs:
+        raise ErreurMetier(erreurs)
+    return propres
+
+
 def _montant(brut):
     if brut in (None, ''):
         return None
@@ -120,7 +138,9 @@ def contexte_conditions(demande):
         if demande.departement_id else [],
     }
     for code, valeur in (demande.donnees or {}).items():
-        ctx[f'champ.{code}'] = valeur
+        if not isinstance(valeur, dict):
+            ctx[f'champ.{code}'] = valeur
+    ctx.update(extensions.pour(demande.type_demande).contexte(demande))
     return ctx
 
 
@@ -164,12 +184,15 @@ def creer_brouillon(user, type_demande, objet='', montant_demande=None, devise='
         raise ErreurMetier("Ce type de demande n'est pas disponible.")
     if moteur.version_publiee(type_demande) is None:
         raise ErreurMetier("Ce type de demande n'a pas encore de circuit de validation publié.")
+    saisi = type_demande.avec_montant and not extensions.pour(type_demande).montant_calcule
+    if not saisi:
+        devise = ''
     with transaction.atomic():
         demande = Demande.objects.create(
             type_demande=type_demande, demandeur=user, cree_par=user, objet=(objet or '').strip()[:255],
-            montant_demande=_montant(montant_demande) if type_demande.avec_montant else None,
-            devise=(devise or ParametreSysteme.charger().devise_reference).upper(),
-            donnees=valider_donnees(type_demande, donnees or {}, complet=False))
+            montant_demande=_montant(montant_demande) if saisi else None,
+            devise=(devise or ParametreSysteme.charger().devise_reference).upper()[:3],
+            donnees=valider_contenu(type_demande, donnees, complet=False))
         moteur.tracer(demande, 'creation', auteur=user, infos=infos)
     return demande
 
@@ -179,14 +202,15 @@ def modifier(demande, user, objet=None, montant_demande=None, devise=None, donne
     _exiger_demandeur(demande, user, {StatutDemande.BROUILLON, StatutDemande.A_CORRIGER}, 'modifier')
     if 'objet' in champs:
         demande.objet = (objet or '').strip()[:255]
-    if 'montant_demande' in champs and demande.type_demande.avec_montant:
+    saisi = demande.type_demande.avec_montant and not extensions.pour(demande.type_demande).montant_calcule
+    if 'montant_demande' in champs and saisi:
         demande.montant_demande = _montant(montant_demande)
-    if 'devise' in champs and devise:
+    if 'devise' in champs and devise and saisi:
         if demande.statut != StatutDemande.BROUILLON and devise.upper() != demande.devise:
             raise ErreurMetier("La devise ne peut plus être changée après la première soumission.")
         demande.devise = devise.upper()
     if 'donnees' in champs:
-        demande.donnees = valider_donnees(demande.type_demande, {**demande.donnees, **(donnees or {})}, complet=False)
+        demande.donnees = valider_contenu(demande.type_demande, {**demande.donnees, **(donnees or {})}, complet=False)
     demande.save()
     return demande
 
@@ -219,18 +243,15 @@ def _controler_contenu(demande):
     erreurs = {}
     if not demande.objet.strip():
         erreurs['objet'] = "L'objet est obligatoire."
-    if demande.type_demande.avec_montant and (demande.montant_demande is None or demande.montant_demande <= 0):
+    saisi = demande.type_demande.avec_montant and not extensions.pour(demande.type_demande).montant_calcule
+    if saisi and (demande.montant_demande is None or demande.montant_demande <= 0):
         erreurs['montant_demande'] = 'Le montant est obligatoire.'
     try:
-        demande.donnees = valider_donnees(demande.type_demande, demande.donnees, complet=True)
+        demande.donnees = valider_contenu(demande.type_demande, demande.donnees, complet=True)
     except ErreurMetier as e:
         erreurs.update(e.detail)
     if erreurs:
         raise ErreurMetier(erreurs)
-    devise_ref = demande.devise_reference or ParametreSysteme.charger().devise_reference
-    if demande.type_demande.avec_montant and demande.devise != devise_ref:
-        raise ErreurMetier({'devise': f"Les montants en {demande.devise} seront acceptés avec les taux de change "
-                                      f"(lot 3) : saisissez le montant en {devise_ref}."})
     pieces = {d.type_piece_id for d in demande.documents.filter(retire=False)}
     manquantes = [e.type_piece.libelle for e in demande.type_demande.exigences.filter(
         moment='soumission', obligatoire=True).select_related('type_piece') if e.type_piece_id not in pieces]
@@ -256,7 +277,30 @@ def _figer_organisation(demande, d):
     demande.poste = org.valeur_en_cours(u, 'poste', d)
     demande.n_plus_1 = org.n_plus_1(u, d).responsable
     demande.devise_reference = ParametreSysteme.charger().devise_reference
-    demande.montant_demande_ref = demande.montant_demande if demande.devise == demande.devise_reference else None
+    demande.parametres_figes = {}
+
+
+def _convertir_montant(demande, d):
+    """
+    Montant en devise de référence, au taux figé à la première soumission
+    (la devise ne change plus ensuite).
+    """
+    from baremes import services as baremes
+    if demande.montant_demande is None:
+        demande.montant_demande_ref = None
+        return
+    ref = demande.devise_reference
+    if demande.devise == ref:
+        demande.montant_demande_ref = demande.montant_demande
+        return
+    figes = dict(demande.parametres_figes or {})
+    t = (figes.get('taux') or {}).get(demande.devise) or baremes.taux(demande.devise, d, ref)
+    if t is None:
+        raise ErreurMetier({'devise': f"Aucun taux de change n'est défini pour la devise {demande.devise} : "
+                                      f"saisissez le montant en {ref} ou demandez la création du taux."})
+    figes['taux'] = {**(figes.get('taux') or {}), demande.devise: t}
+    demande.parametres_figes = figes
+    demande.montant_demande_ref = baremes.convertir(demande.montant_demande, t)
 
 
 def preparer_soumission(demande, user):
@@ -274,8 +318,11 @@ def preparer_soumission(demande, user):
         _figer_organisation(demande, d)
     else:
         version = demande.version_workflow
-        demande.montant_demande_ref = demande.montant_demande if demande.devise == demande.devise_reference else None
     _controler_contenu(demande)
+    ext = extensions.pour(demande.type_demande)
+    demande._calcul, demande._note_calcul = ext.avant_soumission(demande, d, premiere)
+    if not ext.montant_calcule:
+        _convertir_montant(demande, d)
     plan = moteur.calculer_plan(version, demande, d, contexte_conditions(demande))
     return version, plan
 
@@ -293,7 +340,8 @@ def _etapes_reprises(demande, version, plan):
     ancienne = demande.version_courante
     sensibles = set(demande.type_demande.champs.filter(sensible=True).values_list('code', flat=True))
     if ancienne is None or ancienne.montant_demande != demande.montant_demande or any(
-            ancienne.donnees.get(c) != demande.donnees.get(c) for c in sensibles):
+            ancienne.donnees.get(c) != demande.donnees.get(c) for c in sensibles) or \
+            extensions.pour(demande.type_demande).modification_sensible(ancienne.donnees, demande.donnees):
         return set(), 'Modification sensible : reprise du circuit à la première étape.'
     ordre_retour = precedente.etape_retour.ordre
     avant = lambda p: [(e['etape'], e['statut']) for e in p if e['ordre'] < ordre_retour]
@@ -323,7 +371,8 @@ def soumettre(demande, user, motif='', infos=None):
             demande=demande, numero=(precedente.numero + 1) if precedente else 1,
             origine='soumission' if premiere else 'resoumission', objet=demande.objet,
             montant_demande=demande.montant_demande, devise=demande.devise, donnees=demande.donnees,
-            motif_modification=motif or '', cree_par=user)
+            calcul=demande._calcul or {}, motif_modification=motif or '', cree_par=user)
+        extensions.pour(demande.type_demande).apres_version(demande, contenu)
         demande.documents.filter(version_contenu__isnull=True).update(version_contenu=contenu)
         demande.version_courante = contenu
         demande.statut = StatutDemande.EN_VALIDATION
@@ -332,7 +381,7 @@ def soumettre(demande, user, motif='', infos=None):
         demande.save()
         cycle = demande.instances.count() + 1
         moteur.tracer(demande, 'soumission' if premiere else 'resoumission', auteur=user, infos=infos,
-                      motif=' '.join(x for x in (motif, note_reprise or '') if x),
+                      motif=' '.join(x for x in (motif, demande._note_calcul or '', note_reprise or '') if x),
                       donnees={'version_contenu': contenu.numero, 'cycle': cycle})
         if premiere:
             notifier([user], 'demande_soumise', f"{demande.reference} soumise",

@@ -76,6 +76,11 @@ def is_admin_workflow(user):
     return bool(is_admin(user) or ROLE_ADMIN_WORKFLOW in get_roles(user))
 
 
+def is_admin_finances(user):
+    """Barèmes, taux de change, devise de référence : administrateurs et administrateurs des finances."""
+    return bool(is_admin(user) or ROLE_ADMIN_FINANCES in get_roles(user))
+
+
 def voit_toutes_les_demandes(user):
     return bool(user and user.is_authenticated and
                 (user.is_superuser or get_roles(user) & ROLES_GESTION_DEMANDES))
@@ -162,3 +167,13 @@ class ReadAuthenticatedWriteAdminWorkflow(permissions.BasePermission):
         if not (request.user and request.user.is_authenticated):
             return False
         return request.method in permissions.SAFE_METHODS or is_admin_workflow(request.user)
+
+
+class ReadAuthenticatedWriteAdminFinances(permissions.BasePermission):
+    """Lecture : tout utilisateur connecté. Écriture : administrateurs des finances."""
+    message = "Modification réservée aux administrateurs des finances."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return request.method in permissions.SAFE_METHODS or is_admin_finances(request.user)

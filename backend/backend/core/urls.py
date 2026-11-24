@@ -11,6 +11,9 @@ urlpatterns = [
     path('api/api/', include('workflow.urls')),
     path('api/api/', include('notifications.urls')),
     path('api/api/', include('audit.urls')),
+    # Lot 3 : barèmes, lieux, calcul des missions
+    path('api/api/', include('baremes.urls')),
+    path('api/api/', include('missions.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

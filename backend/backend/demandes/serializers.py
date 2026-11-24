@@ -122,6 +122,12 @@ class DemandeEcritureSerializer(serializers.Serializer):
     montant_demande = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     devise = serializers.CharField(max_length=3, allow_blank=True, required=False)
     donnees = serializers.DictField(required=False)
+    mission = serializers.DictField(required=False)
+
+    def validate(self, attrs):
+        if 'mission' in attrs:
+            attrs['donnees'] = {**attrs.get('donnees', {}), 'mission': attrs.pop('mission')}
+        return attrs
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -222,6 +228,10 @@ class DemandeDetailSerializer(DemandeListeSerializer):
     mes_taches = serializers.SerializerMethodField()
     origine_copie_reference = serializers.ReadOnlyField(source='origine_copie.reference')
     solde = serializers.ReadOnlyField()
+    type_famille = serializers.ReadOnlyField(source='type_demande.famille')
+    type_parametres = serializers.ReadOnlyField(source='type_demande.parametres')
+    mission = serializers.SerializerMethodField()
+    calcul = serializers.SerializerMethodField()
 
     class Meta:
         model = Demande
@@ -231,7 +241,14 @@ class DemandeDetailSerializer(DemandeListeSerializer):
             'departement', 'departement_libelle', 'agence', 'agence_libelle', 'categorie', 'categorie_libelle',
             'version_numero', 'version_workflow_numero', 'documents', 'commentaires', 'circuit', 'actions',
             'mes_taches', 'origine_copie', 'origine_copie_reference', 'demande_parent', 'motif_annulation',
-            'annulee_le']
+            'annulee_le', 'type_famille', 'type_parametres', 'mission', 'calcul']
+
+    def get_mission(self, obj):
+        return (obj.donnees or {}).get('mission') if obj.type_demande.famille == 'mission' else None
+
+    def get_calcul(self, obj):
+        """Récapitulatif figé de la version soumise (ce que le demandeur a vu)."""
+        return (obj.version_courante.calcul or None) if obj.version_courante_id else None
 
     def get_cree_par_nom(self, obj):
         return _nom(obj.cree_par)

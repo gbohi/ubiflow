@@ -344,7 +344,7 @@ def habilitation(tache, user):
 def _appliquer_modifications(tache, user, modifications, infos):
     """Corrections autorisées par l'étape (champs du type, montant approuvé)."""
     from demandes.models import VersionContenu
-    from demandes.services import valider_donnees
+    from demandes.services import valider_contenu
     ei = tache.etape_instance
     demande, etape = ei.instance.demande, ei.etape
     autorises = set(etape.champs_modifiables or [])
@@ -365,7 +365,7 @@ def _appliquer_modifications(tache, user, modifications, infos):
         demande.save(update_fields=['montant_approuve', 'updated_at'])
     if modifications:
         donnees = {**demande.donnees, **modifications}
-        donnees = valider_donnees(demande.type_demande, donnees, complet=True)
+        donnees = valider_contenu(demande.type_demande, donnees, complet=True)
         for code in modifications:
             avant[code], apres[code] = demande.donnees.get(code), donnees.get(code)
         demande.donnees = donnees

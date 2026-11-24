@@ -56,6 +56,8 @@ class TypeDemande(models.Model):
     delai_cloture_jours = models.PositiveIntegerField(null=True, blank=True)
     # Statuts dans lesquels le demandeur peut annuler lui-même sa demande
     annulation_demandeur = models.JSONField(default=list, blank=True)
+    # Paramètres propres à la famille (missions : {"type_mission": "locale" | "hors_pays"})
+    parametres = models.JSONField(default=dict, blank=True)
     parent_requis = models.ForeignKey('self', on_delete=models.PROTECT, null=True, blank=True,
                                       related_name='types_rattaches')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -140,6 +142,8 @@ class Demande(models.Model):
     # Figés à la (première) soumission
     devise_reference = models.CharField(max_length=3, blank=True)
     montant_demande_ref = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    # Copie figée à la soumission : taux de change, barèmes des missions (§3.6)
+    parametres_figes = models.JSONField(default=dict, blank=True)
     departement = models.ForeignKey('api.Service', on_delete=models.PROTECT, null=True, blank=True,
                                     related_name='demandes')
     agence = models.ForeignKey('api.Agence', on_delete=models.PROTECT, null=True, blank=True,

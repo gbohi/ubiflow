@@ -36,6 +36,8 @@ def champs_disponibles(type_demande=None):
         for c in type_demande.champs.filter(utilisable_en_condition=True, actif=True):
             champs.append({'code': f'champ.{c.code}', 'libelle': c.libelle, 'nature': c.nature,
                            'options': c.options})
+        from demandes import extensions
+        champs += extensions.pour(type_demande).champs_condition(type_demande)
     return champs
 
 

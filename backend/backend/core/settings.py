@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'workflow',       # moteur de workflow
     'notifications',
     'audit',
+    'baremes',        # per diem, tarifs, taux de change (lot 3)
+    'missions',       # lieux, distances, calcul des missions (lot 3)
 ]
 
 AUTH_USER_MODEL = 'api.User'
