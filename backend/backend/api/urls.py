@@ -74,4 +74,5 @@ urlpatterns = [
     path('api/allnopagin/postes/', PosteListAPIView.as_view(), name='allnopagin-poste-list'),
     path('api/allnopagin/groups/', GroupListAPIView.as_view(), name='allnopagin-group-list'),
     path('api/allnopagin/users/', AllUserNopginListAPIView.as_view(), name='allnopagin-user-list'),
+    path('api/annuaire/', AnnuaireView.as_view(), name='annuaire'),
 ]

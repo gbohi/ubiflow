@@ -93,6 +93,10 @@ else:
     # CORS_ALLOWED_ORIGINS=https://monsite.com,https://app.monsite.com
     CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
 
+# En-tête X-Canal (« mobile ») envoyé par l'application Flutter, y compris en version web
+from corsheaders.defaults import default_headers  # noqa: E402
+CORS_ALLOW_HEADERS = (*default_headers, 'x-canal')
+
 # Origines autorisées à soumettre des formulaires (admin Django derrière Nginx).
 # Exemple : CSRF_TRUSTED_ORIGINS=https://ubiflow.mondomaine.com
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())

@@ -10,6 +10,8 @@ import '../../shared/providers/app_provider.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../core/services/auth_service.dart';
 import 'change_password_screen.dart';
+import '../delegations/delegations_screen.dart';
+import '../notifications/notifications_screen.dart';
 
 class ProfilScreen extends StatefulWidget {
   const ProfilScreen({super.key});
@@ -174,6 +176,18 @@ class _ProfilScreenState extends State<ProfilScreen> {
                           valeur: snap.connectionState != ConnectionState.done
                               ? '…'
                               : (snap.data ?? 'Non déterminé')),
+                    ),
+                    _Ligne(
+                      icone: Icons.person_add_alt_outlined,
+                      titre: 'Mes délégations',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const DelegationsScreen())),
+                    ),
+                    _Ligne(
+                      icone: Icons.notifications_none_rounded,
+                      titre: 'Notifications',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const NotificationsScreen())),
                     ),
                     _Ligne(
                       icone: Icons.lock_outline_rounded,

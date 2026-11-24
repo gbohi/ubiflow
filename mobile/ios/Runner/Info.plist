@@ -3,9 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>L'appareil photo sert à prendre votre photo de profil.</string>
+	<string>L'appareil photo sert à prendre votre photo de profil et à photographier les justificatifs de vos demandes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Votre galerie sert à choisir votre photo de profil.</string>
+	<string>Votre galerie sert à choisir votre photo de profil et les justificatifs de vos demandes.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

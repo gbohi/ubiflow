@@ -107,7 +107,7 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
 | Clôture | `demandes/{id}/cloture/` (+ `soumettre/`, `valider/`, `retourner/`), `missions/clotures/` (à contrôler) | `missions/cloture.py` |
 | Documents | `demandes/{id}/pdf/`, `ordre-mission/`, `note-frais/`, `demande-paiement/` ; `annuler-admin/`, `corriger-montant/` | `demandes/pdf.py`, `demandes/documents_mission.py`, `demandes/documents_paiement.py` |
-| Accueil de synthèse | `accueil/?profil=` | `pilotage/accueil.py` |
+| Accueil de synthèse | `accueil/?profil=` ; `annuaire/` (choix d'un collaborateur) | `pilotage/accueil.py`, `api/views.py` |
 | Tableaux de bord | `tableaux-de-bord/`, `tableaux-de-bord/{profil}/` ; `perimetres-consultation/` | `pilotage/indicateurs.py` |
 | Notifications | `notifications/preferences/`, `notifications/appareils/` ; `jours-feries/` | `notifications/canaux.py`, `workflow/services_planifies.py` |
 | Trésorerie | `tresorerie/a-payer/` (+ `?export=xlsx`), `tresorerie/reglements/` (+ `annuler/`), `tresorerie/reversements/` (+ `percevoir/`, `abandonner/`), `demandes/parents-possibles/` | `tresorerie/services.py` |
@@ -292,6 +292,48 @@ flutter run
 ```
 
 L'URL de l'API est dans `lib/core/config.dart`.
+
+### Fonctions (lot 7)
+
+- **Accueil de synthèse** selon le profil (collaborateur, valideur, direction,
+  finances) : 4 indicateurs, alertes, actions rapides, listes prioritaires,
+  graphiques, notifications récentes, dernières activités, raccourcis.
+- **Demandes** : choix du type, champs propres au type, rattachement (frais
+  complémentaires, annulation), **missions avec calcul des frais en direct**,
+  brouillon, soumission, correction après retour, suppression, annulation.
+- **Pièces jointes** : photo (appareil photo, galerie) ou fichier (PDF, Word,
+  Excel), ouverture et retrait ; **documents PDF** (fiche, ordre de mission,
+  note de frais, demande de paiement ou de remboursement).
+- **Validation** : approuver, retourner, rejeter ; commentaires.
+- **Clôture des missions** : dates réelles, dépenses par rubrique, solde
+  recalculé, pièces de clôture (rapport), soumission au contrôle.
+- **Notifications** in-app et **push** avec ouverture directe de la demande ;
+  **délégations** (création, révocation).
+
+Non prévus sur mobile : administration, circuits, barèmes, trésorerie,
+reporting avancé (restent sur le web).
+
+### Notifications push (Firebase)
+
+La configuration Firebase est passée à la compilation (aucun fichier
+`google-services.json` ni `GoogleService-Info.plist` à committer) :
+
+```bash
+flutter build apk --dart-define=FIREBASE_API_KEY=... --dart-define=FIREBASE_APP_ID=... --dart-define=FIREBASE_SENDER_ID=... --dart-define=FIREBASE_PROJECT_ID=...
+```
+
+Sans ces valeurs, le push est désactivé et les notifications restent
+visibles dans l'application. Côté serveur : `FIREBASE_CREDENTIALS` (compte de
+service) et canal push activé dans Paramètres → Société. Pour iOS : activer
+la capacité *Push Notifications* dans Xcode et déposer la clé APNs dans la
+console Firebase ; la cible minimale est iOS 13 (dans le `Podfile` généré :
+`platform :ios, '13.0'`).
+
+### Versions des dépendances
+
+Le `pubspec.lock` est figé pour Flutter 3.22 (Dart 3.4) : Firebase 3.6 / 15.1,
+file_picker 8.1, open_filex 4.5, intl 0.19. Ne pas le régénérer avec une
+version plus récente de Flutter sans vérifier la compatibilité.
 
 L'identifiant de l'application est `com.example.ubiflow` : à remplacer par
 l'identifiant définitif avant une publication sur les stores. L'icône

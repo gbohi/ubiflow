@@ -8,7 +8,10 @@ import '../../core/api/api_client.dart';
 import '../../core/services/demandes_service.dart';
 import '../../core/widgets/common_widgets.dart';
 import '../../shared/theme/app_theme.dart';
+import 'cloture_screen.dart';
 import 'commun.dart';
+import 'demande_form_screen.dart';
+import 'fichiers.dart';
 
 class DemandeDetailScreen extends StatefulWidget {
   final int id;
@@ -23,6 +26,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
   String? _erreur;
   bool _enCours = false;
   final _motif = TextEditingController();
+  final _commentaire = TextEditingController();
 
   @override
   void initState() {
@@ -33,6 +37,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
   @override
   void dispose() {
     _motif.dispose();
+    _commentaire.dispose();
     super.dispose();
   }
 
@@ -70,7 +75,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
           ],
         ),
       );
-      if (ok != true) return;
+      if (ok != true || !mounted) return;
     }
     setState(() => _enCours = true);
     final messenger = ScaffoldMessenger.of(context);
@@ -96,6 +101,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
         EnTeteMarine(
           titre: d?['reference'] as String? ?? (d == null ? 'Demande' : 'Brouillon'),
           sousTitre: d == null ? null : '${d['type_libelle']} — ${d['demandeur_nom']}',
+          actions: [if (d != null && d['reference'] != null) _menuDocuments(d)],
         ),
         Expanded(
           child: _erreur != null
@@ -120,6 +126,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
       const SizedBox(height: 12),
 
       if (taches.isNotEmpty) _panneauDecision(taches.first),
+      _actionsDemandeur(d),
 
       const LibelleSection('Contenu'),
       CarteListe(lignes: [
@@ -140,8 +147,14 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
         CarteListe(lignes: [
           for (final (l, v) in resumeCloture(d['cloture'] as Map, d['devise'] as String? ?? '')) _ligne(l, v),
           if ((d['cloture'] as Map)['actions']?['modifier'] == true)
-            const ListTile(dense: true, leading: Icon(Icons.info_outline),
-                title: Text('Déclarez vos dépenses réelles et joignez le rapport depuis le web.', style: TextStyle(fontSize: 12))),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: BoutonVert(
+                label: 'Déclarer mes dépenses réelles',
+                icone: Icons.receipt_long_rounded,
+                onPressed: () => _ouvrirEcran(ClotureScreen(demande: d)),
+              ),
+            ),
         ]),
         const SizedBox(height: 12),
       ],
@@ -185,6 +198,9 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
         const SizedBox(height: 12),
       ],
 
+      ..._sectionDocuments(d),
+      ..._sectionCommentaires(d),
+
       const LibelleSection('Historique'),
       CarteListe(lignes: [
         for (final a in _historique)
@@ -199,6 +215,309 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
           ),
       ]),
     ]);
+  }
+
+  // ── Actions du demandeur ──────────────────────────────────
+
+  Future<void> _ouvrirEcran(Widget ecran) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ecran));
+    _charger();
+  }
+
+  /// Type complet (champs, paramètres) pour le formulaire de modification
+  Future<void> _modifier(Map<String, dynamic> d) async {
+    Map<String, dynamic>? type;
+    try {
+      type = (await demandesService.types()).where((t) => t['id'] == d['type_demande']).firstOrNull;
+    } catch (_) {}
+    type ??= {
+      'id': d['type_demande'], 'code': d['type_code'], 'libelle': d['type_libelle'], 'famille': d['type_famille'],
+      'parametres': d['type_parametres'], 'champs': d['champs'], 'avec_montant': d['montant_demande'] != null,
+    };
+    if (mounted) _ouvrirEcran(DemandeFormScreen(type: type, demande: d));
+  }
+
+  Future<bool> _confirmer(String titre, String texte, String bouton) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(titre),
+          content: Text(texte),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Retour')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(bouton)),
+          ],
+        ),
+      ) ==
+      true;
+
+  Future<String?> _demanderMotif(String titre) async {
+    final ctrl = TextEditingController();
+    final motif = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(titre),
+        content: TextField(controller: ctrl, autofocus: true, minLines: 2, maxLines: 4,
+            decoration: const InputDecoration(labelText: 'Motif *', border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Retour')),
+          FilledButton(onPressed: () => Navigator.pop(c, ctrl.text.trim()), child: const Text('Valider')),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    return (motif ?? '').isEmpty ? null : motif;
+  }
+
+  Future<void> _executer(Future<void> Function() action, String succes, {bool fermer = false}) async {
+    setState(() => _enCours = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
+      await action();
+      messenger.showSnackBar(SnackBar(content: Text(succes), backgroundColor: AppColors.success));
+      if (fermer) {
+        navigator.pop(true);
+        return;
+      }
+      await _charger();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(messageErreurApi(e) ?? 'Action impossible.'), backgroundColor: AppColors.error));
+    } finally {
+      if (mounted) setState(() => _enCours = false);
+    }
+  }
+
+  Widget _actionsDemandeur(Map<String, dynamic> d) {
+    final a = Map<String, dynamic>.from(d['actions'] as Map? ?? {});
+    final id = d['id'] as int;
+    final boutons = <Widget>[
+      if (a['soumettre'] == true)
+        BoutonVert(
+          label: d['statut'] == 'a_corriger' ? 'Soumettre à nouveau' : 'Soumettre pour validation',
+          icone: Icons.send_rounded,
+          chargement: _enCours,
+          onPressed: () async {
+            if (!await _confirmer('Soumettre la demande ?',
+                'Elle part en validation et ne sera plus modifiable, sauf retour pour correction.', 'Soumettre')) {
+              return;
+            }
+            _executer(() => demandesService.soumettre(id), 'Demande soumise.');
+          },
+        ),
+      if (a['modifier'] == true)
+        OutlinedButton.icon(onPressed: _enCours ? null : () => _modifier(d), icon: const Icon(Icons.edit_outlined),
+            label: const Text('Modifier')),
+      if (a['supprimer'] == true)
+        TextButton.icon(
+          onPressed: _enCours
+              ? null
+              : () async {
+                  if (!await _confirmer('Supprimer le brouillon ?', 'Le brouillon et ses pièces seront supprimés.', 'Supprimer')) return;
+                  _executer(() => demandesService.supprimer(id), 'Brouillon supprimé.', fermer: true);
+                },
+          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+          label: const Text('Supprimer le brouillon', style: TextStyle(color: AppColors.error)),
+        ),
+      if (a['annuler'] == true)
+        TextButton.icon(
+          onPressed: _enCours
+              ? null
+              : () async {
+                  final motif = await _demanderMotif('Annuler la demande');
+                  if (motif != null) _executer(() => demandesService.annuler(id, motif), 'Demande annulée.');
+                },
+          icon: const Icon(Icons.block_rounded, color: AppColors.error),
+          label: const Text('Annuler la demande', style: TextStyle(color: AppColors.error)),
+        ),
+    ];
+    if (boutons.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final b in boutons) Padding(padding: const EdgeInsets.only(bottom: 6), child: b),
+      ]),
+    );
+  }
+
+  // ── Documents PDF ─────────────────────────────────────────
+
+  Widget _menuDocuments(Map<String, dynamic> d) {
+    final mission = d['type_famille'] == 'mission';
+    final paiement = d['type_famille'] == 'simple' && d['montant_demande'] != null;
+    return PopupMenuButton<String>(
+      tooltip: 'Documents',
+      icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
+      onSelected: (doc) => _telechargerPdf(d, doc),
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'pdf', child: Text('Fiche de la demande')),
+        if (mission) const PopupMenuItem(value: 'ordre-mission', child: Text('Ordre de mission')),
+        if (mission) const PopupMenuItem(value: 'note-frais', child: Text('Note de frais')),
+        if (paiement)
+          PopupMenuItem(
+              value: 'demande-paiement',
+              child: Text(d['type_code'] == 'RMB' ? 'Demande de remboursement' : 'Demande de paiement')),
+      ],
+    );
+  }
+
+  Future<void> _telechargerPdf(Map<String, dynamic> d, String doc) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Préparation du document…'), duration: Duration(seconds: 1)));
+    try {
+      final octets = await demandesService.pdf(d['id'] as int, doc);
+      final erreur = await ouvrirOctets(octets, '$doc-${d['reference']}.pdf');
+      if (erreur != null) messenger.showSnackBar(SnackBar(content: Text(erreur)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(messageErreurApi(e) ?? 'Document indisponible.'), backgroundColor: AppColors.error));
+    }
+  }
+
+  // ── Pièces jointes ────────────────────────────────────────
+
+  List<Widget> _sectionDocuments(Map<String, dynamic> d) {
+    final docs = List<Map>.from(d['documents'] as List? ?? []).where((x) => x['retire'] != true).toList();
+    final exigees = List<Map>.from(d['pieces_exigees'] as List? ?? []);
+    final peutAjouter = (d['actions'] as Map?)?['ajouter_document'] == true;
+    if (docs.isEmpty && !peutAjouter) return [];
+    final fournies = docs.map((x) => x['type_piece']).toSet();
+    return [
+      const LibelleSection('Pièces jointes'),
+      CarteListe(lignes: [
+        for (final e in exigees.where((e) => e['moment'] != 'cloture' || d['cloture'] != null))
+          ListTile(
+            dense: true,
+            leading: Icon(fournies.contains(e['type_piece']) ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                color: fournies.contains(e['type_piece']) ? AppColors.success : Colors.grey),
+            title: Text('${e['type_piece_libelle']}${e['obligatoire'] == true ? '' : ' (facultative)'}',
+                style: const TextStyle(fontSize: 13)),
+            subtitle: Text('${e['moment_libelle']}', style: const TextStyle(fontSize: 11)),
+          ),
+        for (final doc in docs)
+          ListTile(
+            leading: Icon(
+                '${doc['nom_origine']}'.toLowerCase().endsWith('.pdf') ? Icons.picture_as_pdf_outlined : Icons.insert_drive_file_outlined),
+            title: Text('${doc['nom_origine']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text([
+              if (doc['type_piece_libelle'] != null) doc['type_piece_libelle'],
+              tailleLisible(doc['taille']),
+              '${doc['ajoute_par_nom']}',
+            ].join(' · '), style: const TextStyle(fontSize: 12)),
+            onTap: () => _ouvrirDocument(d, doc),
+            trailing: peutAjouter
+                ? IconButton(
+                    tooltip: 'Retirer',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () async {
+                      final motif = await _demanderMotif('Retirer la pièce');
+                      if (motif != null) {
+                        _executer(() => demandesService.retirerDocument(d['id'] as int, doc['id'] as int, motif), 'Pièce retirée.');
+                      }
+                    },
+                  )
+                : null,
+          ),
+        if (docs.isEmpty) const ListTile(dense: true, title: Text('Aucune pièce jointe.', style: TextStyle(fontSize: 13))),
+        if (peutAjouter)
+          ListTile(
+            leading: const Icon(Icons.add_a_photo_outlined),
+            title: const Text('Ajouter une pièce (photo ou fichier)', style: TextStyle(fontWeight: FontWeight.w600)),
+            onTap: _enCours ? null : () => _ajouterPiece(d),
+          ),
+      ]),
+      const SizedBox(height: 12),
+    ];
+  }
+
+  Future<void> _ouvrirDocument(Map d, Map doc) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final octets = await demandesService.fichierDocument(d['id'] as int, doc['id'] as int);
+      final erreur = await ouvrirOctets(octets, '${doc['nom_origine']}');
+      if (erreur != null) messenger.showSnackBar(SnackBar(content: Text(erreur)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(messageErreurApi(e) ?? 'Ouverture impossible.'), backgroundColor: AppColors.error));
+    }
+  }
+
+  Future<void> _ajouterPiece(Map<String, dynamic> d) async {
+    final fichier = await choisirPiece(context);
+    if (fichier == null || !mounted) return;
+    // Type de pièce : les pièces exigées d'abord, puis les autres
+    List<Map<String, dynamic>> types = [];
+    try {
+      types = await demandesService.typesPieces();
+    } catch (_) {}
+    if (!mounted) return;
+    final exigees = List<Map>.from(d['pieces_exigees'] as List? ?? []).map((e) => e['type_piece']).toSet();
+    types.sort((a, b) => (exigees.contains(b['id']) ? 1 : 0) - (exigees.contains(a['id']) ? 1 : 0));
+    final type = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      builder: (c) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.7),
+          child: ListView(shrinkWrap: true, children: [
+            const ListTile(title: Text('Type de pièce', style: TextStyle(fontWeight: FontWeight.w700))),
+            for (final t in types.where((t) => t['actif'] != false))
+              ListTile(
+                leading: Icon(exigees.contains(t['id']) ? Icons.star_rounded : Icons.description_outlined,
+                    color: exigees.contains(t['id']) ? AppColors.warning : null),
+                title: Text('${t['libelle']}'),
+                onTap: () => Navigator.pop(c, t['id'] as int),
+              ),
+          ]),
+        ),
+      ),
+    );
+    if (type == null) return;
+    _executer(() => demandesService.ajouterDocument(d['id'] as int, fichier.chemin, fichier.nom, typePiece: type), 'Pièce ajoutée.');
+  }
+
+  // ── Commentaires ──────────────────────────────────────────
+
+  List<Widget> _sectionCommentaires(Map<String, dynamic> d) {
+    final commentaires = List<Map>.from(d['commentaires'] as List? ?? []);
+    final peutCommenter = (d['actions'] as Map?)?['commenter'] == true;
+    if (commentaires.isEmpty && !peutCommenter) return [];
+    return [
+      const LibelleSection('Commentaires'),
+      CarteListe(lignes: [
+        for (final c in commentaires)
+          ListTile(
+            dense: true,
+            title: Text('${c['texte']}', style: const TextStyle(fontSize: 13)),
+            subtitle: Text('${c['auteur_nom']} · ${dateCourte(c['creee_le'])}', style: const TextStyle(fontSize: 11.5)),
+          ),
+        if (peutCommenter)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+            child: Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentaire,
+                  minLines: 1,
+                  maxLines: 3,
+                  decoration: const InputDecoration(hintText: 'Ajouter un commentaire', border: InputBorder.none),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Envoyer',
+                icon: const Icon(Icons.send_rounded),
+                onPressed: () {
+                  final texte = _commentaire.text.trim();
+                  if (texte.isEmpty) return;
+                  _executer(() async {
+                    await demandesService.commenter(d['id'] as int, texte);
+                    _commentaire.clear();
+                  }, 'Commentaire ajouté.');
+                },
+              ),
+            ]),
+          ),
+      ]),
+      const SizedBox(height: 12),
+    ];
   }
 
   Widget _panneauDecision(Map tache) {

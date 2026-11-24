@@ -119,3 +119,12 @@ class AccueilTests(JeuDeDonnees):
         # profil demandé explicitement
         self.assertEqual(self.accueil(admin, profil='collaborateur')['profil'], 'collaborateur')
         self.assertEqual(self.accueil(self.agent, profil='direction')['profil'], 'collaborateur')  # non autorisé
+
+
+class AnnuaireTests(JeuDeDonnees):
+    def test_annuaire_ouvert_a_un_employe(self):
+        u = self.user('ann1')
+        self.client.force_authenticate(u)
+        r = self.client.get('/api/api/annuaire/', {'q': 'ann1'})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data and set(r.data[0]) == {'id', 'matricule', 'nom', 'prenom', 'libelle'})

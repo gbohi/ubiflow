@@ -94,6 +94,11 @@ export class OrganisationService {
     return this.http.get<any[]>(`${this.api}/allnopagin/categoriesalaries/`);
   }
 
+  /** Collaborateurs actifs (id, matricule, libellé) : accessible à tout utilisateur connecté */
+  annuaire(): Observable<{ id: number; matricule: string; nom: string; prenom: string; libelle: string }[]> {
+    return this.http.get<any[]>(`${this.api}/annuaire/`);
+  }
+
   collaborateursTous(): Observable<any[]> {
     return this.http.get<any[]>(`${this.api}/allnopagin/users/`);
   }

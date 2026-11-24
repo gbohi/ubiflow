@@ -1,6 +1,6 @@
 // lib/features/demandes/mes_demandes_screen.dart
 //
-// Mes demandes : liste par statut, ouverture de la fiche.
+// Mes demandes : liste par statut, ouverture de la fiche, nouvelle demande.
 
 import 'package:flutter/material.dart';
 import '../../core/services/demandes_service.dart';
@@ -8,6 +8,7 @@ import '../../core/api/api_client.dart';
 import '../../core/widgets/common_widgets.dart';
 import 'commun.dart';
 import 'demande_detail_screen.dart';
+import 'nouvelle_demande_screen.dart';
 
 class MesDemandesScreen extends StatefulWidget {
   const MesDemandesScreen({super.key});
@@ -18,7 +19,8 @@ class MesDemandesScreen extends StatefulWidget {
 class _MesDemandesScreenState extends State<MesDemandesScreen> {
   static const _filtres = [
     ('', 'Toutes'), ('en_validation', 'En validation'), ('a_corriger', 'À corriger'),
-    ('approuvee', 'Approuvées'), ('rejetee', 'Rejetées'), ('brouillon', 'Brouillons'),
+    ('approuvee', 'Approuvées'), ('en_attente_cloture', 'À clôturer'), ('rejetee', 'Rejetées'),
+    ('brouillon', 'Brouillons'),
   ];
   String _statut = '';
   late Future<List<Map<String, dynamic>>> _demandes = demandesService.mesDemandes();
@@ -32,8 +34,16 @@ class _MesDemandesScreenState extends State<MesDemandesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => const NouvelleDemandeScreen()));
+          _recharger();
+        },
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Nouvelle demande'),
+      ),
       body: Column(children: [
-        const EnTeteMarine(titre: 'Mes demandes', sousTitre: 'Création et modification sur le web'),
+        const EnTeteMarine(titre: 'Mes demandes', sousTitre: 'Création, suivi, pièces jointes et clôture'),
         SizedBox(
           height: 52,
           child: ListView(
@@ -78,7 +88,7 @@ class _MesDemandesScreenState extends State<MesDemandesScreen> {
                   ]);
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
                   itemCount: demandes.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) => _CarteDemande(

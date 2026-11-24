@@ -1020,6 +1020,18 @@ notifications push avec ouverture directe de la demande, soumission des
 Non prévus sur mobile : administration, paramétrage des workflows et des
 barèmes, trésorerie, reporting avancé.
 
+> **Mise en œuvre (lot 7)** : accueil de synthèse (même API `/accueil/` que le
+> web), création et modification des demandes avec les champs du type,
+> missions avec estimation en direct (`/missions/calculer/`), rattachement,
+> soumission ; pièces jointes par photo ou fichier ; documents PDF ouverts
+> avec l'application du téléphone ; validation et commentaires ; clôture des
+> missions (dépenses réelles, rapport, soumission) ; notifications in-app et
+> push FCM (`/notifications/appareils/`, configuration par `--dart-define`) ;
+> délégations, avec le délégataire choisi dans `/annuaire/` (collaborateurs
+> actifs, accessible à tout utilisateur connecté, aussi utilisé par le web).
+> Restent sur le web : correction des montants par un valideur, délégation
+> limitée à des types ou responsabilités, contrôle des clôtures.
+
 ---
 
 ## 17. Découpage en lots
@@ -1032,7 +1044,7 @@ barèmes, trésorerie, reporting avancé.
 | **4. Paiement et trésorerie** ✅ | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** ✅ | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
 | **6. Pilotage et canaux** ✅ | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
-| **7. Mobile** | Périmètre du §16 | Parcours demandeur et valideur complets sur Android et iOS |
+| **7. Mobile** ✅ | Périmètre du §16 | Parcours demandeur et valideur complets sur Android et iOS |
 
 Chaque lot livre l'API, les écrans web correspondants et les tests ; le
 mobile suit dès le lot 2 pour la consultation et la validation.

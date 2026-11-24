@@ -31,8 +31,7 @@ export class ChampsDemandeComponent implements OnChanges {
   ngOnChanges(): void {
     if (!this.collaborateursCharges && this.champs.some(c => c.nature === 'collaborateur')) {
       this.collaborateursCharges = true;
-      this.organisation.collaborateursTous().subscribe(u => this.collaborateurs = (u ?? [])
-        .filter(x => x.is_active).map(x => ({ id: x.id, libelle: `${x.nom} ${x.prenom} (${x.username})` })));
+      this.organisation.annuaire().subscribe(u => this.collaborateurs = (u ?? []).map(x => ({ id: x.id, libelle: x.libelle })));
     }
   }
 

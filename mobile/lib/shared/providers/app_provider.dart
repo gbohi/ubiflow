@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api/api_client.dart';
 import '../models/models.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/push_service.dart';
 
 // ══════════════════════════════════════════════════════════════
 // THEME PROVIDER — avec persistance SharedPreferences
@@ -167,6 +168,8 @@ class AuthProvider extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
+      // Avant la révocation du jeton : l'appareil cesse de recevoir le push du compte
+      await pushService.desactiver();
       await authService.logout();
     } finally {
       _deconnexionEnCours = false;

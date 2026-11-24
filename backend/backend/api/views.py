@@ -935,3 +935,20 @@ class PosteListAPIView(ListAPIView):
     serializer_class = PosteSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
+
+
+class AnnuaireView(ListAPIView):
+    """
+    GET /annuaire/?q=  collaborateurs actifs (id, matricule, nom, prénom) pour les choix
+    ouverts à tous (délégataire…). Sans donnée d'organisation ni de contact.
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        qs = User.objects.filter(is_active=True).order_by('nom', 'prenom')
+        q = (request.query_params.get('q') or '').strip()
+        if q:
+            qs = qs.filter(Q(nom__icontains=q) | Q(prenom__icontains=q) | Q(username__icontains=q))
+        return Response([{'id': u.id, 'matricule': u.username, 'nom': u.nom, 'prenom': u.prenom,
+                          'libelle': f"{u.nom} {u.prenom} ({u.username})".strip()} for u in qs[:200]])
