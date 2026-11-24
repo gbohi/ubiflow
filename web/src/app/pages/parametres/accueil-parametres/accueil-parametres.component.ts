@@ -36,6 +36,7 @@ export interface GroupeParametres {
 
 /** Thèmes et cartes ; les rôles reprennent exactement ceux des routes */
 const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
+const FINANCES = ['super_admin', 'admin', 'admin_finances', 'comptable', 'controleur'];
 
 export const GROUPES_PARAMETRES: GroupeParametres[] = [
   {
@@ -47,6 +48,15 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
         lien: '/parametres/workflows', roles: ADMIN_WORKFLOW, motsCles: 'workflow circuit valideur étape' },
       { titre: "Journal d'activité", description: 'Traçabilité des opérations', icone: 'ri-history-line',
         lien: '/parametres/journal', roles: ['super_admin', 'admin', 'controleur'], motsCles: 'audit trace historique' },
+    ],
+  },
+  {
+    titre: 'Finances', icone: 'ri-scales-3-line', teinte: 'p-ve',
+    cartes: [
+      { titre: 'Barèmes', description: 'Per diem, tarifs de transport, taux de change', icone: 'ri-scales-3-line',
+        lien: '/parametres/baremes', roles: FINANCES, motsCles: 'per diem tarif kilométrique forfait devise taux change' },
+      { titre: 'Lieux et distances', description: 'Pays, villes, distances du référentiel', icone: 'ri-map-pin-line',
+        lien: '/parametres/lieux', roles: FINANCES, compte: 'villes/', motsCles: 'ville pays distance km destination' },
     ],
   },
   {

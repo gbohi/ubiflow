@@ -1,0 +1,53 @@
+<div class="recap-mission">
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <h6 class="mb-0"><i class="ri-calculator-line me-1"></i>{{ apercu ? 'Estimation des frais' : 'Récapitulatif des frais' }}</h6>
+    @if (chargement) { <span class="spinner-border spinner-border-sm text-primary"></span> }
+    @if (calcul?.date_baremes && !apercu) {
+      <span class="small text-muted ms-auto">Barèmes du {{ dateFr(calcul?.date_baremes) }}@if (calcul?.categorie) { · {{ calcul?.categorie }} }</span>
+    }
+  </div>
+  @if (!calcul || (!calcul.lignes.length && !calcul.erreurs.length)) {
+    <p class="small text-muted mb-0">Renseignez la destination, les dates et le transport pour voir le calcul.</p>
+  } @else {
+    @if (calcul.lignes.length) {
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-2">
+          <thead class="table-light"><tr><th>Rubrique</th><th>Détail</th><th class="text-end">Montant</th></tr></thead>
+          <tbody>
+            @for (l of calcul.lignes; track $index) {
+              <tr>
+                <td class="text-nowrap">{{ rubriques[l.rubrique] || l.rubrique }}</td>
+                <td class="small">{{ l.libelle }}
+                  @if (l.signalement) { <i class="ri-error-warning-line text-warning ms-1" [title]="l.signalement"></i> }</td>
+                <td class="text-end text-nowrap">
+                  @if (l.devise !== ref) {
+                    <div class="small text-muted">{{ l.montant | montant:l.devise }} × {{ l.taux }}</div>
+                  }
+                  {{ l.montant_ref | montant:ref }}
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr class="fw-semibold"><td colspan="2">Total prévisionnel</td>
+            <td class="text-end text-nowrap" data-test="total-mission">{{ calcul.total_ref | montant:ref }}</td></tr></tfoot>
+        </table>
+      </div>
+    }
+    @if (calcul.recalcul) {
+      <div class="alert alert-info small py-2 mb-2"><i class="ri-refresh-line me-1"></i>Calcul refait aux barèmes du
+        {{ dateFr(calcul.recalcul.date_baremes) }} après modification d'un champ déterminant
+        @if (calcul.recalcul.ancien_total_ref) { (total précédent {{ calcul.recalcul.ancien_total_ref | montant:ref }})}.</div>
+    }
+    @if (calcul.signalements.length) {
+      <div class="alert alert-warning small py-2 mb-2">
+        <b><i class="ri-error-warning-line me-1"></i>À l'attention des valideurs</b>
+        <ul class="mb-0 ps-3">@for (s of calcul.signalements; track $index) { <li>{{ s }}</li> }</ul>
+      </div>
+    }
+    @if (calcul.erreurs.length) {
+      <div class="alert alert-danger small py-2 mb-0">
+        <ul class="mb-0 ps-3">@for (e of calcul.erreurs; track $index) { <li>{{ e }}</li> }</ul>
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,132 @@
+@if (lectureSeule) {
+  <dl class="row mb-3 small">
+    <dt class="col-sm-4 text-muted fw-normal">Motif / justification</dt>
+    <dd class="col-sm-8" style="white-space: pre-line">{{ mission['motif'] || '—' }}</dd>
+    <dt class="col-sm-4 text-muted fw-normal">Trajet</dt>
+    <dd class="col-sm-8 fw-semibold">{{ mission['ville_depart_libelle'] || '—' }} → {{ mission['ville_destination_libelle'] || '—' }}
+      @if (typeMission === 'hors_pays' && mission['pays_destination_libelle']) { ({{ mission['pays_destination_libelle'] }}) }</dd>
+    <dt class="col-sm-4 text-muted fw-normal">Période</dt>
+    <dd class="col-sm-8">du {{ dateHeure(mission['depart_le']) }} au {{ dateHeure(mission['retour_le']) }}
+      @if (mission['nombre_jours']) { <span class="badge bg-light text-dark ms-1">{{ mission['nombre_jours'] }} jour(s)</span> }</dd>
+    <dt class="col-sm-4 text-muted fw-normal">Transport</dt>
+    <dd class="col-sm-8">{{ libelleMoyen(mission['moyen_transport']) }} · {{ mission['trajet'] === 'aller_simple' ? 'aller simple' : 'aller-retour' }}</dd>
+  </dl>
+  <app-recap-mission [calcul]="calculFige"></app-recap-mission>
+} @else {
+  <div class="row g-3">
+    <div class="col-12">
+      <label class="form-label" for="mi-motif">Motif et justification <span class="text-danger">*</span></label>
+      <textarea id="mi-motif" class="form-control" rows="2" [(ngModel)]="mission['motif']" [class.is-invalid]="erreur('motif')"
+                placeholder="Objet de la mission, personnes rencontrées, intérêt pour la société…"></textarea>
+      @if (erreur('motif')) { <div class="invalid-feedback">{{ erreur('motif') }}</div> }
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-depart">Ville de départ <span class="text-danger">*</span></label>
+      <ng-select labelForId="mi-depart" [items]="villesDepart" bindValue="id" bindLabel="libelle" [(ngModel)]="mission['ville_depart']"
+                 (change)="changer()" placeholder="Choisir" [class.is-invalid]="erreur('ville_depart')"></ng-select>
+      @if (erreur('ville_depart')) { <div class="text-danger small mt-1">{{ erreur('ville_depart') }}</div> }
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-destination">Destination <span class="text-danger">*</span></label>
+      <ng-select labelForId="mi-destination" [items]="villesDestination" bindValue="id" [(ngModel)]="mission['ville_destination']"
+                 (change)="changer()" placeholder="Choisir" [searchFn]="rechercheVille">
+        <ng-template ng-label-tmp let-item="item">{{ libelleVille(item) }}</ng-template>
+        <ng-template ng-option-tmp let-item="item">{{ libelleVille(item) }}</ng-template>
+      </ng-select>
+      @if (erreur('ville_destination')) { <div class="text-danger small mt-1">{{ erreur('ville_destination') }}</div> }
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-dep-le">Départ <span class="text-danger">*</span></label>
+      <input id="mi-dep-le" type="datetime-local" class="form-control" [(ngModel)]="mission['depart_le']" (ngModelChange)="changer()"
+             [class.is-invalid]="erreur('depart_le')">
+      @if (erreur('depart_le')) { <div class="invalid-feedback">{{ erreur('depart_le') }}</div> }
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-ret-le">Retour <span class="text-danger">*</span></label>
+      <input id="mi-ret-le" type="datetime-local" class="form-control" [(ngModel)]="mission['retour_le']" (ngModelChange)="changer()"
+             [class.is-invalid]="erreur('retour_le')">
+      @if (erreur('retour_le')) { <div class="invalid-feedback">{{ erreur('retour_le') }}</div> }
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-moyen">Moyen de transport <span class="text-danger">*</span></label>
+      <select id="mi-moyen" class="form-select" [(ngModel)]="mission['moyen_transport']" (ngModelChange)="changer()">
+        @for (m of moyens; track m.code) { <option [ngValue]="m.code">{{ m.libelle }}</option> }
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="mi-trajet">Trajet</label>
+      <select id="mi-trajet" class="form-select" [(ngModel)]="mission['trajet']" (ngModelChange)="changer()">
+        <option ngValue="aller_retour">Aller-retour</option><option ngValue="aller_simple">Aller simple</option>
+      </select>
+    </div>
+
+    @if (typeMission === 'locale' && mission['moyen_transport'] === 'vehicule_personnel') {
+      <div class="col-md-4">
+        <label class="form-label" for="mi-km">Distance (km, aller)</label>
+        <input id="mi-km" type="number" min="0" class="form-control" [(ngModel)]="mission['distance_km']" (ngModelChange)="changer()"
+               [placeholder]="distanceReferentiel != null ? distanceReferentiel + ' (référentiel)' : 'Hors référentiel'">
+        <div class="form-text">@if (distanceReferentiel != null) { Référentiel : {{ distanceReferentiel }} km. Laissez vide pour l'appliquer. }
+          @else { Distance inconnue du référentiel : saisissez-la. }</div>
+      </div>
+      @if (mission['distance_km'] != null && mission['distance_km'] !== '' && mission['distance_km'] !== distanceReferentiel) {
+        <div class="col-md-8">
+          <label class="form-label" for="mi-just-km">Justification de la distance <span class="text-danger">*</span></label>
+          <input id="mi-just-km" class="form-control" [(ngModel)]="mission['justification_distance']" (ngModelChange)="changer()">
+        </div>
+      }
+    }
+    @if (typeMission === 'locale' && mission['moyen_transport'] !== 'vehicule_personnel' && mission['moyen_transport'] !== 'vehicule_service'
+         && transportManuel()) {
+      <div class="col-md-4">
+        <label class="form-label" for="mi-tr-man">Montant du transport (XOF)</label>
+        <input id="mi-tr-man" type="number" min="0" class="form-control" [(ngModel)]="mission['montant_transport_manuel']" (ngModelChange)="changer()">
+        <div class="form-text">Aucun tarif défini pour cette ville.</div>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label" for="mi-just-tr">Justification <span class="text-danger">*</span></label>
+        <input id="mi-just-tr" class="form-control" [(ngModel)]="mission['justification_transport']" (ngModelChange)="changer()">
+      </div>
+    }
+    @if (typeMission === 'hors_pays') {
+      <div class="col-md-4">
+        <label class="form-label" for="mi-forfait">Forfait transport aéroport</label>
+        <input id="mi-forfait" type="number" min="0" class="form-control" [(ngModel)]="mission['forfait_transport']" (ngModelChange)="changer()"
+               placeholder="Barème">
+        <div class="form-text">Laissez vide pour appliquer le barème.</div>
+      </div>
+      @if (mission['forfait_transport'] != null && mission['forfait_transport'] !== '') {
+        <div class="col-md-8">
+          <label class="form-label" for="mi-just-forfait">Justification de l'ajustement <span class="text-danger">*</span></label>
+          <input id="mi-just-forfait" class="form-control" [(ngModel)]="mission['justification_forfait']" (ngModelChange)="changer()">
+        </div>
+      }
+    }
+
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-2">
+        <label class="form-label mb-0">Autres frais prévus</label>
+        <button type="button" class="btn btn-sm btn-outline-primary ms-auto" (click)="ajouterFrais()"><i class="ri-add-line"></i> Ajouter</button>
+      </div>
+      @for (f of mission['frais']; track $index; let i = $index) {
+        <div class="row g-2 mb-2 align-items-center">
+          <div class="col-md-3"><select class="form-select form-select-sm" [(ngModel)]="f.rubrique" (ngModelChange)="changer()" [attr.aria-label]="'Rubrique ' + (i + 1)">
+            @for (r of rubriquesAutorisees; track r) { <option [ngValue]="r">{{ rubriques[r] }}</option> }</select></div>
+          <div class="col-md-4"><input class="form-control form-control-sm" placeholder="Description" [(ngModel)]="f.description" (ngModelChange)="changer()"></div>
+          <div class="col-md-3"><input type="number" min="0" class="form-control form-control-sm" placeholder="Montant" [(ngModel)]="f.montant" (ngModelChange)="changer()"></div>
+          <div class="col-md-1"><input class="form-control form-control-sm text-uppercase" maxlength="3" [(ngModel)]="f.devise" (ngModelChange)="changer()" aria-label="Devise"></div>
+          <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-light" (click)="retirerFrais(i)" title="Retirer"><i class="ri-delete-bin-line"></i></button></div>
+        </div>
+      } @empty { <p class="small text-muted mb-0">Hébergement, visa, billet d'avion… (facultatif)</p> }
+      @if (erreur('frais')) { <div class="text-danger small">{{ erreur('frais') }}</div> }
+    </div>
+
+    <div class="col-12">
+      <div class="border rounded p-3 bg-light-subtle">
+        <app-recap-mission [calcul]="calcul" [apercu]="true" [chargement]="calculEnCours"></app-recap-mission>
+        @if (erreursCalcul.length) {
+          <div class="alert alert-danger small py-2 mt-2 mb-0"><ul class="mb-0 ps-3">@for (e of erreursCalcul; track $index) { <li>{{ e }}</li> }</ul></div>
+        }
+      </div>
+    </div>
+  </div>
+}

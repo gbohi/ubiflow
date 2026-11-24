@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.4 — référence pour le développement. Toute évolution de règle
+Version 1.5 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -336,6 +336,19 @@ symétrique)
   `justification_distance`, `distance_validee_par`
 - `frais_visa`, `frais_aerien`, `frais_hebergement`, `autres_frais`
   (montant + devise pour chacun)
+
+> **Mise en œuvre (lot 3)** : pas de table `DetailMission`. La saisie de la
+> mission est stockée dans `Demande.donnees['mission']`, validée par le
+> module `missions` (extension « mission » du socle, `demandes/extensions.py`).
+> Elle est ainsi versionnée, dupliquée et comparée (modification sensible)
+> comme le contenu des autres types. La distance saisie (`distance_km`) remplace
+> `distance_retenue_km` : son écart avec le référentiel est signalé aux
+> valideurs, qui ajustent au besoin le montant approuvé (pas de correction du
+> champ par une étape à ce stade). Les frais (visa, aérien, hébergement,
+> autres) sont une liste de lignes rubrique / montant / devise / description.
+> Les barèmes et taux appliqués sont copiés dans `Demande.parametres_figes`
+> à la soumission ; le récapitulatif est stocké dans `VersionContenu.calcul`
+> et dans `LigneCalcul`.
 
 **LigneCalcul** (récapitulatif figé, une ligne par rubrique)
 - `demande`, `version_contenu`, `rubrique` : per_diem, transport, visa,
@@ -938,7 +951,7 @@ barèmes, trésorerie, reporting avancé.
 |---|---|---|
 | **1. Organisation** ✅ | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
 | **2. Moteur et socle** ✅ | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
-| **3. Barèmes et missions** | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
+| **3. Barèmes et missions** ✅ | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
 | **6. Pilotage et canaux** | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
@@ -953,7 +966,7 @@ mobile suit dès le lot 2 pour la consultation et la validation.
 
 | Sujet | Statut |
 |---|---|
-| Mission collective | Hors périmètre (D6) ; le modèle `DetailMission` pourra recevoir des lignes participants |
+| Mission collective | Hors périmètre (D6) ; la saisie `donnees['mission']` pourra recevoir une liste de participants |
 | Serveur SMTP | À définir (D13) |
 | Système RH cible | À définir (D15) ; import Excel en attendant |
 | Calendrier des jours fériés | À saisir par l'administrateur |

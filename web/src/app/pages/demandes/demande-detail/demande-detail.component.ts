@@ -40,6 +40,8 @@ export class DemandeDetailComponent implements OnInit {
   readonly classes = CLASSES_STATUT;
   demande: Demande | null = null;
   contenu: ContenuDemande = { objet: '', montant_demande: null, devise: '', donnees: {} };
+  /** Saisie d'une mission (copie de travail de `demande.mission`) */
+  mission: Record<string, any> = {};
   erreurs: any = null;
   historique: Action[] = [];
   typesPieces: TypePiece[] = [];
@@ -79,6 +81,7 @@ export class DemandeDetailComponent implements OnInit {
         this.demande = d;
         this.contenu = { objet: d.objet, montant_demande: d.montant_demande ? Number(d.montant_demande) : null,
                          devise: d.devise, donnees: { ...(d.donnees ?? {}) } };
+        this.mission = JSON.parse(JSON.stringify(d.mission ?? {}));
         this.tache = d.mes_taches?.[0] ?? null;
         this.montantApprouve = d.montant_approuve ?? d.montant_demande;
         this.corrections = { objet: d.objet, montant_demande: null, devise: d.devise, donnees: { ...(d.donnees ?? {}) } };
@@ -89,6 +92,8 @@ export class DemandeDetailComponent implements OnInit {
     });
   }
 
+  get estMission(): boolean { return this.demande?.type_famille === 'mission'; }
+  get typeMission(): 'locale' | 'hors_pays' { return this.demande?.type_parametres?.['type_mission'] ?? 'locale'; }
   get editable(): boolean { return !!this.demande?.actions?.modifier; }
   get cycleCourant(): CycleCircuit | null { return this.demande?.circuit?.at(-1) ?? null; }
   get retourEnCours(): Action | undefined {
@@ -107,6 +112,7 @@ export class DemandeDetailComponent implements OnInit {
   private enregistrer$() {
     return this.service.modifier(this.demande!.id, {
       objet: this.contenu.objet, montant_demande: this.contenu.montant_demande, donnees: this.contenu.donnees,
+      ...(this.estMission ? { mission: this.mission } : {}),
     });
   }
 

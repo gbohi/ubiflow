@@ -29,6 +29,7 @@ export class JournalComponent implements OnInit {
     'workflow.publication': 'Circuit — publication', 'workflow.brouillon_supprime': 'Circuit — brouillon supprimé',
     'workflow.reaffectation': 'Validation réaffectée', 'delegation.creation': 'Délégation créée',
     'delegation.revocation': 'Délégation révoquée', 'document.retrait': 'Pièce retirée',
+    'bareme.creation': 'Barème — nouvelle valeur', 'bareme.suppression': 'Barème — valeur à venir supprimée',
   };
 
   ngOnInit(): void { this.charger(); }

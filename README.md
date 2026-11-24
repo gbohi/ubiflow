@@ -11,6 +11,10 @@ de validation paramétrables. État d'avancement (voir `docs/conception.md`,
   paramétrables, demandes, circuits versionnés, validations, délégations,
   pièces jointes, notifications, journal. Premier type livré : **frais de
   réception client (FRC)**.
+- **Lot 3 — Barèmes et missions** : devise de référence, barèmes datés (per
+  diem, tarifs kilométriques, transport par ville, forfait hors pays, taux de
+  change), pays, villes, distances ; **missions locales (MLO)** et **hors pays
+  (MHP)** avec calcul en direct et figement des barèmes à la soumission.
 
 | Dossier    | Contenu                                                        |
 |------------|----------------------------------------------------------------|
@@ -83,6 +87,9 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Délégations | `delegations/` (+ `revoquer/`) | `workflow/` |
 | Notifications | `notifications/` (+ `compteur/`, `lire/`, `tout-lire/`) | `notifications/` |
 | Journal | `journal/` | `audit/` |
+| Barèmes | `baremes/per-diem/`, `baremes/kilometrique/`, `baremes/transport-ville/`, `baremes/forfait-hors-pays/`, `baremes/taux-change/`, `parametres-systeme/` | `baremes/` |
+| Lieux | `pays/`, `villes/`, `distances/` (+ `entre/?a=&b=`) | `missions/` |
+| Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
 
 Règles principales :
 - une demande est un **brouillon** jusqu'à sa soumission (elle peut être
@@ -95,7 +102,16 @@ Règles principales :
 - un valideur approuve, retourne (motif) ou rejette (motif) ; un retour crée
   une nouvelle version du contenu et un nouveau cycle de validation ;
 - chaque action est tracée (auteur, pour le compte de qui en cas de
-  délégation, canal web / mobile).
+  délégation, canal web / mobile) ;
+- un barème n'est jamais modifié : un changement crée une nouvelle ligne
+  avec sa date d'effet (seules les lignes à venir se suppriment) ;
+- une mission copie à sa soumission les barèmes et taux du jour : un
+  changement de barème ne touche pas les demandes déjà soumises. Après un
+  retour pour correction, le calcul garde ces barèmes, sauf si un champ
+  déterminant (dates, destination) change : il est alors refait aux barèmes
+  du jour et la différence est notée dans l'historique ;
+- une demande simple peut être saisie dans une autre devise : elle est
+  convertie dans la devise de référence au taux de la première soumission.
 
 Chaque enregistrement garde ses dates et auteurs de création / modification
 (`BaseModel`). Un élément de paramètre encore utilisé ne peut pas être

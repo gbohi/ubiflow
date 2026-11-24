@@ -12,11 +12,13 @@ import { NouvelleDemandeComponent } from './nouvelle-demande/nouvelle-demande.co
 import { DemandeDetailComponent } from './demande-detail/demande-detail.component';
 import { AValiderComponent } from './a-valider/a-valider.component';
 import { DelegationsComponent } from './delegations/delegations.component';
+import { MissionFormComponent } from './mission-form/mission-form.component';
+import { RecapMissionComponent } from './recap-mission/recap-mission.component';
 
 @NgModule({
   declarations: [
     ChampsDemandeComponent, MesDemandesComponent, NouvelleDemandeComponent, DemandeDetailComponent,
-    AValiderComponent, DelegationsComponent,
+    AValiderComponent, DelegationsComponent, MissionFormComponent, RecapMissionComponent,
   ],
   imports: [CommonModule, FormsModule, SharedModule, ModalModule.forRoot(), NgSelectModule, DemandesRoutingModule],
   exports: [ChampsDemandeComponent],

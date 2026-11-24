@@ -1,0 +1,140 @@
+<div class="lst">
+  <app-page-entete titre="Barèmes" icone="ri-scales-3-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
+                   sousTitre="Valeurs datées : aucun changement n'affecte les demandes déjà soumises">
+    @if (ecriture && onglet.code !== 'devise') {
+      <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle valeur</span></button>
+    }
+  </app-page-entete>
+
+  <ul class="nav nav-pills gap-1 mb-3 flex-wrap">
+    @for (o of onglets; track o.code) {
+      <li class="nav-item"><button type="button" class="nav-link" [class.active]="o.code === onglet.code" (click)="choisir(o)">
+        <i [class]="o.icone + ' me-1'"></i>{{ o.libelle }}</button></li>
+    }
+  </ul>
+
+  <div class="lst-carte">
+    <div class="lst-barre">
+      <p class="text-muted small mb-0">{{ onglet.aide }}</p>
+      @if (onglet.code !== 'devise') {
+        <div class="form-check form-switch ms-auto mb-0">
+          <input class="form-check-input" type="checkbox" id="bar-hist" [(ngModel)]="historique">
+          <label class="form-check-label small" for="bar-hist">Historique complet</label>
+        </div>
+      }
+    </div>
+
+    @if (onglet.code === 'devise') {
+      <div class="p-3 p-md-4">
+        <div class="row g-3 align-items-end">
+          <div class="col-sm-4 col-lg-3">
+            <label class="form-label" for="dev-ref">Devise de référence (code ISO)</label>
+            <input id="dev-ref" class="form-control text-uppercase" maxlength="3" [(ngModel)]="deviseSaisie"
+                   [disabled]="!ecriture || !parametres?.modifiable_devise">
+          </div>
+          @if (ecriture && parametres?.modifiable_devise) {
+            <div class="col-auto"><button type="button" class="btn btn-primary" (click)="enregistrerDevise()">Enregistrer</button></div>
+          }
+        </div>
+        @if (!parametres?.modifiable_devise) {
+          <p class="small text-muted mt-3 mb-0"><i class="ri-lock-line me-1"></i>Des demandes ont déjà été soumises : la devise de référence ne peut plus être changée.</p>
+        }
+      </div>
+    } @else if (chargement) {
+      <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    } @else {
+      <div class="lst-table-wrap lst-cartes-wrap">
+        <table class="lst-table lst-cartes">
+          <thead><tr><th>Barème</th><th class="text-end">Valeur</th><th>Date d'effet</th><th>Précédente</th><th>Motif</th><th>Modifié par</th><th>État</th>
+            <th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            @for (l of affichees; track l.id) {
+              <tr>
+                <td class="lst-c-principal"><b>{{ cle(l) }}</b></td>
+                <td data-label="Valeur" class="text-end text-nowrap fw-semibold">{{ valeur(l) | montant:'':6 }} {{ unite(l) }}</td>
+                <td data-label="Date d'effet">{{ l.date_effet | date:'dd/MM/yyyy' }}</td>
+                <td data-label="Précédente" class="text-muted small">
+                  @if (l.precedente) { {{ l.precedente.valeur | montant:'':6 }} {{ onglet.code === 'taux-change' ? ref : l.precedente.devise }} (depuis le {{ l.precedente.date_effet | date:'dd/MM/yyyy' }}) } @else { — }</td>
+                <td data-label="Motif" class="small">{{ l.motif || '—' }}</td>
+                <td data-label="Modifié par" class="small">{{ l.modifie_par_nom || 'Système' }}<span class="d-block text-muted">{{ l.modifie_le | date:'dd/MM/yyyy HH:mm' }}</span></td>
+                <td data-label="État"><span [class]="etat(l).classe">{{ etat(l).libelle }}</span></td>
+                <td class="lst-c-act"><div class="lst-act">
+                  @if (ecriture && l.en_vigueur) {
+                    <button type="button" class="lst-ic" title="Nouvelle valeur" aria-label="Nouvelle valeur" (click)="nouvelle(l)"><i class="ri-edit-2-line"></i></button>
+                  }
+                  @if (ecriture && l.supprimable) {
+                    <button type="button" class="lst-ic" title="Supprimer" aria-label="Supprimer" (click)="supprimer(l)"><i class="ri-delete-bin-6-line"></i></button>
+                  }
+                </div></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8"><div class="lst-vide"><i class="ri-scales-3-line"></i><h5>Aucune valeur</h5>
+                <p>Créez la première valeur de ce barème.</p></div></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<div bsModal #ligneModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Nouvelle valeur — {{ onglet.libelle }}</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="ligneModal.hide()"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          @if (onglet.code === 'per-diem') {
+            <div class="col-md-6"><label class="form-label" for="b-tm">Type de mission</label>
+              <select id="b-tm" class="form-select" [(ngModel)]="fiche.type_mission">
+                <option ngValue="locale">Mission locale</option><option ngValue="hors_pays">Mission hors pays</option></select></div>
+          }
+          @if (onglet.code === 'per-diem' || onglet.code === 'kilometrique') {
+            <div class="col-md-6"><label class="form-label" for="b-cat">Catégorie</label>
+              <select id="b-cat" class="form-select" [(ngModel)]="fiche.categorie" [class.is-invalid]="erreur('categorie')">
+                @if (onglet.code === 'kilometrique') { <option [ngValue]="null">Toutes catégories</option> }
+                @for (c of categories; track c.id) { <option [ngValue]="c.id">{{ c.libelle }}</option> }
+              </select>
+              @if (erreur('categorie')) { <div class="invalid-feedback">{{ erreur('categorie') }}</div> }</div>
+          }
+          @if (onglet.code === 'transport-ville') {
+            <div class="col-12"><label class="form-label" for="b-ville">Ville de destination</label>
+              <ng-select labelForId="b-ville" [items]="villes" bindValue="id" bindLabel="libelle" [(ngModel)]="fiche.ville"></ng-select>
+              @if (erreur('ville')) { <div class="text-danger small">{{ erreur('ville') }}</div> }</div>
+          }
+          @if (onglet.code === 'taux-change') {
+            <div class="col-md-4"><label class="form-label" for="b-dev">Devise</label>
+              <input id="b-dev" class="form-control text-uppercase" maxlength="3" [(ngModel)]="fiche.devise" [class.is-invalid]="erreur('devise')">
+              @if (erreur('devise')) { <div class="invalid-feedback">{{ erreur('devise') }}</div> }</div>
+            <div class="col-md-8"><label class="form-label" for="b-taux">Taux (1 {{ fiche.devise || '…' }} = ? {{ ref }})</label>
+              <input id="b-taux" type="number" min="0" step="0.000001" class="form-control" [(ngModel)]="fiche.taux" [class.is-invalid]="erreur('taux')">
+              @if (erreur('taux')) { <div class="invalid-feedback">{{ erreur('taux') }}</div> }</div>
+          } @else {
+            <div class="col-md-8"><label class="form-label" for="b-mt">Montant{{ onglet.code === 'kilometrique' ? ' par km' : '' }}</label>
+              <input id="b-mt" type="number" min="0" class="form-control" [(ngModel)]="fiche.montant" [class.is-invalid]="erreur('montant')">
+              @if (erreur('montant')) { <div class="invalid-feedback">{{ erreur('montant') }}</div> }</div>
+            <div class="col-md-4"><label class="form-label" for="b-dv">Devise</label>
+              <input id="b-dv" class="form-control text-uppercase" maxlength="3" [(ngModel)]="fiche.devise" [class.is-invalid]="erreur('devise')">
+              @if (erreur('devise')) { <div class="invalid-feedback">{{ erreur('devise') }}</div> }</div>
+          }
+          <div class="col-md-6"><label class="form-label" for="b-de">Date d'effet</label>
+            <input id="b-de" type="date" class="form-control" [(ngModel)]="fiche.date_effet" [class.is-invalid]="erreur('date_effet')">
+            @if (erreur('date_effet')) { <div class="invalid-feedback">{{ erreur('date_effet') }}</div> }</div>
+          <div class="col-12"><label class="form-label" for="b-motif">Motif du changement <span class="text-danger">*</span></label>
+            <input id="b-motif" class="form-control" maxlength="255" [(ngModel)]="fiche.motif" [class.is-invalid]="erreur('motif')"
+                   placeholder="Ex. : note de service du 15/12/2026">
+            @if (erreur('motif')) { <div class="invalid-feedback">{{ erreur('motif') }}</div> }</div>
+          @if (erreur('non_field_errors')) { <div class="col-12 text-danger small">{{ erreur('non_field_errors') }}</div> }
+        </div>
+        <p class="small text-muted mt-3 mb-0"><i class="ri-information-line me-1"></i>La valeur s'applique aux demandes soumises à partir de la date d'effet ;
+          les demandes déjà soumises gardent le barème qu'elles ont figé.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="ligneModal.hide()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="enregistrer()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

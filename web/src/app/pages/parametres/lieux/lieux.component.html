@@ -1,0 +1,129 @@
+<div class="lst">
+  <app-page-entete titre="Lieux et distances" icone="ri-map-pin-line"
+                   [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
+                   sousTitre="Destinations des missions et distances du référentiel">
+    @if (ecriture) {
+      <button type="button" class="btn-ubi vert" (click)="nouveau()"><i class="ri-add-line"></i>
+        <span class="pe-lib">{{ onglet === 'pays' ? 'Nouveau pays' : onglet === 'villes' ? 'Nouvelle ville' : 'Nouvelle distance' }}</span></button>
+    }
+  </app-page-entete>
+
+  <ul class="nav nav-pills gap-1 mb-3">
+    <li class="nav-item"><button type="button" class="nav-link" [class.active]="onglet === 'villes'" (click)="onglet = 'villes'"><i class="ri-building-line me-1"></i>Villes</button></li>
+    <li class="nav-item"><button type="button" class="nav-link" [class.active]="onglet === 'distances'" (click)="onglet = 'distances'"><i class="ri-route-line me-1"></i>Distances</button></li>
+    <li class="nav-item"><button type="button" class="nav-link" [class.active]="onglet === 'pays'" (click)="onglet = 'pays'"><i class="ri-earth-line me-1"></i>Pays</button></li>
+  </ul>
+
+  <div class="lst-carte">
+    @if (onglet !== 'pays') {
+      <div class="lst-barre">
+        <div class="lst-recherche"><i class="ri-search-line"></i>
+          <input type="search" placeholder="Rechercher…" aria-label="Rechercher" [(ngModel)]="recherche"></div>
+        @if (onglet === 'villes') {
+          <select class="form-select form-select-sm w-auto" aria-label="Pays" [(ngModel)]="paysFiltre" (ngModelChange)="chargerVilles()">
+            @for (p of pays; track p.id) { <option [ngValue]="p.id">{{ p.libelle }}</option> }
+          </select>
+        } @else {
+          <p class="text-muted small mb-0 ms-auto d-none d-md-block">Distance aller entre deux villes d'un même pays (doublée pour un aller-retour).</p>
+        }
+      </div>
+    }
+    <div class="lst-table-wrap lst-cartes-wrap">
+      @switch (onglet) {
+        @case ('villes') {
+          <table class="lst-table lst-cartes">
+            <thead><tr><th>Ville</th><th>Pays</th><th>État</th><th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (v of villesAffichees; track v.id) {
+                <tr><td class="lst-c-principal"><b>{{ v.libelle }}</b></td><td data-label="Pays">{{ v.pays_libelle }}</td>
+                  <td data-label="État">@if (v.actif) { <span class="lst-etat ok">Active</span> } @else { <span class="lst-etat ko">Désactivée</span> }</td>
+                  <td class="lst-c-act"><div class="lst-act">@if (ecriture) {
+                    <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="nouveau(v)"><i class="ri-pencil-line"></i></button> }</div></td></tr>
+              } @empty { <tr><td colspan="4"><div class="lst-vide"><i class="ri-building-line"></i><h5>Aucune ville</h5></div></td></tr> }
+            </tbody>
+          </table>
+        }
+        @case ('distances') {
+          <table class="lst-table lst-cartes">
+            <thead><tr><th>Trajet</th><th class="text-end">Distance</th><th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (d of distancesAffichees; track d.id) {
+                <tr><td class="lst-c-principal"><b>{{ d.ville_a_libelle }} ↔ {{ d.ville_b_libelle }}</b></td>
+                  <td data-label="Distance" class="text-end">{{ d.km | montant }} km</td>
+                  <td class="lst-c-act"><div class="lst-act">@if (ecriture) {
+                    <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="nouveau(d)"><i class="ri-pencil-line"></i></button>
+                    <button type="button" class="lst-ic" title="Supprimer" aria-label="Supprimer" (click)="supprimerDistance(d)"><i class="ri-delete-bin-6-line"></i></button> }</div></td></tr>
+              } @empty { <tr><td colspan="3"><div class="lst-vide"><i class="ri-route-line"></i><h5>Aucune distance</h5>
+                <p>Sans distance du référentiel, le demandeur saisit la distance avec une justification.</p></div></td></tr> }
+            </tbody>
+          </table>
+        }
+        @case ('pays') {
+          <table class="lst-table lst-cartes">
+            <thead><tr><th>Pays</th><th>Code</th><th>Devise usuelle</th><th>Villes</th><th>État</th><th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (p of pays; track p.id) {
+                <tr><td class="lst-c-principal"><b>{{ p.libelle }}</b></td><td data-label="Code"><code>{{ p.code_iso }}</code></td>
+                  <td data-label="Devise">{{ p.devise_usuelle || '—' }}</td><td data-label="Villes">{{ p.nb_villes }}</td>
+                  <td data-label="État">@if (p.actif) { <span class="lst-etat ok">Actif</span> } @else { <span class="lst-etat ko">Désactivé</span> }</td>
+                  <td class="lst-c-act"><div class="lst-act">@if (ecriture) {
+                    <button type="button" class="lst-ic" title="Modifier" aria-label="Modifier" (click)="nouveau(p)"><i class="ri-pencil-line"></i></button> }</div></td></tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+<div bsModal #ficheModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">{{ onglet === 'pays' ? 'Pays' : onglet === 'villes' ? 'Ville' : 'Distance' }}</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="ficheModal.hide()"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          @switch (onglet) {
+            @case ('pays') {
+              <div class="col-md-8"><label class="form-label" for="l-pl">Nom</label>
+                <input id="l-pl" class="form-control" [(ngModel)]="fichePays.libelle" [class.is-invalid]="erreur('libelle')"></div>
+              <div class="col-md-4"><label class="form-label" for="l-pc">Code ISO</label>
+                <input id="l-pc" class="form-control text-uppercase" maxlength="2" [(ngModel)]="fichePays.code_iso" [class.is-invalid]="erreur('code_iso')">
+                @if (erreur('code_iso')) { <div class="invalid-feedback">{{ erreur('code_iso') }}</div> }</div>
+              <div class="col-md-4"><label class="form-label" for="l-pd">Devise usuelle</label>
+                <input id="l-pd" class="form-control text-uppercase" maxlength="3" [(ngModel)]="fichePays.devise_usuelle"></div>
+              <div class="col-md-8 d-flex align-items-end"><div class="form-check form-switch">
+                <input id="l-pa" class="form-check-input" type="checkbox" [(ngModel)]="fichePays.actif"><label class="form-check-label" for="l-pa">Actif</label></div></div>
+            }
+            @case ('villes') {
+              <div class="col-md-7"><label class="form-label" for="l-vl">Ville</label>
+                <input id="l-vl" class="form-control" [(ngModel)]="ficheVille.libelle" [class.is-invalid]="erreur('libelle')">
+                @if (erreur('libelle')) { <div class="invalid-feedback">{{ erreur('libelle') }}</div> }</div>
+              <div class="col-md-5"><label class="form-label" for="l-vp">Pays</label>
+                <select id="l-vp" class="form-select" [(ngModel)]="ficheVille.pays">
+                  @for (p of pays; track p.id) { <option [ngValue]="p.id">{{ p.libelle }}</option> }</select></div>
+              <div class="col-12"><div class="form-check form-switch">
+                <input id="l-va" class="form-check-input" type="checkbox" [(ngModel)]="ficheVille.actif"><label class="form-check-label" for="l-va">Active (proposée dans les demandes)</label></div></div>
+            }
+            @case ('distances') {
+              <div class="col-md-6"><label class="form-label" for="l-da">Ville A</label>
+                <ng-select labelForId="l-da" [items]="villesActives" bindValue="id" bindLabel="libelle" [(ngModel)]="ficheDistance.ville_a"></ng-select></div>
+              <div class="col-md-6"><label class="form-label" for="l-db">Ville B</label>
+                <ng-select labelForId="l-db" [items]="villesActives" bindValue="id" bindLabel="libelle" [(ngModel)]="ficheDistance.ville_b"></ng-select>
+                @if (erreur('ville_b')) { <div class="text-danger small">{{ erreur('ville_b') }}</div> }</div>
+              <div class="col-md-6"><label class="form-label" for="l-dk">Distance (km, aller)</label>
+                <input id="l-dk" type="number" min="1" class="form-control" [(ngModel)]="ficheDistance.km" [class.is-invalid]="erreur('km')">
+                @if (erreur('km')) { <div class="invalid-feedback">{{ erreur('km') }}</div> }</div>
+              <p class="small text-muted col-12 mb-0">Villes du pays sélectionné dans l'onglet « Villes ».</p>
+            }
+          }
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="ficheModal.hide()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="enregistrer()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

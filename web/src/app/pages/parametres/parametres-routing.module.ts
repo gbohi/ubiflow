@@ -19,8 +19,11 @@ import { TypesDemandeComponent } from './types-demande/types-demande.component';
 import { WorkflowsComponent } from './workflows/workflows.component';
 import { WorkflowEditeurComponent } from './workflow-editeur/workflow-editeur.component';
 import { JournalComponent } from './journal/journal.component';
+import { BaremesComponent } from './baremes/baremes.component';
+import { LieuxComponent } from './lieux/lieux.component';
 
 const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
+const FINANCES = ['super_admin', 'admin', 'admin_finances', 'comptable', 'controleur'];
 
 
 const routes: Routes = [
@@ -49,6 +52,10 @@ const routes: Routes = [
     title: 'Circuit de validation | UbiFlow' },
   { path: 'journal', component: JournalComponent, canActivate: [RoleGuard], data: { roles: ['super_admin', 'admin', 'controleur'] },
     title: "Journal d'activité | UbiFlow" },
+  { path: 'baremes', component: BaremesComponent, canActivate: [RoleGuard], data: { roles: FINANCES },
+    title: 'Barèmes | UbiFlow' },
+  { path: 'lieux', component: LieuxComponent, canActivate: [RoleGuard], data: { roles: FINANCES },
+    title: 'Lieux et distances | UbiFlow' },
   { path: 'import-collaborateurs', component: ImportCollaborateursComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
     title: 'Import des collaborateurs | UbiFlow' },
 ];

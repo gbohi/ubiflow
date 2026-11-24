@@ -130,6 +130,34 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
       ]),
       const SizedBox(height: 12),
 
+      if (d['mission'] is Map) ...[
+        const LibelleSection('Mission'),
+        CarteListe(lignes: [for (final (l, v) in resumeMission(d['mission'] as Map)) _ligne(l, v)]),
+        const SizedBox(height: 12),
+      ],
+      if (d['calcul'] is Map) ...[
+        const LibelleSection('Récapitulatif des frais'),
+        CarteListe(lignes: [
+          for (final (rubrique, detail, valeur) in lignesRecap(d['calcul'] as Map))
+            ListTile(
+              dense: true,
+              title: Text(rubrique, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              subtitle: Text(detail, style: const TextStyle(fontSize: 12)),
+              trailing: Text(valeur, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ListTile(
+            dense: true,
+            title: const Text('Total prévisionnel', style: TextStyle(fontWeight: FontWeight.w700)),
+            trailing: Text(montant((d['calcul'] as Map)['total_ref'], (d['calcul'] as Map)['devise_reference'] as String? ?? ''),
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          for (final s in List.from((d['calcul'] as Map)['signalements'] as List? ?? []))
+            ListTile(dense: true, leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                title: Text('$s', style: const TextStyle(fontSize: 12))),
+        ]),
+        const SizedBox(height: 12),
+      ],
+
       if (circuit.isNotEmpty) ...[
         const LibelleSection('Circuit de validation'),
         CarteListe(lignes: [

@@ -34,8 +34,14 @@
             </button>
           }
         </div>
-        <app-champs-demande [contenu]="contenu" [champs]="demande.champs || []" [avecMontant]="demande.montant_demande !== null || editable"
+        <app-champs-demande [contenu]="contenu" [champs]="demande.champs || []"
+                            [avecMontant]="!estMission && (demande.montant_demande !== null || editable)"
                             [lectureSeule]="!editable" [erreurs]="erreurs"></app-champs-demande>
+        @if (estMission) {
+          <hr class="my-3">
+          <app-mission-form [mission]="mission" [typeDemande]="demande.type_demande" [typeMission]="typeMission"
+                            [demandeId]="demande.id" [lectureSeule]="!editable" [calculFige]="demande.calcul" [erreurs]="erreurs"></app-mission-form>
+        }
         @if (demande.montant_approuve && demande.montant_approuve !== demande.montant_demande) {
           <div class="alert alert-info small mt-3 mb-0">Montant approuvé : <b>{{ demande.montant_approuve | montant:demande.devise }}</b></div>
         }

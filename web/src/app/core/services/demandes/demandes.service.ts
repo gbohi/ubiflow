@@ -27,7 +27,7 @@ export interface TypeDemande {
   ordre: number; prefixe_reference: string; avec_montant: boolean; paiement_fractionne_autorise: boolean;
   separation_approbation_paiement: boolean; mode_cloture: string; rapport_obligatoire: boolean;
   annulation_demandeur: string[]; champs?: ChampType[]; exigences?: ExigencePiece[];
-  circuit_publie?: { id: number; numero: number } | null;
+  circuit_publie?: { id: number; numero: number } | null; parametres?: Record<string, any>;
 }
 
 export interface TypePiece { id: number; code: string; libelle: string; actif: boolean; }
@@ -69,6 +69,7 @@ export interface Demande {
   commentaires?: { id: number; auteur_nom: string; texte: string; creee_le: string }[];
   circuit?: CycleCircuit[]; mes_taches?: MaTache[]; origine_copie?: number | null; origine_copie_reference?: string | null;
   motif_annulation?: string; annulee_le?: string | null;
+  type_famille?: string; type_parametres?: Record<string, any>; mission?: any; calcul?: any;
   actions?: { modifier: boolean; soumettre: boolean; supprimer: boolean; annuler: boolean; dupliquer: boolean;
               ajouter_document: boolean; commenter: boolean };
 }
@@ -165,10 +166,10 @@ export class DemandesService {
     return this.http.get<{ count: number; results: Demande[] }>(`${this.api}/demandes/`, { params: this.params(f) });
   }
   demande(id: number): Observable<Demande> { return this.http.get<Demande>(`${this.api}/demandes/${id}/`); }
-  creer(d: { type_demande: number; objet: string; montant_demande: any; devise?: string; donnees: any }) {
+  creer(d: { type_demande: number; objet: string; montant_demande: any; devise?: string; donnees: any; mission?: any }) {
     return this.http.post<Demande>(`${this.api}/demandes/`, d, detaille());
   }
-  modifier(id: number, d: { objet?: string; montant_demande?: any; donnees?: any }) {
+  modifier(id: number, d: { objet?: string; montant_demande?: any; donnees?: any; mission?: any }) {
     return this.http.patch<Demande>(`${this.api}/demandes/${id}/`, d, detaille());
   }
   supprimer(id: number) { return this.http.delete(`${this.api}/demandes/${id}/`); }

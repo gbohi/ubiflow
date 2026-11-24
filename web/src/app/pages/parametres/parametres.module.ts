@@ -32,10 +32,14 @@ import { TypesDemandeComponent } from './types-demande/types-demande.component';
 import { WorkflowsComponent } from './workflows/workflows.component';
 import { WorkflowEditeurComponent } from './workflow-editeur/workflow-editeur.component';
 import { JournalComponent } from './journal/journal.component';
+import { BaremesComponent } from './baremes/baremes.component';
+import { LieuxComponent } from './lieux/lieux.component';
 
 @NgModule({
   declarations: [
     AccueilParametresComponent,
+    BaremesComponent,
+    LieuxComponent,
     AgenceComponent,
     StatutComponent,
     DepartementComponent,

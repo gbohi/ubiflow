@@ -23,6 +23,7 @@ export class NouvelleDemandeComponent implements OnInit {
   types: TypeDemande[] = [];
   type: TypeDemande | null = null;
   contenu: ContenuDemande = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
+  mission: Record<string, any> = {};
   erreurs: any = null;
   enCours = false;
   chargement = true;
@@ -44,7 +45,11 @@ export class NouvelleDemandeComponent implements OnInit {
     this.type = t;
     this.erreurs = null;
     this.contenu = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
+    this.mission = {};
   }
+
+  get estMission(): boolean { return this.type?.famille === 'mission'; }
+  get typeMission(): 'locale' | 'hors_pays' { return this.type?.parametres?.['type_mission'] ?? 'locale'; }
 
   /** Crée le brouillon ; avec soumettre=true, le soumet aussitôt. */
   enregistrer(soumettre = false): void {
@@ -53,7 +58,7 @@ export class NouvelleDemandeComponent implements OnInit {
     this.enCours = true;
     this.erreurs = null;
     this.service.creer({ type_demande: this.type.id!, objet: this.contenu.objet, montant_demande: this.contenu.montant_demande,
-                         donnees: this.contenu.donnees }).subscribe({
+                         donnees: this.contenu.donnees, ...(this.estMission ? { mission: this.mission } : {}) }).subscribe({
       next: d => {
         if (!soumettre) {
           this.toast.success('Brouillon enregistré.');
