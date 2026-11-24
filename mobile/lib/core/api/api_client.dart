@@ -35,9 +35,6 @@ String? messageErreurApi(Object e) {
   }
 
   final code = e.response?.statusCode ?? 0;
-  if (code == 429) {
-    return 'Trop de tentatives. Réessayez dans quelques minutes.';
-  }
   final data = e.response?.data;
 
   String? premier(dynamic v) {
@@ -62,6 +59,10 @@ String? messageErreurApi(Object e) {
   }
 
   final message = premier(data);
+  // 429 : message du serveur s'il précise le délai (« réessayer dans 30 minutes »)
+  if (code == 429) {
+    return message ?? 'Trop de tentatives. Réessayez dans quelques minutes.';
+  }
   if (message == null && code >= 500) {
     return 'Le serveur rencontre un problème. Réessayez plus tard.';
   }

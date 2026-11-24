@@ -82,3 +82,39 @@ class SocleTests(APITestCase):
         self.connecter(self.admin)
         g = Group.objects.get(name='employe')
         self.assertEqual(self.client.delete(f'/api/api/groups/{g.id}/').status_code, 403)
+
+
+class LimiteDemandesCodeTests(APITestCase):
+    """Mot de passe oublié : 3 demandes de code par matricule sur 30 minutes."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()  # compteurs (limite par matricule et par adresse IP) remis à zéro
+        self.url = '/api/api/users/forgot-password/'
+
+    def demander(self, matricule):
+        return self.client.post(self.url, {'username': matricule}, format='json')
+
+    def test_quatrieme_demande_refusee_avec_le_delai(self):
+        actif = Statut.objects.get(libelle_statut='Actif')
+        User.objects.create_user('otp1', password='Motdepasse1!', nom='O', prenom='T', statut=actif)
+        for _ in range(3):
+            self.assertEqual(self.demander('otp1').status_code, 200)
+        r = self.demander('otp1')
+        self.assertEqual(r.status_code, 429)
+        self.assertIn('Veuillez réessayer dans 30 minutes', r.data['error'])
+        self.assertEqual(r.data['reessayer_dans_minutes'], 30)
+
+    def test_matricule_inconnu_meme_regle_et_compteurs_distincts(self):
+        for _ in range(3):
+            self.assertEqual(self.demander('inconnu').status_code, 200)
+        self.assertEqual(self.demander('inconnu').status_code, 429)  # rien ne révèle si le compte existe
+        self.assertEqual(self.demander('autre').status_code, 200)    # chaque matricule a son compteur
+
+    def test_limite_par_adresse_en_francais(self):
+        # Au-delà de 10 appels par heure depuis la même adresse : message en français avec le délai
+        for i in range(10):
+            self.demander(f'm{i}')
+        r = self.demander('m99')
+        self.assertEqual(r.status_code, 429)
+        self.assertTrue(r.data['detail'].startswith('Trop de tentatives. Veuillez réessayer dans'))

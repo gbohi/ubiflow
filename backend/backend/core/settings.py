@@ -183,6 +183,8 @@ CACHES = {
 # ============================================================
 
 REST_FRAMEWORK = {
+    # Messages de limite de fréquence en français, avec le délai
+    'EXCEPTION_HANDLER': 'core.exceptions.gestionnaire_exceptions',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),

@@ -1,4 +1,5 @@
 import hmac
+import math
 import logging
 import secrets
 from io import BytesIO
@@ -532,7 +533,26 @@ class UserViewSet(BaseViewSet):
 
     OTP_TTL          = 600   # 10 minutes
     OTP_MAX_ESSAIS   = 5
+    # Demandes de code par matricule : 3 au plus sur 30 minutes (fenêtre ouverte à la 1re demande)
+    DEMANDES_MAX     = 3
+    DEMANDES_FENETRE = 1800
     MESSAGE_ENVOI    = "Si ce compte existe, un code a été envoyé par SMS au numéro enregistré."
+
+    def _limiter_demandes(self, username):
+        """3 demandes de code par matricule sur 30 minutes ; au-delà, 429 avec le délai restant."""
+        cle = f'reset_demandes_{username.lower()}'
+        maintenant = timezone.now().timestamp()
+        entree = cache.get(cle) or {'debut': maintenant, 'nombre': 0}
+        if entree['nombre'] >= self.DEMANDES_MAX:
+            reste = max(1, math.ceil((entree['debut'] + self.DEMANDES_FENETRE - maintenant) / 60))
+            return Response(
+                {'error': f"Trop de demandes de code pour ce matricule. Veuillez réessayer dans {reste} minute{'s' if reste > 1 else ''}.",
+                 'reessayer_dans_minutes': reste},
+                status=status.HTTP_429_TOO_MANY_REQUESTS)
+        entree['nombre'] += 1
+        restant_fenetre = max(1, int(entree['debut'] + self.DEMANDES_FENETRE - maintenant))
+        cache.set(cle, entree, timeout=restant_fenetre)
+        return None
 
     @staticmethod
     def _envoyer_sms(contact, texte):
@@ -576,6 +596,11 @@ class UserViewSet(BaseViewSet):
             return Response(
                 {'error': 'Le nom d\'utilisateur est requis.'},
                 status=status.HTTP_400_BAD_REQUEST)
+
+        # Limite par matricule, comptée que le compte existe ou non (rien n'est révélé)
+        refus = self._limiter_demandes(username)
+        if refus:
+            return refus
 
         user = User.objects.filter(username=username, is_active=True).first()
         contact = (getattr(user, 'contact', '') or '').strip() if user else ''

@@ -1,8 +1,10 @@
 // Lot 7 : liens des notifications, fichiers, dates de mission, formulaire de demande.
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:ubiflow/core/api/api_client.dart';
 import 'package:ubiflow/core/services/accueil_service.dart';
 import 'package:ubiflow/core/widgets/remix.dart';
 import 'package:ubiflow/core/services/souvenir_service.dart';
@@ -13,6 +15,16 @@ import 'package:ubiflow/features/demandes/mission_saisie.dart';
 
 void main() {
   setUpAll(() => initializeDateFormatting('fr_FR', null));
+
+  test('trop de demandes de code : le délai du serveur est affiché', () {
+    DioException erreur(dynamic corps) {
+      final req = RequestOptions(path: '/users/forgot-password/');
+      return DioException(requestOptions: req, response: Response(requestOptions: req, statusCode: 429, data: corps));
+    }
+    expect(messageErreurApi(erreur({'error': 'Trop de demandes de code pour ce matricule. Veuillez réessayer dans 30 minutes.'})),
+        'Trop de demandes de code pour ce matricule. Veuillez réessayer dans 30 minutes.');
+    expect(messageErreurApi(erreur(null)), 'Trop de tentatives. Réessayez dans quelques minutes.');
+  });
 
   test('lien de notification vers la demande', () {
     expect(demandeDuLien('/demandes/12'), 12);

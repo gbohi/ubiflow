@@ -31,7 +31,7 @@ export function messageErreurApi(err: HttpErrorResponse | any): string {
   };
 
   if (err?.status === 0) return 'Impossible de contacter le serveur.';
-  if (err?.status === 429) return 'Trop de tentatives. Réessayez dans quelques minutes.';
+  if (err?.status === 429) return premier(err?.error) || 'Trop de tentatives. Réessayez dans quelques minutes.';
   const message = premier(err?.error) || err?.statusText || 'Une erreur est survenue';
   // Détail éventuel renvoyé par l'API
   const details = err?.error?.details;
