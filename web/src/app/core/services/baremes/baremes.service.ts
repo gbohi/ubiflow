@@ -19,7 +19,11 @@ export interface LigneBareme {
   en_vigueur?: boolean; supprimable?: boolean;
 }
 
-export interface ParametreSysteme { devise_reference: string; taille_max_piece_mo: number; modifiable_devise?: boolean; }
+export interface ParametreSysteme {
+  devise_reference: string; taille_max_piece_mo: number; modifiable_devise?: boolean;
+  raison_sociale?: string; adresse?: string; ville?: string; pays?: string; logo?: string | null;
+  formulaires?: Record<string, Record<string, string>>;
+}
 export interface Pays { id?: number; code_iso: string; libelle: string; devise_usuelle: string; actif: boolean; nb_villes?: number; }
 export interface Ville { id?: number; libelle: string; pays: number; pays_libelle?: string; pays_code?: string; actif: boolean; }
 export interface Distance { id?: number; ville_a: number; ville_b: number; ville_a_libelle?: string; ville_b_libelle?: string; km: number; }
@@ -72,6 +76,12 @@ export class BaremesService {
   parametres(): Observable<ParametreSysteme> { return this.http.get<ParametreSysteme>(`${this.api}/parametres-systeme/`); }
   enregistrerParametres(p: Partial<ParametreSysteme>): Observable<ParametreSysteme> {
     return this.http.patch<ParametreSysteme>(`${this.api}/parametres-systeme/`, p, detaille());
+  }
+
+  envoyerLogo(fichier: File): Observable<ParametreSysteme> {
+    const f = new FormData();
+    f.append('logo', fichier);
+    return this.http.patch<ParametreSysteme>(`${this.api}/parametres-systeme/`, f, detaille());
   }
 
   // ── Lieux ─────────────────────────────────────────────────

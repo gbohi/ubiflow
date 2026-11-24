@@ -34,12 +34,14 @@ import { WorkflowEditeurComponent } from './workflow-editeur/workflow-editeur.co
 import { JournalComponent } from './journal/journal.component';
 import { BaremesComponent } from './baremes/baremes.component';
 import { LieuxComponent } from './lieux/lieux.component';
+import { SocieteComponent } from './societe/societe.component';
 
 @NgModule({
   declarations: [
     AccueilParametresComponent,
     BaremesComponent,
     LieuxComponent,
+    SocieteComponent,
     AgenceComponent,
     StatutComponent,
     DepartementComponent,

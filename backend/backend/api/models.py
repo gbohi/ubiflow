@@ -29,6 +29,8 @@ class BaseModel(models.Model):
 # ============================================================
 
 class User(AbstractUser):
+    CIVILITES = [('M', 'Monsieur'), ('Mme', 'Madame')]
+    civilite = models.CharField(max_length=3, choices=CIVILITES, blank=True)
     nom = models.CharField(max_length=255)
     prenom = models.CharField(max_length=255)
     # contact sert à l'envoi du code SMS « mot de passe oublié »
@@ -261,6 +263,14 @@ class ParametreSysteme(models.Model):
     """Réglages globaux (une seule ligne)."""
     devise_reference = models.CharField(max_length=3, default='XOF')
     taille_max_piece_mo = models.PositiveIntegerField(default=10)
+    # Société (en-têtes de l'ordre de mission et de la note de frais)
+    raison_sociale = models.CharField(max_length=150, blank=True)
+    adresse = models.CharField(max_length=255, blank=True)
+    ville = models.CharField(max_length=100, blank=True, help_text='Lieu de signature (« Fait à … »)')
+    pays = models.CharField(max_length=100, blank=True, help_text='Pays de la société (missions « en » / « hors » pays)')
+    logo = models.ImageField(upload_to='societe/', null=True, blank=True)
+    # Références des formulaires qualité, ex. {"note_frais_hors_pays": {"identification": "ENR-CPT-016", ...}}
+    formulaires = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     user_updated = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 

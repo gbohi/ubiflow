@@ -4,9 +4,20 @@
 <div class="lst">
   <app-page-entete [titre]="demande.reference || 'Brouillon'" [icone]="demande.type_icone || 'ri-file-text-line'"
                    [fil]="[{label: 'Mes demandes', lien: '/demandes'}]" [sousTitre]="demande.type_libelle + ' — ' + demande.demandeur_nom">
-    <button type="button" class="btn-ubi" (click)="telechargerPdf()" [disabled]="pdfEnCours" data-test="pdf-demande">
-      @if (pdfEnCours) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="ri-file-pdf-2-line"></i> }
-      <span class="pe-lib">PDF</span></button>
+    <div class="btn-group" dropdown placement="bottom right">
+      <button type="button" class="btn-ubi" dropdownToggle [disabled]="pdfEnCours" data-test="pdf-demande">
+        @if (pdfEnCours) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="ri-file-pdf-2-line"></i> }
+        <span class="pe-lib">Documents</span></button>
+      <ul *dropdownMenu class="dropdown-menu dropdown-menu-end" role="menu">
+        <li><button type="button" class="dropdown-item" (click)="telechargerPdf('pdf')"><i class="ri-file-text-line me-2"></i>Fiche de la demande</button></li>
+        @if (estMission) {
+          @if (['approuvee', 'en_attente_cloture', 'cloturee'].includes(demande.statut)) {
+            <li><button type="button" class="dropdown-item" (click)="telechargerPdf('ordre-mission')"><i class="ri-quill-pen-line me-2"></i>Ordre de mission</button></li>
+          }
+          <li><button type="button" class="dropdown-item" (click)="telechargerPdf('note-frais')"><i class="ri-file-list-2-line me-2"></i>Note de frais de mission</button></li>
+        }
+      </ul>
+    </div>
     <span class="lst-tag fs-6" [ngClass]="classes[demande.statut]">{{ demande.statut_libelle }}</span>
   </app-page-entete>
 

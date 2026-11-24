@@ -177,11 +177,12 @@ export class DemandeDetailComponent implements OnInit {
 
   // ── PDF de présentation ──────────────────────────────────
   pdfEnCours = false;
-  telechargerPdf(): void {
+  telechargerPdf(document: 'pdf' | 'ordre-mission' | 'note-frais' = 'pdf'): void {
     if (!this.demande || this.pdfEnCours) return;
     this.pdfEnCours = true;
-    this.service.pdf(this.demande.id).subscribe({
-      next: b => { this.pdfEnCours = false; enregistrerFichier(b, `${this.demande?.reference || 'brouillon-' + this.demande?.id}.pdf`); },
+    const prefixe = { 'pdf': '', 'ordre-mission': 'ordre-de-mission-', 'note-frais': 'note-de-frais-' }[document];
+    this.service.pdf(this.demande.id, document).subscribe({
+      next: b => { this.pdfEnCours = false; enregistrerFichier(b, `${prefixe}${this.demande?.reference || 'brouillon-' + this.demande?.id}.pdf`); },
       error: e => { this.pdfEnCours = false; this.toast.error(messageErreur(e)); },
     });
   }

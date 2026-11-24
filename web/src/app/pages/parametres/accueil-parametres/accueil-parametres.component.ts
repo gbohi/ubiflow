@@ -55,6 +55,8 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
     cartes: [
       { titre: 'Barèmes', description: 'Per diem, tarifs de transport, taux de change', icone: 'ri-scales-3-line',
         lien: '/parametres/baremes', roles: FINANCES, motsCles: 'per diem tarif kilométrique forfait devise taux change' },
+      { titre: 'Société', description: "Raison sociale, logo, signataire de l'ordre de mission", icone: 'ri-building-4-line',
+        lien: '/parametres/societe', roles: ['super_admin', 'admin', 'admin_finances'], motsCles: 'logo adresse ordre mission note de frais formulaire' },
       { titre: 'Lieux et distances', description: 'Pays, villes, distances du référentiel', icone: 'ri-map-pin-line',
         lien: '/parametres/lieux', roles: FINANCES, compte: 'villes/', motsCles: 'ville pays distance km destination' },
     ],

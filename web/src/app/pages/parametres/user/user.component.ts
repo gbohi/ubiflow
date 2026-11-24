@@ -216,6 +216,7 @@ export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
       id:              [''],
       username:        ['', [Validators.required]],
       email:           ['', [Validators.email]],
+      civilite:        [''],
       nom:             ['', [Validators.required]],
       prenom:          ['', [Validators.required]],
       contact:         [''],

@@ -1,0 +1,62 @@
+<div class="lst">
+  <app-page-entete titre="Société" icone="ri-building-4-line" [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
+                   sousTitre="En-têtes de l'ordre de mission et de la note de frais">
+    <button type="button" class="btn-ubi vert" [disabled]="enCours || !fiche" (click)="enregistrer()"><i class="ri-save-line"></i><span class="pe-lib">Enregistrer</span></button>
+  </app-page-entete>
+
+  @if (fiche) {
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="lst-carte p-3 p-md-4 h-100">
+          <h6 class="mb-3">Identité</h6>
+          <div class="row g-3">
+            <div class="col-12"><label class="form-label" for="so-rs">Raison sociale</label>
+              <input id="so-rs" class="form-control" maxlength="150" [(ngModel)]="fiche.raison_sociale"></div>
+            <div class="col-12"><label class="form-label" for="so-ad">Adresse</label>
+              <input id="so-ad" class="form-control" maxlength="255" [(ngModel)]="fiche.adresse" placeholder="01 BP 1305 Abidjan 01"></div>
+            <div class="col-md-6"><label class="form-label" for="so-vi">Ville (« Fait à … »)</label>
+              <input id="so-vi" class="form-control" maxlength="100" [(ngModel)]="fiche.ville"></div>
+            <div class="col-md-6"><label class="form-label" for="so-pa">Pays</label>
+              <input id="so-pa" class="form-control" maxlength="100" [(ngModel)]="fiche.pays">
+              <div class="form-text">Titre des notes de frais « en » / « hors » pays.</div></div>
+          </div>
+          <h6 class="mt-4 mb-3">Ordre de mission</h6>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="so-sig">Signataire (responsabilité)</label>
+              <select id="so-sig" class="form-select" [(ngModel)]="fiche.formulaires!['ordre_mission']['responsabilite_signataire']">
+                @for (r of responsabilites; track r.id) { <option [ngValue]="r.code">{{ r.libelle }}</option> }
+              </select>
+              <div class="form-text">Le titulaire à la date d'approbation signe l'ordre.</div></div>
+            <div class="col-md-6"><label class="form-label" for="so-tit">Titre sous la signature</label>
+              <input id="so-tit" class="form-control" [(ngModel)]="fiche.formulaires!['ordre_mission']['titre_signataire']"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="lst-carte p-3 p-md-4 mb-3">
+          <h6 class="mb-3">Logo</h6>
+          <div class="border rounded p-3 mb-2 text-center bg-light" style="min-height: 90px">
+            @if (apercuLogo) { <img [src]="apercuLogo" alt="Logo de la société" style="max-height: 70px; max-width: 100%"> }
+            @else { <span class="text-muted small">Aucun logo : la raison sociale est écrite à la place.</span> }
+          </div>
+          <input type="file" class="form-control" accept=".png,.jpg,.jpeg,.webp" aria-label="Logo" (change)="choisirLogo($event)">
+          <div class="form-text">PNG sur fond transparent ou blanc, de préférence.</div>
+        </div>
+        <div class="lst-carte p-3 p-md-4">
+          <h6 class="mb-3">Références des formulaires qualité</h6>
+          @for (f of formulairesQualite; track f.cle) {
+            <p class="small fw-semibold mb-2">{{ f.libelle }}</p>
+            <div class="row g-2 mb-3">
+              <div class="col-5"><input class="form-control form-control-sm" placeholder="Identification" [attr.aria-label]="'Identification ' + f.libelle"
+                                        [(ngModel)]="fiche.formulaires![f.cle]['identification']"></div>
+              <div class="col-3"><input class="form-control form-control-sm" placeholder="Version" [attr.aria-label]="'Version ' + f.libelle"
+                                        [(ngModel)]="fiche.formulaires![f.cle]['version']"></div>
+              <div class="col-4"><input class="form-control form-control-sm" placeholder="Date" [attr.aria-label]="'Date ' + f.libelle"
+                                        [(ngModel)]="fiche.formulaires![f.cle]['date']"></div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

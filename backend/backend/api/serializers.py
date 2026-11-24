@@ -246,7 +246,7 @@ class UserSerializer(serializers.ModelSerializer):
         model  = User
         fields = [
             'id', 'username', 'password', 'password2', 'email',
-            'nom', 'prenom', 'contact', 'poste_telephone',
+            'civilite', 'nom', 'prenom', 'contact', 'poste_telephone',
             'first_name', 'last_name',
             'statut', 'statut_libelle',
             'last_login', 'last_logout', 'is_active', 'is_superuser',

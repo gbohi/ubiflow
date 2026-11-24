@@ -259,3 +259,34 @@ class PdfDemandeTests(TresorerieBase):
         self.assertIn('MLO-', r['Content-Disposition'])
         self.en(self.autre)
         self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/pdf/').status_code, 403)
+
+    def test_ordre_de_mission_et_note_de_frais(self):
+        from io import BytesIO
+        from PIL import Image as Img
+        from demandes.documents_mission import periode
+        from datetime import date
+        self.assertEqual(periode(date(2026, 7, 21), date(2026, 7, 25)), 'du 21 au 25 Juillet 2026')
+        self.assertEqual(periode(date(2026, 7, 28), date(2026, 8, 2)), 'du 28 Juillet au 2 Août 2026')
+        pk = self.creer_mission()
+        self.soumettre(pk)
+        self.en(self.agent)
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/ordre-mission/').status_code, 400)  # pas encore approuvée
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/note-frais/').status_code, 200)
+        self.approuver(pk)
+        self.en(self.agent)
+        r = self.client.get(f'/api/api/demandes/{pk}/ordre-mission/')
+        self.assertEqual((r.status_code, r['Content-Type']), (200, 'application/pdf'))
+        frc = self.approuver_frc()
+        self.en(self.agent)
+        self.assertEqual(self.client.get(f'/api/api/demandes/{frc}/ordre-mission/').status_code, 400)
+        # logo de la société (administrateur des finances)
+        flux = BytesIO()
+        Img.new('RGB', (120, 40), 'green').save(flux, 'PNG')
+        flux.seek(0)
+        flux.name = 'logo.png'
+        self.en(self.finances)
+        r = self.client.patch('/api/api/parametres-systeme/', {'logo': flux}, format='multipart')
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertTrue(r.data['logo'])
+        self.en(self.agent)
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/ordre-mission/').status_code, 200)

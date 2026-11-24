@@ -307,6 +307,12 @@
               @if (f['email'].invalid && (f['email'].touched || submitted)) { <div class="text-danger mt-1"><small>Email invalide</small></div> }
             </div>
             <div class="col-md-4">
+              <label class="form-label" for="u-civilite">Civilité</label>
+              <select id="u-civilite" class="form-select" formControlName="civilite">
+                <option value="">—</option><option value="M">Monsieur</option><option value="Mme">Madame</option>
+              </select>
+            </div>
+            <div class="col-md-4">
               <label class="form-label">Contact</label>
               <input type="text" class="form-control" formControlName="contact" placeholder="Contact">
             </div>

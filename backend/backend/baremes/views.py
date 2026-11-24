@@ -69,8 +69,13 @@ class TauxChangeViewSet(_BaremeViewSet):
 
 
 class ParametreSystemeView(APIView):
-    """GET : tous ; PATCH : administrateurs (devise de référence, taille des pièces)."""
+    """
+    GET : tous ; PATCH (JSON ou multipart pour le logo) : administrateurs et administrateurs des finances
+    (devise de référence, taille des pièces, société, références des formulaires).
+    """
+    from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
     permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get(self, request):
         return Response(s.ParametreSystemeSerializer(ParametreSysteme.charger()).data)

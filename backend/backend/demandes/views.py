@@ -223,6 +223,26 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         r['Content-Disposition'] = f'attachment; filename="{demande.reference or f"brouillon-{demande.pk}"}.pdf"'
         return r
 
+    @action(detail=True, methods=['get'], url_path='ordre-mission')
+    def ordre_mission(self, request, pk=None):
+        """Ordre de mission au format de la société (mission approuvée)."""
+        from django.http import HttpResponse
+        from .documents_mission import ordre_de_mission
+        demande = self.get_object()
+        r = HttpResponse(ordre_de_mission(demande, request.user), content_type='application/pdf')
+        r['Content-Disposition'] = f'attachment; filename="ordre-de-mission-{demande.reference}.pdf"'
+        return r
+
+    @action(detail=True, methods=['get'], url_path='note-frais')
+    def note_frais(self, request, pk=None):
+        """Note de frais de mission (formulaire de la société)."""
+        from django.http import HttpResponse
+        from .documents_mission import note_de_frais
+        demande = self.get_object()
+        r = HttpResponse(note_de_frais(demande, request.user), content_type='application/pdf')
+        r['Content-Disposition'] = f'attachment; filename="note-de-frais-{demande.reference or demande.pk}.pdf"'
+        return r
+
     @action(detail=True, methods=['get'])
     def historique(self, request, pk=None):
         actions = self.get_object().actions.select_related(

@@ -110,7 +110,8 @@ class ParametreSystemeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ParametreSysteme
-        fields = ['devise_reference', 'taille_max_piece_mo', 'updated_at', 'modifiable_devise']
+        fields = ['devise_reference', 'taille_max_piece_mo', 'raison_sociale', 'adresse', 'ville', 'pays', 'logo',
+                  'formulaires', 'updated_at', 'modifiable_devise']
         read_only_fields = ['updated_at']
 
     def get_modifiable_devise(self, obj):
