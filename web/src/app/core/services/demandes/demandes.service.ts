@@ -105,6 +105,7 @@ export interface Action {
 export interface Tache {
   id: number; etat: string; decision: string; etape: string; actions_autorisees: string[]; champs_modifiables: string[];
   valideur_nom: string; pour_compte_de: string | null; auto_validation: boolean; ouverte_le: string; traitee_le: string | null;
+  echeance?: string | null; en_retard?: boolean; escaladee?: boolean;
   demande: { id: number; reference: string; objet: string; type_libelle: string; type_code: string; type_icone?: string; demandeur: string;
              montant_demande: string | null; devise: string; statut: string; soumise_le: string };
 }
@@ -125,6 +126,8 @@ export interface Etape {
   mode: string; regle_parallele: string; quorum: number | null; actions_autorisees: string[]; champs_modifiables: string[];
   auto_validation_demandeur: string; meme_valideur_deja_passe: string; valideur_introuvable: string;
   valideur_secours: number | null; regles: RegleDesignation[]; description_condition?: string;
+  delai_heures?: number | null; rappel_apres_heures?: number | null; escalade_apres_heures?: number | null;
+  escalade_vers?: string; escalade_personne?: number | null;
 }
 
 export interface VersionWorkflow {

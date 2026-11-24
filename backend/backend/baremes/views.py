@@ -68,6 +68,22 @@ class TauxChangeViewSet(_BaremeViewSet):
     serializer_class = s.TauxChangeSerializer
 
 
+class JourFerieViewSet(viewsets.ModelViewSet):
+    """Jours fériés (calendrier des délais) : lecture pour tous, modification par les administrateurs."""
+    from api.models import JourFerie
+    from api.permissions import ReadAuthenticatedWriteAdmin
+    queryset = JourFerie.objects.all()
+    serializer_class = s.JourFerieSerializer
+    permission_classes = [ReadAuthenticatedWriteAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = self.queryset
+        if self.request.query_params.get('annee'):
+            qs = qs.filter(date__year=self.request.query_params['annee'])
+        return qs
+
+
 class ParametreSystemeView(APIView):
     """
     GET : tous ; PATCH (JSON ou multipart pour le logo) : administrateurs et administrateurs des finances

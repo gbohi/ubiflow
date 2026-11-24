@@ -105,13 +105,25 @@ class TauxChangeSerializer(_LigneSerializer):
         return devise
 
 
+class JourFerieSerializer(serializers.ModelSerializer):
+    class Meta:
+        from api.models import JourFerie
+        model = JourFerie
+        fields = '__all__'
+
+
 class ParametreSystemeSerializer(serializers.ModelSerializer):
     modifiable_devise = serializers.SerializerMethodField()
 
     class Meta:
         model = ParametreSysteme
         fields = ['devise_reference', 'taille_max_piece_mo', 'raison_sociale', 'adresse', 'ville', 'pays', 'logo',
-                  'formulaires', 'updated_at', 'modifiable_devise']
+                  'formulaires', 'jours_ouvres', 'updated_at', 'modifiable_devise']
+
+    def validate_jours_ouvres(self, v):
+        if not isinstance(v, list) or not v or any(not isinstance(j, int) or not 0 <= j <= 6 for j in v):
+            raise serializers.ValidationError('Liste de jours de 0 (lundi) à 6 (dimanche), au moins un.')
+        return sorted(set(v))
         read_only_fields = ['updated_at']
 
     def get_modifiable_devise(self, obj):

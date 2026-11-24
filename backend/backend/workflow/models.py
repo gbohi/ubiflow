@@ -76,6 +76,14 @@ class Etape(models.Model):
                                                 default='validation_requise')
     valideur_introuvable = models.CharField(max_length=10, choices=INTROUVABLE, default='bloquer')
     valideur_secours = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='+')
+    # Délais (§5.8, heures ouvrées : week-ends et jours fériés exclus) ; vides = pas de délai
+    ESCALADES = [('n_plus_1_valideur', 'N+1 du valideur'), ('administrateur', 'Administrateurs des workflows'),
+                 ('personne', 'Une personne désignée')]
+    delai_heures = models.PositiveIntegerField(null=True, blank=True)
+    rappel_apres_heures = models.PositiveIntegerField(null=True, blank=True)
+    escalade_apres_heures = models.PositiveIntegerField(null=True, blank=True)
+    escalade_vers = models.CharField(max_length=20, choices=ESCALADES, default='n_plus_1_valideur')
+    escalade_personne = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
     class Meta:
         ordering = ['ordre', 'id']
@@ -160,6 +168,11 @@ class Tache(models.Model):
     creee_le = models.DateTimeField(auto_now_add=True)
     ouverte_le = models.DateTimeField(null=True, blank=True)
     traitee_le = models.DateTimeField(null=True, blank=True)
+    # Suivi des délais (tâche planifiée « taches_planifiees »)
+    echeance = models.DateTimeField(null=True, blank=True)
+    rappels_envoyes = models.PositiveIntegerField(default=0)
+    dernier_rappel = models.DateTimeField(null=True, blank=True)
+    escaladee = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['etape_instance', 'ordre', 'id']
@@ -175,7 +188,7 @@ class Action(models.Model):
         ('reaffectation', 'Réaffectation'), ('correction', 'Correction par un valideur'),
         ('approbation_finale', 'Demande approuvée'), ('duplication', 'Duplication'),
         ('document', 'Pièce jointe'), ('paiement', 'Paiement'), ('paiement_annule', 'Paiement annulé'),
-        ('reversement', 'Reversement'), ('cloture', 'Clôture'),
+        ('reversement', 'Reversement'), ('cloture', 'Clôture'), ('rappel', 'Rappel'), ('escalade', 'Escalade'),
     ]
     demande = models.ForeignKey('demandes.Demande', on_delete=models.CASCADE, related_name='actions')
     instance = models.ForeignKey(InstanceWorkflow, on_delete=models.SET_NULL, null=True, blank=True,

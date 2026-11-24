@@ -38,6 +38,20 @@ services:
       - static_files:/app/staticfiles
       - media_files:/app/media
 
+  planificateur:
+    # Tâches planifiées (rappels, escalades, rappels de clôture) : toutes les heures
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    depends_on:
+      - backend
+    entrypoint: ["sh", "-c"]
+    command: ["while true; do python manage.py taches_planifiees; sleep 3600; done"]
+    volumes:
+      - media_files:/app/media
 
   nginx:
     # Image Nginx contenant le site Angular compilé (web/Dockerfile)

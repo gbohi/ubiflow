@@ -46,6 +46,8 @@ export const GROUPES_PARAMETRES: GroupeParametres[] = [
         lien: '/parametres/types-demande', roles: ADMIN_WORKFLOW, motsCles: 'formulaire champ pièce' },
       { titre: 'Circuits de validation', description: 'Étapes, valideurs, conditions, versions', icone: 'ri-git-merge-line',
         lien: '/parametres/workflows', roles: ADMIN_WORKFLOW, motsCles: 'workflow circuit valideur étape' },
+      { titre: 'Calendrier', description: 'Jours ouvrés et jours fériés (délais, rappels)', icone: 'ri-calendar-2-line',
+        lien: '/parametres/calendrier', roles: ADMINS, motsCles: 'férié délai rappel escalade jour ouvré' },
       { titre: "Journal d'activité", description: 'Traçabilité des opérations', icone: 'ri-history-line',
         lien: '/parametres/journal', roles: ['super_admin', 'admin', 'controleur'], motsCles: 'audit trace historique' },
     ],

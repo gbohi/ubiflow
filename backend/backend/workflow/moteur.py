@@ -18,6 +18,14 @@ from .erreurs import ErreurMetier, Interdit
 from .models import Action, Delegation, EtapeInstance, InstanceWorkflow, Tache, VersionWorkflow
 
 
+def echeance(etape, ouverture):
+    """Échéance d'une tâche : ouverture + délai de l'étape en heures ouvrées (§5.8) ; None sans délai."""
+    if not etape.delai_heures or not ouverture:
+        return None
+    from api.calendrier import ajouter_heures_ouvrees
+    return ajouter_heures_ouvrees(ouverture, etape.delai_heures)
+
+
 def nom(u):
     return (f"{u.nom} {u.prenom}".strip() or u.username) if u else '—'
 
@@ -196,10 +204,12 @@ def ouvrir_etape(ei, infos=None):
     ei.save()
     parallele = etape.mode == 'parallele'
     for i, v in enumerate(valideurs, start=1):
+        ouverte = parallele or i == 1
         Tache.objects.create(etape_instance=ei, valideur_id=v['id'], ordre=i, responsabilite_id=v.get('responsabilite'),
                              auto_validation=v.get('auto_validation', False),
-                             etat='en_attente' if (parallele or i == 1) else 'a_venir',
-                             ouverte_le=timezone.now() if (parallele or i == 1) else None)
+                             etat='en_attente' if ouverte else 'a_venir',
+                             ouverte_le=timezone.now() if ouverte else None,
+                             echeance=echeance(etape, timezone.now()) if ouverte else None)
     _traiter_ouvertures(ei, infos)
 
 
@@ -264,6 +274,7 @@ def _apres_approbation(tache, infos):
         suivante = ei.taches.filter(etat='a_venir').order_by('ordre').first()
         if suivante:
             suivante.etat, suivante.ouverte_le = 'en_attente', timezone.now()
+            suivante.echeance = echeance(ei.etape, suivante.ouverte_le)
             suivante.save()
             _traiter_ouvertures(ei, infos)
     return False

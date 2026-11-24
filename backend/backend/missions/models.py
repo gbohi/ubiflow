@@ -104,6 +104,7 @@ class ClotureMission(models.Model):
                                       related_name='+')
     controlee_le = models.DateTimeField(null=True, blank=True)
     motif_retour = models.TextField(blank=True)
+    dernier_rappel = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

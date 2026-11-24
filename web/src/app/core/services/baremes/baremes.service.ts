@@ -22,8 +22,9 @@ export interface LigneBareme {
 export interface ParametreSysteme {
   devise_reference: string; taille_max_piece_mo: number; modifiable_devise?: boolean;
   raison_sociale?: string; adresse?: string; ville?: string; pays?: string; logo?: string | null;
-  formulaires?: Record<string, Record<string, string>>;
+  formulaires?: Record<string, Record<string, string>>; jours_ouvres?: number[];
 }
+export interface JourFerie { id?: number; date: string; libelle: string; }
 export interface Pays { id?: number; code_iso: string; libelle: string; devise_usuelle: string; actif: boolean; nb_villes?: number; }
 export interface Ville { id?: number; libelle: string; pays: number; pays_libelle?: string; pays_code?: string; actif: boolean; }
 export interface Distance { id?: number; ville_a: number; ville_b: number; ville_a_libelle?: string; ville_b_libelle?: string; km: number; }
@@ -83,6 +84,12 @@ export class BaremesService {
     f.append('logo', fichier);
     return this.http.patch<ParametreSysteme>(`${this.api}/parametres-systeme/`, f, detaille());
   }
+
+  joursFeries(annee?: number): Observable<JourFerie[]> {
+    return this.http.get<JourFerie[]>(`${this.api}/jours-feries/`, { params: this.params({ annee }) });
+  }
+  ajouterJourFerie(j: JourFerie): Observable<JourFerie> { return this.http.post<JourFerie>(`${this.api}/jours-feries/`, j, detaille()); }
+  supprimerJourFerie(id: number) { return this.http.delete(`${this.api}/jours-feries/${id}/`); }
 
   // ── Lieux ─────────────────────────────────────────────────
   pays(tous = false): Observable<Pays[]> { return this.http.get<Pays[]>(`${this.api}/pays/`, { params: this.params({ tous: tous ? 1 : '' }) }); }

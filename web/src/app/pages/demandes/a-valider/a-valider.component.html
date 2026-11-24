@@ -44,7 +44,9 @@
                 @if (t.pour_compte_de) { <small class="d-block text-warning"><i class="ri-user-shared-line"></i> pour {{ t.pour_compte_de }}</small> }
                 @if (t.auto_validation) { <small class="d-block text-muted">vous êtes le demandeur</small> }</td>
               <td data-label="Suivi" class="small">
-                @if (onglet === 'en_attente') { {{ depuis(t.ouverte_le) }} }
+                @if (onglet === 'en_attente') { {{ depuis(t.ouverte_le) }}
+                  @if (t.en_retard) { <span class="lst-tag t-ro d-inline-block mt-1"><i class="ri-alarm-warning-line"></i> en retard</span> }
+                  @else if (t.echeance) { <span class="d-block text-muted">échéance {{ t.echeance | date:'dd/MM HH:mm' }}</span> } }
                 @else { <span class="lst-tag" [ngClass]="classesDecision[t.decision]">{{ decisions[t.decision] }}</span>
                   <span class="text-muted d-block">{{ t.traitee_le | date:'dd/MM/yyyy HH:mm' }}</span> }
               </td>

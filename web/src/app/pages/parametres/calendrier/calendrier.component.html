@@ -1,0 +1,52 @@
+<div class="lst">
+  <app-page-entete titre="Calendrier" icone="ri-calendar-2-line" [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Demandes'}]"
+                   sousTitre="Jours pris en compte dans les délais, rappels et escalades des validations">
+    <app-export-liste [titre]="'Jours fériés ' + annee" [lignes]="feries" [colonnes]="colonnesExport"></app-export-liste>
+  </app-page-entete>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="lst-carte p-3 p-md-4">
+        <h6 class="mb-3">Jours ouvrés</h6>
+        @for (j of jours; track $index; let i = $index) {
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" [id]="'jo-' + i" [checked]="ouvres.has(i)" (change)="basculer(i)">
+            <label class="form-check-label" [for]="'jo-' + i">{{ j }}</label>
+          </div>
+        }
+        <p class="small text-muted mb-0 mt-2">Les délais sont comptés en heures ouvrées : 24 h par jour ouvré, hors jours fériés.</p>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="lst-carte">
+        <div class="lst-barre">
+          <div class="btn-group btn-group-sm" role="group" aria-label="Année">
+            <button type="button" class="btn btn-light" (click)="changerAnnee(-1)" aria-label="Année précédente"><i class="ri-arrow-left-s-line"></i></button>
+            <span class="btn btn-light disabled fw-semibold">{{ annee }}</span>
+            <button type="button" class="btn btn-light" (click)="changerAnnee(1)" aria-label="Année suivante"><i class="ri-arrow-right-s-line"></i></button>
+          </div>
+          <div class="d-flex gap-2 ms-auto align-items-center">
+            <input type="date" class="form-control form-control-sm w-auto" aria-label="Date" [(ngModel)]="nouveau.date" [class.is-invalid]="erreurs?.date">
+            <input class="form-control form-control-sm" style="width: 220px" placeholder="Libellé (ex. Tabaski)" aria-label="Libellé" [(ngModel)]="nouveau.libelle">
+            <button type="button" class="btn btn-sm btn-primary text-nowrap" [disabled]="!nouveau.date || !nouveau.libelle.trim()" (click)="ajouter()"><i class="ri-add-line"></i> Ajouter</button>
+          </div>
+        </div>
+        <div class="lst-table-wrap lst-cartes-wrap">
+          <table class="lst-table lst-cartes">
+            <thead><tr><th>Date</th><th>Jour</th><th>Libellé</th><th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (j of feries; track j.id) {
+                <tr><td class="lst-c-principal"><b>{{ j.date | date:'dd/MM/yyyy' }}</b></td><td data-label="Jour">{{ jourSemaine(j.date) }}</td>
+                  <td data-label="Libellé">{{ j.libelle }}</td>
+                  <td class="lst-c-act"><div class="lst-act"><button type="button" class="lst-ic" title="Supprimer" aria-label="Supprimer" (click)="supprimer(j)"><i class="ri-delete-bin-6-line"></i></button></div></td></tr>
+              } @empty {
+                <tr class="lst-l-vide"><td colspan="4" class="lst-c-plein"><div class="lst-vide"><i class="ri-calendar-2-line"></i><h5>Aucun jour férié en {{ annee }}</h5></div></td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="small text-muted mt-2">Pensez aux fêtes musulmanes (fin du Ramadan, Tabaski, Maouloud, Lendemain de la Nuit du Destin), fixées chaque année.</p>
+    </div>
+  </div>
+</div>

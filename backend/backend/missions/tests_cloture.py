@@ -88,3 +88,14 @@ class ClotureTests(TresorerieBase):
         self.en(self.autre)
         self.assertEqual(self.client.patch(f'/api/api/demandes/{pk}/cloture/', {'observations': 'x'},
                                            format='json').status_code, 403)
+
+    def test_rappel_de_cloture(self):
+        from django.core.management import call_command
+        from notifications.models import Notification
+        pk = self.creer_mission(depart_le='2026-01-05T08:00:00', retour_le='2026-01-06T18:00:00')
+        self.soumettre(pk)
+        self.approuver(pk)
+        call_command('taches_planifiees')
+        self.assertEqual(Notification.objects.filter(destinataire=self.agent, evenement='rappel_cloture').count(), 1)
+        call_command('taches_planifiees')  # une fois par semaine au plus
+        self.assertEqual(Notification.objects.filter(destinataire=self.agent, evenement='rappel_cloture').count(), 1)

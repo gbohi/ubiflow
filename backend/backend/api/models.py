@@ -259,6 +259,18 @@ class ImportCollaborateurs(models.Model):
 # PARAMÈTRES SYSTÈME
 # ============================================================
 
+class JourFerie(models.Model):
+    """Jour non ouvré (délais de validation, rappels)."""
+    date = models.DateField(unique=True)
+    libelle = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['date']
+
+    def __str__(self):
+        return f"{self.date:%d/%m/%Y} {self.libelle}"
+
+
 class ParametreSysteme(models.Model):
     """Réglages globaux (une seule ligne)."""
     devise_reference = models.CharField(max_length=3, default='XOF')
@@ -271,6 +283,8 @@ class ParametreSysteme(models.Model):
     logo = models.ImageField(upload_to='societe/', null=True, blank=True)
     # Références des formulaires qualité, ex. {"note_frais_hors_pays": {"identification": "ENR-CPT-016", ...}}
     formulaires = models.JSONField(default=dict, blank=True)
+    # Calendrier : jours ouvrés (0 = lundi … 6 = dimanche), jours fériés dans JourFerie
+    jours_ouvres = models.JSONField(default=list, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     user_updated = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 

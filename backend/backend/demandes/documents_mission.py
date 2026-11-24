@@ -260,9 +260,11 @@ def note_de_frais(demande, user):
             (f" ({m.get('pays_destination_libelle')})" if hors_pays and m.get('pays_destination_libelle') else '') + \
             f", {periode(*_dates_mission(demande, m))} — réf. {demande.reference}"
     info = Table([[Paragraph(f"<b>NOM :</b> {_txt(_nom_complet(u))}", n), Paragraph(f"<b>DATE :</b> {date_note:%d/%m/%Y}", n)],
+                  [Paragraph(f"<b>MATRICULE :</b> {_txt(u.username)}", n), ''],
                   [Paragraph(f"<b>SERVICE :</b> {_txt(demande.departement.libelle_service if demande.departement_id else '')}", n), ''],
                   [Paragraph(f"<b>OBJET :</b> {_txt(objet)}", n), '']], colWidths=[L - 50 * mm, 50 * mm])
     info.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), ligne, NOIR), ('SPAN', (0, 1), (1, 1)), ('SPAN', (0, 2), (1, 2)),
+                              ('SPAN', (0, 3), (1, 3)),
                               ('TOPPADDING', (0, 0), (-1, -1), 6), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                               ('LEFTPADDING', (0, 0), (-1, -1), 7)]))
     h += [info]

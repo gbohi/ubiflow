@@ -57,6 +57,8 @@ export class WorkflowEditeurComponent implements OnInit {
     ['sauter', "L'étape est sautée"], ['remonter', 'Confiée à son N+1']];
   readonly memeValideur = [['validation_requise', 'Nouvelle validation exigée'], ['approbation_automatique', 'Approbation automatique']];
   readonly introuvable = [['bloquer', 'Bloquer la soumission'], ['sauter', "Sauter l'étape"], ['secours', 'Valideur de secours']];
+  readonly escalades = [['n_plus_1_valideur', 'N+1 du valideur'], ['administrateur', 'Administrateurs des workflows'],
+                        ['personne', 'Une personne désignée']];
 
   ngOnInit(): void {
     this.organisation.responsabilites().subscribe(r => this.responsabilites = r);
@@ -114,7 +116,8 @@ export class WorkflowEditeurComponent implements OnInit {
       version: this.version.id, code: `etape_${this.version.etapes.length + 1}`, libelle: '', active: true, condition: null,
       mode: 'sequentiel', regle_parallele: 'tous', quorum: null, actions_autorisees: ['approuver', 'rejeter', 'retourner'],
       champs_modifiables: [], auto_validation_demandeur: 'manuelle', meme_valideur_deja_passe: 'validation_requise',
-      valideur_introuvable: 'bloquer', valideur_secours: null, regles: [{ mode: 'relation', relation: 'n_plus_1', responsabilite: null, perimetre: 'aucun', personne: null }],
+      valideur_introuvable: 'bloquer', valideur_secours: null, delai_heures: null, rappel_apres_heures: null,
+      escalade_apres_heures: null, escalade_vers: 'n_plus_1_valideur', escalade_personne: null, regles: [{ mode: 'relation', relation: 'n_plus_1', responsabilite: null, perimetre: 'aucun', personne: null }],
     });
   }
 

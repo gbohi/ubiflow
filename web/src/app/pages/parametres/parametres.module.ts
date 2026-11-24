@@ -35,6 +35,7 @@ import { JournalComponent } from './journal/journal.component';
 import { BaremesComponent } from './baremes/baremes.component';
 import { LieuxComponent } from './lieux/lieux.component';
 import { SocieteComponent } from './societe/societe.component';
+import { CalendrierComponent } from './calendrier/calendrier.component';
 
 @NgModule({
   declarations: [
@@ -42,6 +43,7 @@ import { SocieteComponent } from './societe/societe.component';
     BaremesComponent,
     LieuxComponent,
     SocieteComponent,
+    CalendrierComponent,
     AgenceComponent,
     StatutComponent,
     DepartementComponent,

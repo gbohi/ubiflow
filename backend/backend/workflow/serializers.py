@@ -118,7 +118,13 @@ class TacheSerializer(serializers.ModelSerializer):
         model = Tache
         fields = ['id', 'etat', 'etat_libelle', 'decision', 'demande', 'etape', 'actions_autorisees',
                   'champs_modifiables', 'valideur', 'valideur_nom', 'pour_compte_de', 'auto_validation',
-                  'ouverte_le', 'traitee_le']
+                  'ouverte_le', 'traitee_le', 'echeance', 'en_retard', 'rappels_envoyes', 'escaladee']
+
+    en_retard = serializers.SerializerMethodField()
+
+    def get_en_retard(self, obj):
+        from django.utils import timezone
+        return bool(obj.etat == 'en_attente' and obj.echeance and obj.echeance < timezone.now())
 
     def get_demande(self, obj):
         d = obj.etape_instance.instance.demande
