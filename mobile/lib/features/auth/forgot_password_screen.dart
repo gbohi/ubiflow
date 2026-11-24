@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../core/api/api_client.dart';
-import '../../core/widgets/common_widgets.dart';
 import 'password_rules.dart';
 
 /// Délai minimal entre deux envois de code SMS
@@ -107,7 +106,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     if (_loading) return;
     final username = _usernameCtrl.text.trim();
     if (username.isEmpty) {
-      setState(() => _erreur = 'Veuillez saisir votre identifiant');
+      setState(() => _erreur = 'Veuillez saisir votre matricule');
       return;
     }
     setState(() {
@@ -277,9 +276,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
-
     // Bouton retour Android : étape précédente, comme la flèche de l'en-tête
     // (avant : quittait tout le parcours depuis l'étape 2 ou 3)
     return PopScope(
@@ -287,79 +283,96 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       onPopInvoked: (didPop) {
         if (!didPop && _etape > 1 && !_loading) _allerEtape(_etape - 1);
       },
-      child: Scaffold(
-        body: Stack(children: [
-          // ── Fond gradient ──────────────────────────────────
-          Container(
-            decoration:
-                const BoxDecoration(gradient: AppColors.primaryGradient),
-            height: size.height * 0.4,
-          ),
-
-          SafeArea(
-              child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(children: [
-              const SizedBox(height: 24),
-
-              // ── Header ───────────────────────────────────
-              Row(children: [
-                IconButton(
-                  tooltip: 'Retour',
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white, size: 20),
-                  onPressed: () => _etape > 1
-                      ? _allerEtape(_etape - 1)
-                      : Navigator.pop(context),
-                ),
-                Expanded(
-                    child: Center(
-                  child: Image.asset('assets/images/ubipharm-logo-blanc.png',
-                      height: 36, semanticLabel: "UbiPharm Côte d'Ivoire"),
-                )),
-                const SizedBox(width: 40),
-              ]),
-
-              const SizedBox(height: 24),
-
-              // ── Indicateur étapes ─────────────────────────
-              _StepIndicator(etape: _etape),
-
-              const SizedBox(height: 28),
-
-              // ── Carte principale ──────────────────────────
-              FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color:
-                          isDark ? AppColors.darkCard : AppColors.lightSurface,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder),
-                      boxShadow: [
-                        BoxShadow(
-                            color:
-                                Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10))
-                      ],
-                    ),
-                    child: _buildEtape(isDark),
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Theme(
+          data: _themeSombre(context),
+          child: Scaffold(
+            backgroundColor: AppColors.primary,
+            body: Stack(children: [
+              // Pictogramme UbiPharm, très grand et presque invisible (comme la connexion)
+              Positioned(
+                right: -170,
+                top: -60,
+                child: ExcludeSemantics(
+                  child: Opacity(
+                    opacity: 0.06,
+                    child: Image.asset('assets/images/ubipharm-monogramme-vert.png', width: 470),
                   ),
                 ),
               ),
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // ── En-tête : retour, logo ───────────────────
+                    Row(children: [
+                      IconButton(
+                        tooltip: 'Retour',
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.centerLeft,
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                        onPressed: () => _etape > 1 ? _allerEtape(_etape - 1) : Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                    ]),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Image.asset('assets/images/ubipharm-logo-blanc.png', height: 40, semanticLabel: "UbiPharm Côte d'Ivoire"),
+                        const SizedBox(height: 10),
+                        Text('UBIFLOW · DEMANDES',
+                            style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 10.5, letterSpacing: 1.6,
+                                fontWeight: FontWeight.w500)),
+                      ]),
+                    ),
+                    const SizedBox(height: 32),
 
-              const SizedBox(height: 40),
+                    // ── Étapes ────────────────────────────────────
+                    _StepIndicator(etape: _etape),
+                    const SizedBox(height: 28),
+
+                    // ── Contenu de l'étape ────────────────────────
+                    FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(position: _slideAnim, child: _buildEtape(true)),
+                    ),
+                  ]),
+                ),
+              ),
             ]),
-          )),
-        ]),
+          ),
+        ),
       ),
+    );
+  }
+
+  /// Thème sombre local : titres blancs, champs translucides, bordure verte au focus
+  ThemeData _themeSombre(BuildContext context) {
+    final base = Theme.of(context);
+    OutlineInputBorder bord(Color c, [double l = 1]) =>
+        OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: c, width: l));
+    const gris = Color(0xFFA9BBCD);
+    return base.copyWith(
+      brightness: Brightness.dark,
+      textTheme: base.textTheme.copyWith(
+        headlineSmall: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600, letterSpacing: -0.5),
+        bodyMedium: const TextStyle(color: gris, fontSize: 14, height: 1.45),
+        labelLarge: const TextStyle(color: gris, fontSize: 12.5, fontWeight: FontWeight.w500),
+      ),
+      textSelectionTheme: const TextSelectionThemeData(cursorColor: AppColors.accent),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.06),
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.45)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 17, horizontal: 16),
+        enabledBorder: bord(Colors.white.withOpacity(0.14)),
+        border: bord(Colors.white.withOpacity(0.14)),
+        focusedBorder: bord(AppColors.accent, 1.5),
+      ),
+      textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: AppColors.accent, disabledForegroundColor: Colors.white.withOpacity(0.45))),
     );
   }
 
@@ -416,56 +429,52 @@ class _StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labels = ['Identifiant', 'Code SMS', 'Nouveau mot de passe'];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(3, (i) {
-        final active = i + 1 == etape;
-        final done = i + 1 < etape;
-        return Row(mainAxisSize: MainAxisSize.min, children: [
-          Column(children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: active ? 32 : 28,
-              height: active ? 32 : 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: done
-                    ? AppColors.accent
-                    : active
-                        ? Colors.white
-                        : Colors.white.withOpacity(0.3),
-              ),
-              child: Center(
-                  child: done
-                      ? const Icon(Icons.check_rounded,
-                          color: AppColors.primary, size: 16)
-                      : Text('${i + 1}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: active
-                                ? AppColors.primary
-                                : Colors.white.withOpacity(0.7),
-                          ))),
+    const labels = ['Matricule', 'Code SMS', 'Nouveau mot de passe'];
+    return Semantics(
+      label: 'Étape $etape sur 3 : ${labels[etape - 1]}',
+      child: ExcludeSemantics(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (var i = 0; i < 3; i++)
+            Expanded(
+              child: Stack(clipBehavior: Clip.none, children: [
+                if (i < 2)
+                  Positioned(
+                    left: 30,
+                    right: 0,
+                    top: 14,
+                    child: Container(height: 1.5, color: AppColors.accent.withOpacity(i + 1 < etape ? 0.8 : 0.3)),
+                  ),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i + 1 < etape ? AppColors.accent : AppColors.primary,
+                      border: Border.all(
+                          color: i + 1 <= etape ? AppColors.accent : AppColors.accent.withOpacity(0.35), width: 1.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: i + 1 < etape
+                        ? const Icon(Icons.check_rounded, color: AppColors.primary, size: 16)
+                        : Text('${i + 1}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: i + 1 == etape ? AppColors.accent : AppColors.accent.withOpacity(0.5))),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(labels[i],
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: i + 1 == etape ? FontWeight.w600 : FontWeight.w400,
+                          color: i + 1 == etape ? Colors.white : const Color(0xFF8EA3B8))),
+                ]),
+              ]),
             ),
-            const SizedBox(height: 4),
-            Text(labels[i],
-                style: TextStyle(
-                  fontSize: 10,
-                  color: active ? Colors.white : Colors.white.withOpacity(0.5),
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                )),
-          ]),
-          if (i < 2)
-            Container(
-              width: 40,
-              height: 1,
-              margin: const EdgeInsets.only(bottom: 16),
-              color: Colors.white.withOpacity(i + 1 < etape ? 0.7 : 0.25),
-            ),
-        ]);
-      }),
+        ]),
+      ),
     );
   }
 }
@@ -493,7 +502,7 @@ class _EtapeUsername extends StatelessWidget {
       Text('Mot de passe oublié',
           style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 6),
-      Text('Saisissez votre identifiant pour recevoir un code SMS.',
+      Text('Saisissez votre matricule : un code vous sera envoyé par SMS.',
           style: Theme.of(context).textTheme.bodyMedium),
       const SizedBox(height: 24),
       Text('Matricule', style: Theme.of(context).textTheme.labelLarge),
@@ -502,15 +511,15 @@ class _EtapeUsername extends StatelessWidget {
         controller: ctrl,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => onSubmit(),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: const InputDecoration(
-          hintText: 'Votre identifiant',
-          prefixIcon:
-              Icon(Icons.person_outline_rounded, color: AppColors.accent),
+          hintText: 'Votre matricule',
+          prefixIcon: Icon(Icons.person_outline_rounded, color: Color(0xFF8EA3B8)),
         ),
       ),
       if (erreur != null) _ErreurBanner(erreur!),
       const SizedBox(height: 20),
-      AppButton(
+      _BoutonVert(
         label: 'Envoyer le code SMS',
         icon: Icons.send_rounded,
         loading: loading,
@@ -580,12 +589,12 @@ class _EtapeCode extends StatelessWidget {
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => onSubmit(),
         style: const TextStyle(
-            fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 12),
+            color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 12),
         decoration: const InputDecoration(
           counterText: '',
           hintText: '• • • • • •',
-          hintStyle: TextStyle(letterSpacing: 12, fontSize: 20),
-          prefixIcon: Icon(Icons.lock_outline_rounded, color: AppColors.accent),
+          hintStyle: TextStyle(letterSpacing: 12, fontSize: 20, color: Color(0x73FFFFFF)),
+          prefixIcon: Icon(Icons.lock_outline_rounded, color: Color(0xFF8EA3B8)),
         ),
       ),
       if (erreur != null) _ErreurBanner(erreur!),
@@ -599,7 +608,7 @@ class _EtapeCode extends StatelessWidget {
         onPressed: loading || renvoiRestant > 0 ? null : onRenvoyer,
       )),
       const SizedBox(height: 8),
-      AppButton(
+      _BoutonVert(
         label: 'Vérifier le code',
         icon: Icons.verified_rounded,
         loading: loading,
@@ -668,8 +677,6 @@ class _EtapeNouveauMdp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Nouveau mot de passe',
           style: Theme.of(context).textTheme.headlineSmall),
@@ -686,10 +693,11 @@ class _EtapeNouveauMdp extends StatelessWidget {
         controller: nouveauCtrl,
         obscureText: !showNouveau,
         onChanged: (_) => onChanged(),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: 'Votre nouveau mot de passe',
           prefixIcon:
-              const Icon(Icons.lock_reset_rounded, color: AppColors.accent),
+              const Icon(Icons.lock_reset_rounded, color: Color(0xFF8EA3B8)),
           suffixIcon: IconButton(
             tooltip: showNouveau
                 ? 'Masquer le mot de passe'
@@ -699,9 +707,7 @@ class _EtapeNouveauMdp extends StatelessWidget {
                     ? Icons.visibility_off_rounded
                     : Icons.visibility_rounded,
                 size: 20,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary),
+                color: const Color(0xFF8EA3B8)),
             onPressed: onToggleNouveau,
           ),
         ),
@@ -713,11 +719,9 @@ class _EtapeNouveauMdp extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-              color: isDark ? AppColors.darkCard : AppColors.lightBackground,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color:
-                      isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.12))),
           child: Column(children: [
             Row(children: [
               Expanded(
@@ -725,8 +729,7 @@ class _EtapeNouveauMdp extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                     value: _score / 4,
-                    backgroundColor:
-                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    backgroundColor: Colors.white.withOpacity(0.12),
                     valueColor: AlwaysStoppedAnimation<Color>(_couleurForce),
                     minHeight: 5),
               )),
@@ -757,12 +760,13 @@ class _EtapeNouveauMdp extends StatelessWidget {
         controller: confirmCtrl,
         obscureText: !showConfirm,
         onChanged: (_) => onChanged(),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => onSubmit(),
         decoration: InputDecoration(
           hintText: 'Répétez le mot de passe',
           prefixIcon: const Icon(Icons.check_circle_outline_rounded,
-              color: AppColors.accent),
+              color: Color(0xFF8EA3B8)),
           suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
             if (confirmCtrl.text.isNotEmpty)
               Icon(
@@ -782,9 +786,7 @@ class _EtapeNouveauMdp extends StatelessWidget {
                       ? Icons.visibility_off_rounded
                       : Icons.visibility_rounded,
                   size: 20,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary),
+                  color: const Color(0xFF8EA3B8)),
               onPressed: onToggleConfirm,
             ),
           ]),
@@ -794,7 +796,7 @@ class _EtapeNouveauMdp extends StatelessWidget {
       if (erreur != null) _ErreurBanner(erreur!),
 
       const SizedBox(height: 20),
-      AppButton(
+      _BoutonVert(
         label: 'Réinitialiser le mot de passe',
         icon: Icons.lock_reset_rounded,
         loading: loading,
@@ -819,14 +821,13 @@ class _Critere extends StatelessWidget {
               ? Icons.check_circle_rounded
               : Icons.radio_button_unchecked_rounded,
           size: 13,
-          color: valide ? AppColors.success : AppColors.lightTextSecondary),
+          color: valide ? AppColors.success : const Color(0xFF8EA3B8)),
       const SizedBox(width: 3),
       Text(label,
           style: TextStyle(
               fontSize: 11,
               fontWeight: valide ? FontWeight.w600 : FontWeight.w400,
-              color:
-                  valide ? AppColors.success : AppColors.lightTextSecondary)),
+              color: valide ? AppColors.success : const Color(0xFF8EA3B8))),
     ]);
   }
 }
@@ -843,18 +844,54 @@ class _ErreurBanner extends StatelessWidget {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.errorLight,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        color: const Color(0xFFFF8A80).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFF8A80).withOpacity(0.4)),
       ),
       child: Row(children: [
-        const Icon(Icons.error_outline_rounded,
-            color: AppColors.error, size: 16),
+        const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8A80), size: 16),
         const SizedBox(width: 8),
-        Expanded(
-            child: Text(message,
-                style: const TextStyle(color: AppColors.error, fontSize: 13))),
+        Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontSize: 13))),
       ]),
+    );
+  }
+}
+
+// ── Bouton principal : vert plein, comme « Se connecter » ─────
+
+class _BoutonVert extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool loading;
+  final VoidCallback onPressed;
+  const _BoutonVert({required this.label, required this.icon, required this.loading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: FilledButton(
+        onPressed: loading ? null : onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          disabledBackgroundColor: AppColors.accent.withOpacity(0.7),
+          foregroundColor: AppColors.primary,
+          disabledForegroundColor: AppColors.primary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.4, color: AppColors.primary, semanticsLabel: 'Envoi en cours'))
+            : Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 8),
+                Icon(icon, size: 19),
+              ]),
+      ),
     );
   }
 }
