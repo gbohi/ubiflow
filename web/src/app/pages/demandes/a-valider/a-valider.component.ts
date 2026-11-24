@@ -8,12 +8,25 @@ import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { DemandesService, Tache, TypeDemande, iconeType, teinteType } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-a-valider',
   templateUrl: './a-valider.component.html',
 })
 export class AValiderComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Référence', champ: 'demande.reference' }, { libelle: 'Type', champ: 'demande.type_libelle' },
+    { libelle: 'Demandeur', champ: 'demande.demandeur' }, { libelle: 'Objet', champ: 'demande.objet' },
+    { libelle: 'Montant', champ: 'demande.montant_demande', format: 'montant', devise: 'demande.devise' },
+    { libelle: 'Soumise le', champ: 'demande.soumise_le', format: 'dateheure' }, { libelle: 'Étape', champ: 'etape' },
+    { libelle: 'Valideur', champ: t => t.valideur_nom + (t.pour_compte_de ? ` (pour ${t.pour_compte_de})` : '') },
+    { libelle: 'Ouverte le', champ: 'ouverte_le', format: 'dateheure' },
+    { libelle: 'Décision', champ: t => this.decisions[t.decision] ?? '' }, { libelle: 'Traitée le', champ: 'traitee_le', format: 'dateheure' },
+  ];
+  get paramsExport(): Record<string, any> { return { etat: this.onglet, type_demande: this.typeDemande, du: this.du, au: this.au }; }
+
   private readonly service = inject(DemandesService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastrService);

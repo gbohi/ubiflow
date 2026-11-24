@@ -34,6 +34,7 @@ import {
   selectCurrentPage,
 } from 'src/app/store/Categoriesalarie/categoriesalarie-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-categoriesalarie',
@@ -42,6 +43,10 @@ import { TriServeur } from 'src/app/shared/tri-serveur';
   providers: [DecimalPipe, DatePipe],
 })
 export class CategoriesalarieComponent implements OnInit, AfterViewInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [{ libelle: 'Libellé', champ: 'libelle' }];
+  get paramsExport(): Record<string, any> { return { search: this.searchTerm, ordering: this.tri.ordering }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', libelle: 'libelle' });

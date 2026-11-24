@@ -279,3 +279,6 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
 }
 
+
+# Adresse publique du web (liens des notifications, QR code des PDF) ; vide = QR sans lien
+FRONTEND_URL = config('FRONTEND_URL', default='')

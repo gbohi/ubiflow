@@ -125,6 +125,12 @@ Règles principales :
   crée un reversement à percevoir (ou à abandonner, avec motif, par un
   administrateur des finances).
 
+Exports : chaque liste a un bouton « Exporter » (Excel, PDF) qui reprend
+toutes les lignes correspondant aux filtres (`shared/export-liste`). La fiche
+d'une demande se télécharge en PDF de présentation (`demandes/{id}/pdf/`,
+généré par le serveur, polices DejaVu embarquées ; `FRONTEND_URL` met un lien
+dans le QR code).
+
 Listes : chaque `<table class="lst-table">` reçoit automatiquement une
 colonne « N° » (directive `shared/numerotation`, `[numeroDebut]` pour les
 listes paginées). « Mes demandes » et « À valider » se filtrent par type et

@@ -7,12 +7,22 @@ import { Component, OnInit, inject } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
 import { DemandesService } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-journal',
   templateUrl: './journal.component.html',
 })
 export class JournalComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Date', champ: 'horodatage', format: 'dateheure' }, { libelle: 'Auteur', champ: l => l.auteur_nom || 'Système' },
+    { libelle: 'Pour le compte de', champ: 'pour_compte_de_nom' },
+    { libelle: 'Opération', champ: l => this.libelles[l.action] || l.action }, { libelle: 'Objet', champ: 'objet_libelle' },
+    { libelle: "Type d'objet", champ: 'objet_type' }, { libelle: 'Identifiant', champ: 'objet_id' }, { libelle: 'Motif', champ: 'motif' },
+  ];
+  get paramsExport(): Record<string, any> { return { ...this.filtres }; }
+
   private readonly service = inject(DemandesService);
   private readonly toast = inject(ToastrService);
 

@@ -2,6 +2,9 @@
   <app-page-entete titre="Barèmes" icone="ri-scales-3-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
                    sousTitre="Valeurs datées : aucun changement n'affecte les demandes déjà soumises">
+    @if (onglet.code !== 'devise') {
+      <app-export-liste [titre]="'Barèmes - ' + onglet.libelle" [lignes]="affichees" [colonnes]="colonnesExport"></app-export-liste>
+    }
     @if (ecriture && onglet.code !== 'devise') {
       <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle valeur</span></button>
     }

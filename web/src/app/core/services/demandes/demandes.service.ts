@@ -208,6 +208,7 @@ export class DemandesService {
   parentsPossibles(typeDemande: number) {
     return this.http.get<any[]>(`${this.api}/demandes/parents-possibles/`, { params: this.params({ type_demande: typeDemande }) });
   }
+  pdf(id: number): Observable<Blob> { return this.http.get(`${this.api}/demandes/${id}/pdf/`, { responseType: 'blob' }); }
   compteurs() {
     return this.http.get<{ mes_demandes: Record<string, number>; a_valider: number }>(`${this.api}/demandes/compteurs/`);
   }

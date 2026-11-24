@@ -1,5 +1,6 @@
 <div class="lst">
   <app-page-entete titre="Délégations" icone="ri-user-shared-line" sousTitre="Confier temporairement ses validations à un collègue">
+    <app-export-liste [titre]="'Délégations'" [lignes]="delegations" [colonnes]="colonnesExport"></app-export-liste>
     @if (adminWorkflow) {
       <div class="btn-group btn-group-sm me-2">
         <button type="button" class="btn" [class.btn-primary]="sens === ''" [class.btn-light]="sens !== ''" (click)="sens = ''; charger()">Les miennes</button>

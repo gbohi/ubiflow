@@ -13,6 +13,7 @@ import { TokenStorageService } from 'src/app/core/services/token-storage.service
 import { aUnRole } from 'src/app/core/helpers/roles';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { ToastrService } from 'ngx-toastr';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 const ROLES_GESTION = ['super_admin', 'admin', 'admin_workflow', 'direction', 'controleur', 'comptable'];
 
@@ -21,6 +22,18 @@ const ROLES_GESTION = ['super_admin', 'admin', 'admin_workflow', 'direction', 'c
   templateUrl: './mes-demandes.component.html',
 })
 export class MesDemandesComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Référence', champ: d => d.reference || 'Brouillon' }, { libelle: 'Type', champ: 'type_libelle' },
+    { libelle: 'Demandeur', champ: 'demandeur_nom' }, { libelle: 'Objet', champ: 'objet' },
+    { libelle: 'Montant demandé', champ: 'montant_demande', format: 'montant', devise: 'devise' },
+    { libelle: 'Montant approuvé', champ: 'montant_approuve', format: 'montant', devise: 'devise' },
+    { libelle: 'Statut', champ: 'statut_libelle' }, { libelle: 'Paiement', champ: 'statut_financier_libelle' },
+    { libelle: 'Étape en cours', champ: d => d.etape_en_cours ? `${d.etape_en_cours.libelle} (${d.etape_en_cours.valideurs.join(', ')})` : '' },
+    { libelle: 'Date de la demande', champ: d => d.soumise_le || d.created_at, format: 'dateheure' },
+  ];
+  get paramsExport(): Record<string, any> { return { vue: this.vue, statut: this.statut, type_demande: this.typeDemande, du: this.du, au: this.au, search: this.recherche.trim() }; }
+
   private readonly service = inject(DemandesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

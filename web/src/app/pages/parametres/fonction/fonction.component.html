@@ -3,6 +3,7 @@
   <app-page-entete titre="Fonctions" icone="ri-user-star-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="totalItems" unite="fonction|fonctions">
+    <app-export-liste [titre]="'Fonctions'" url="fonctions/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle fonction</span></button>
   </app-page-entete>
 

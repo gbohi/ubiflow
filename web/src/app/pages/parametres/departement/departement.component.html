@@ -3,6 +3,7 @@
   <app-page-entete titre="Départements" icone="ri-organization-chart"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="totalItems" unite="département|départements">
+    <app-export-liste [titre]="'Départements'" url="services/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouveau département</span></button>
   </app-page-entete>
 

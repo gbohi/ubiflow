@@ -3,6 +3,7 @@
   <app-page-entete titre="Postes" icone="ri-briefcase-4-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="totalItems" unite="poste|postes">
+    <app-export-liste [titre]="'Postes'" url="postes/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouveau poste</span></button>
   </app-page-entete>
 

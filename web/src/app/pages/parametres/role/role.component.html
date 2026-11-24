@@ -3,6 +3,7 @@
   <app-page-entete titre="Rôles" icone="ri-shield-user-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="totalItems" unite="rôle|rôles">
+    <app-export-liste [titre]="'Rôles'" url="groups/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouveau rôle</span></button>
   </app-page-entete>
 

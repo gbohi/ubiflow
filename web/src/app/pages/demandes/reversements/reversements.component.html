@@ -1,6 +1,7 @@
 <div class="lst">
   <app-page-entete titre="Reversements" icone="ri-arrow-go-back-line" [compte]="total" unite="reversement|reversements"
                    [fil]="[{label: 'Trésorerie'}]">
+    <app-export-liste [titre]="'Reversements'" url="tresorerie/reversements/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <div class="btn-group btn-group-sm" role="group" aria-label="État">
       @for (o of onglets; track o.cle) {
         <button type="button" class="btn" [class.btn-primary]="etat === o.cle" [class.btn-light]="etat !== o.cle" (click)="changer(o.cle)">{{ o.libelle }}</button>

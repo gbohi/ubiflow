@@ -8,12 +8,24 @@ import { ModalDirective } from 'ngx-bootstrap/modal';
 import { ToastrService } from 'ngx-toastr';
 import { ChampType, DemandesService, ExigencePiece, TypeDemande, TypePiece } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-types-demande',
   templateUrl: './types-demande.component.html',
 })
 export class TypesDemandeComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Libellé', champ: 'libelle' }, { libelle: 'Code', champ: 'code' }, { libelle: 'Famille', champ: 'famille' },
+    { libelle: 'Préfixe', champ: 'prefixe_reference' }, { libelle: 'Avec montant', champ: 'avec_montant', format: 'oui_non' },
+    { libelle: 'Paiement fractionné', champ: 'paiement_fractionne_autorise', format: 'oui_non' },
+    { libelle: 'Séparation approbation / paiement', champ: 'separation_approbation_paiement', format: 'oui_non' },
+    { libelle: 'Clôture', champ: 'mode_cloture' }, { libelle: 'Champs', champ: t => t.champs?.length || 0 },
+    { libelle: 'Circuit publié', champ: t => t.circuit_publie ? `version ${t.circuit_publie.numero}` : 'aucun' },
+    { libelle: 'Actif', champ: 'actif', format: 'oui_non' },
+  ];
+
   private readonly service = inject(DemandesService);
   private readonly toast = inject(ToastrService);
 

@@ -2,6 +2,7 @@
   <app-page-entete titre="Lieux et distances" icone="ri-map-pin-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
                    sousTitre="Destinations des missions et distances du référentiel">
+    <app-export-liste [titre]="titreExport" [lignes]="lignesExport" [colonnes]="colonnesExport"></app-export-liste>
     @if (ecriture) {
       <button type="button" class="btn-ubi vert" (click)="nouveau()"><i class="ri-add-line"></i>
         <span class="pe-lib">{{ onglet === 'pays' ? 'Nouveau pays' : onglet === 'villes' ? 'Nouvelle ville' : 'Nouvelle distance' }}</span></button>

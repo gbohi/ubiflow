@@ -243,3 +243,19 @@ class ComplementsTests(TresorerieBase):
         self.assertEqual(Demande.objects.get(pk=mission.pk).montant_approuve, Decimal('190000'))  # inchangé
         self.assertEqual(self.client.get(f'/api/api/demandes/{fcm}/').data['demande_parent_reference'],
                          mission.reference)
+
+
+class PdfDemandeTests(TresorerieBase):
+    def test_fiche_pdf(self):
+        pk = self.creer_mission()
+        self.soumettre(pk)
+        self.approuver(pk)
+        self.payer(pk, '100000')
+        self.en(self.agent)
+        r = self.client.get(f'/api/api/demandes/{pk}/pdf/')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertTrue(r.content.startswith(b'%PDF'))
+        self.assertIn('MLO-', r['Content-Disposition'])
+        self.en(self.autre)
+        self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/pdf/').status_code, 403)

@@ -19,6 +19,7 @@ import {
 import { selectdepartementData, selectTotalItems, selectLoading, selectCurrentPage } from 'src/app/store/Departement/departement-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
 import { OrganisationService } from 'src/app/core/services/organisation/organisation.service';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-departement',
@@ -27,6 +28,10 @@ import { OrganisationService } from 'src/app/core/services/organisation/organisa
   providers: [DecimalPipe]
 })
 export class DepartementComponent implements OnInit, AfterViewInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [{ libelle: 'Libellé', champ: 'libelle_service' }, { libelle: 'Code', champ: 'code' }, { libelle: 'Département parent', champ: 'parent_libelle' }];
+  get paramsExport(): Record<string, any> { return { search: this.term?.trim(), ordering: this.tri.ordering }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', libelle_service: 'libelle_service', code: 'code' });

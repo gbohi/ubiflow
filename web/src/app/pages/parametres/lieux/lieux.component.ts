@@ -11,6 +11,7 @@ import { BaremesService, Distance, Pays, Ville } from 'src/app/core/services/bar
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { aUnRole } from 'src/app/core/helpers/roles';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 type Onglet = 'villes' | 'distances' | 'pays';
 
@@ -66,6 +67,20 @@ export class LieuxComponent implements OnInit {
     return t ? this.distances.filter(d => `${d.ville_a_libelle} ${d.ville_b_libelle}`.toLowerCase().includes(t)) : this.distances;
   }
   get villesActives(): Ville[] { return this.villes.filter(v => v.actif); }
+
+  // ── Export de l'onglet affiché ──
+  get titreExport(): string { return this.onglet === 'villes' ? 'Villes' : this.onglet === 'distances' ? 'Distances' : 'Pays'; }
+  get lignesExport(): any[] {
+    return this.onglet === 'villes' ? this.villesAffichees : this.onglet === 'distances' ? this.distancesAffichees : this.pays;
+  }
+  get colonnesExport(): ColonneExport[] {
+    if (this.onglet === 'villes') return [{ libelle: 'Ville', champ: 'libelle' }, { libelle: 'Pays', champ: 'pays_libelle' },
+                                         { libelle: 'Active', champ: 'actif', format: 'oui_non' }];
+    if (this.onglet === 'distances') return [{ libelle: 'Ville A', champ: 'ville_a_libelle' }, { libelle: 'Ville B', champ: 'ville_b_libelle' },
+                                            { libelle: 'Distance (km)', champ: 'km', format: 'montant' }];
+    return [{ libelle: 'Pays', champ: 'libelle' }, { libelle: 'Code ISO', champ: 'code_iso' }, { libelle: 'Devise usuelle', champ: 'devise_usuelle' },
+            { libelle: 'Villes', champ: 'nb_villes' }, { libelle: 'Actif', champ: 'actif', format: 'oui_non' }];
+  }
 
   nouveau(objet?: any): void {
     this.erreurs = null;

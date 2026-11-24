@@ -62,6 +62,7 @@ import { TriServeur } from 'src/app/shared/tri-serveur';
 import { environment } from 'src/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { LIBELLES_ROLES } from 'src/app/core/helpers/roles';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 // ============================================================
 // VALIDATORS
@@ -94,6 +95,18 @@ export const passwordStrengthValidator: ValidatorFn = (control: AbstractControl)
   providers: [DecimalPipe, DatePipe],
 })
 export class UserComponent implements OnInit, AfterViewInit, OnDestroy {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Matricule', champ: 'username' }, { libelle: 'Nom', champ: 'nom' }, { libelle: 'Prénom', champ: 'prenom' },
+    { libelle: 'E-mail', champ: 'email' }, { libelle: 'Contact', champ: 'contact' },
+    { libelle: 'Agence', champ: 'derniere_agence.agence_nom' }, { libelle: 'Département', champ: 'dernier_service.service_libelle' },
+    { libelle: 'Poste', champ: 'dernier_poste.poste_libelle' }, { libelle: 'Catégorie', champ: 'derniere_categoriesalarie.categoriesalarie_libelle' },
+    { libelle: 'Rôles', champ: u => (u.roles ?? []).map((r: string) => LIBELLES_ROLES[r] ?? r).join(', ') },
+    { libelle: 'Statut', champ: 'statut_libelle' }, { libelle: 'Compte actif', champ: 'is_active', format: 'oui_non' },
+    { libelle: 'Dernière connexion', champ: 'last_login', format: 'dateheure' },
+  ];
+  get paramsExport(): Record<string, any> { return { search: (this.term ?? '').toString().trim(), ordering: this.tri.ordering, ...this.filtresAvances }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', nom: 'nom,prenom', username: 'username' });

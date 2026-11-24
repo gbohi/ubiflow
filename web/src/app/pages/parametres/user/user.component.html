@@ -4,6 +4,7 @@
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="comptesRoles['tous'] !== undefined ? comptesRoles['tous'] : totalItems" unite="compte|comptes"
                    [complement]="comptesRoles['desactive'] ? comptesRoles['desactive'] + ' désactivé' + (comptesRoles['desactive'] > 1 ? 's' : '') : ''">
+    <app-export-liste [titre]="'Utilisateurs'" url="users/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi" [class.actif]="showSearchPanel" (click)="toggleSearchPanel()" [attr.aria-expanded]="showSearchPanel">
       <i class="ri-filter-3-line"></i><span class="pe-lib">Filtres</span>
       @if (hasActiveSearch()) { <span class="badge rounded-pill bg-danger ms-1" style="font-size:.6rem;">●</span> }

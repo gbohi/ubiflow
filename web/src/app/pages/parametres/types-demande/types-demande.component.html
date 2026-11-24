@@ -2,6 +2,7 @@
   <app-page-entete titre="Types de demande" icone="ri-file-settings-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Demandes'}]"
                    sousTitre="Formulaire et pièces de chaque type ; le circuit se règle dans « Circuits de validation »">
+    <app-export-liste [titre]="'Types de demande'" [lignes]="types" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="nouveau()"><i class="ri-add-line"></i><span class="pe-lib">Nouveau type</span></button>
   </app-page-entete>
 

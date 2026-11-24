@@ -42,6 +42,7 @@ import { fetchfonctionNoPaginateData } from 'src/app/store/Fonction/fonction.act
 import { selectAllDepartementWithoutPagination } from 'src/app/store/Departement/departement-selector';
 import { fetchdepartementNoPaginateData } from 'src/app/store/Departement/departement.action';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-poste',
@@ -50,6 +51,10 @@ import { TriServeur } from 'src/app/shared/tri-serveur';
   providers: [DecimalPipe, DatePipe],
 })
 export class PosteComponent implements OnInit, AfterViewInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [{ libelle: 'Libellé', champ: 'libelle' }, { libelle: 'Fonction', champ: 'fonction_libelle' }, { libelle: 'Service', champ: 'service_libelle' }];
+  get paramsExport(): Record<string, any> { return { search: this.searchTerm, ordering: this.tri.ordering }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', libelle: 'libelle' });

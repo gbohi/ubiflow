@@ -23,6 +23,7 @@ import {
   selectroleData, selectTotalItems, selectLoading, selectCurrentPage,
 } from 'src/app/store/Role/role-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 /** Rôles système (non modifiables / non supprimables côté serveur) */
 export const ROLES_SYSTEME: Record<string, string> = {
@@ -39,6 +40,10 @@ export const ROLES_SYSTEME: Record<string, string> = {
   providers: [DecimalPipe, DatePipe],
 })
 export class RoleComponent implements OnInit, AfterViewInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [{ libelle: 'Rôle', champ: r => this.roleLabel(r.name) || r.name }, { libelle: 'Code', champ: 'name' }];
+  get paramsExport(): Record<string, any> { return { search: (this.term ?? '').toString().trim(), ordering: this.tri.ordering }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', name: 'name' });

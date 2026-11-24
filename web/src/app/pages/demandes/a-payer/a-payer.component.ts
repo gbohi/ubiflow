@@ -8,17 +8,30 @@ import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, debounceTime } from 'rxjs';
 import {
-  CLASSES_STATUT, Demande, DemandesService, TypeDemande, enregistrerFichier, iconeType, teinteType,
+  CLASSES_STATUT, Demande, DemandesService, TypeDemande, iconeType, teinteType,
 } from 'src/app/core/services/demandes/demandes.service';
 import { TresorerieService } from 'src/app/core/services/tresorerie/tresorerie.service';
 import { OrganisationService, messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { PaiementModalComponent } from '../paiement-modal/paiement-modal.component';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-a-payer',
   templateUrl: './a-payer.component.html',
 })
 export class APayerComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Référence', champ: 'reference' }, { libelle: 'Type', champ: 'type_libelle' },
+    { libelle: 'Demandeur', champ: 'demandeur_nom' }, { libelle: 'Objet', champ: 'objet' },
+    { libelle: 'Approuvée le', champ: 'approuvee_le', format: 'date' },
+    { libelle: 'Approuvé', champ: 'montant_approuve', format: 'montant', devise: 'devise' },
+    { libelle: 'Payé', champ: 'montant_paye', format: 'montant', devise: 'devise' },
+    { libelle: 'Reste à payer', champ: d => this.reste(d), format: 'montant', devise: 'devise' },
+    { libelle: 'Statut financier', champ: 'statut_financier_libelle' },
+  ];
+  get paramsExport(): Record<string, any> { return { ...this.filtres }; }
+
   private readonly service = inject(TresorerieService);
   private readonly demandes = inject(DemandesService);
   private readonly organisation = inject(OrganisationService);
@@ -76,13 +89,6 @@ export class APayerComponent implements OnInit {
     e.stopPropagation();
     const type = this.types.find(t => t.id === d.type_demande);
     this.paiement?.ouvrir(d, type?.paiement_fractionne_autorise ?? true);
-  }
-
-  exporter(): void {
-    this.service.exporterAPayer(this.filtres).subscribe({
-      next: b => enregistrerFichier(b, 'demandes-a-payer.xlsx'),
-      error: e => this.toast.error(messageErreur(e)),
-    });
   }
 
   ouvrir(d: Demande): void { this.router.navigate(['/demandes', d.id]); }

@@ -18,6 +18,7 @@ import {
 } from 'src/app/store/Statut/statut.action';
 import { selectstatutData, selectTotalItems, selectLoading, selectCurrentPage } from 'src/app/store/Statut/statut-selector';
 import { TriServeur } from 'src/app/shared/tri-serveur';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-statut',
@@ -26,6 +27,10 @@ import { TriServeur } from 'src/app/shared/tri-serveur';
   providers: [DecimalPipe]
 })
 export class StatutComponent implements OnInit, AfterViewInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [{ libelle: 'Libellé', champ: 'libelle_statut' }];
+  get paramsExport(): Record<string, any> { return { search: this.term?.trim(), ordering: this.tri.ordering }; }
+
 
   // Tri serveur des colonnes : clé de colonne → champ autorisé par l'API (ordering_fields)
   readonly tri = new TriServeur({ id: 'id', libelle_statut: 'libelle_statut' });

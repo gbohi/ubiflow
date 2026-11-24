@@ -14,12 +14,24 @@ import {
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { aUnRole } from 'src/app/core/helpers/roles';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-reversements',
   templateUrl: './reversements.component.html',
 })
 export class ReversementsComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Demande', champ: 'demande_reference' }, { libelle: 'Type', champ: 'demande_type' },
+    { libelle: 'Demandeur', champ: 'demandeur_nom' }, { libelle: 'Origine', champ: 'origine_libelle' }, { libelle: 'Motif', champ: 'motif' },
+    { libelle: 'Montant dû', champ: 'montant_du', format: 'montant', devise: 'devise' }, { libelle: 'État', champ: 'etat_libelle' },
+    { libelle: 'Créé le', champ: 'cree_le', format: 'date' }, { libelle: 'Perçu le', champ: 'percu_le', format: 'date' },
+    { libelle: 'Mode', champ: 'mode_libelle' }, { libelle: 'Référence', champ: 'reference' },
+    { libelle: "Motif d'abandon", champ: 'motif_abandon' }, { libelle: 'Traité par', champ: 'traite_par_nom' },
+  ];
+  get paramsExport(): Record<string, any> { return { etat: this.etat, search: this.recherche.trim() }; }
+
   private readonly service = inject(TresorerieService);
   private readonly toast = inject(ToastrService);
 

@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   AffectationResponsabilite, OrganisationService, Responsabilite, aujourdhui, messageErreur,
 } from 'src/app/core/services/organisation/organisation.service';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 const PORTEES = [
   { valeur: 'globale', libelle: "Toute l'entreprise" },
@@ -25,6 +26,13 @@ const PORTEES = [
   templateUrl: './responsabilite.component.html',
 })
 export class ResponsabiliteComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Responsabilité', champ: 'libelle' }, { libelle: 'Code', champ: 'code' },
+    { libelle: 'Portée', champ: r => this.libellePortee(r.portee) }, { libelle: 'Titulaires en cours', champ: r => r.nb_titulaires || 0 },
+    { libelle: 'Plusieurs titulaires', champ: 'multiple', format: 'oui_non' }, { libelle: 'Active', champ: 'actif', format: 'oui_non' },
+  ];
+
   private readonly organisation = inject(OrganisationService);
   private readonly toast = inject(ToastrService);
   private readonly destroyRef = inject(DestroyRef);

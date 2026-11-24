@@ -13,6 +13,7 @@ import {
 import { OrganisationService, messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { aUnRole } from 'src/app/core/helpers/roles';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 interface Onglet { code: CodeBareme | 'devise'; libelle: string; icone: string; aide: string; }
 
@@ -65,6 +66,20 @@ export class BaremesComponent implements OnInit {
     this.service.villes({ pays_code: 'CI' }).subscribe(v => this.villes = v);
     this.service.parametres().subscribe(p => { this.parametres = p; this.deviseSaisie = p.devise_reference; });
     this.charger();
+  }
+
+  /** Export : colonnes de l'onglet affiché */
+  get colonnesExport(): ColonneExport[] {
+    return [
+      { libelle: 'Barème', champ: (l: LigneBareme) => this.cle(l) },
+      { libelle: 'Valeur', champ: (l: LigneBareme) => Number(this.valeur(l)), format: 'montant' },
+      { libelle: 'Unité', champ: (l: LigneBareme) => this.unite(l) },
+      { libelle: "Date d'effet", champ: 'date_effet', format: 'date' },
+      { libelle: 'Valeur précédente', champ: (l: LigneBareme) => l.precedente ? `${l.precedente.valeur} (depuis le ${new Date(l.precedente.date_effet).toLocaleDateString('fr-FR')})` : '' },
+      { libelle: 'État', champ: (l: LigneBareme) => this.etat(l).libelle },
+      { libelle: 'Motif', champ: 'motif' }, { libelle: 'Modifié par', champ: (l: LigneBareme) => l.modifie_par_nom || 'Système' },
+      { libelle: 'Modifié le', champ: 'modifie_le', format: 'dateheure' },
+    ];
   }
 
   get ref(): string { return this.parametres?.devise_reference ?? 'XOF'; }

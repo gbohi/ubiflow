@@ -1,7 +1,7 @@
 <div class="lst">
   <app-page-entete titre="À payer" icone="ri-wallet-3-line" [compte]="total" unite="demande à payer|demandes à payer"
                    [fil]="[{label: 'Trésorerie'}]">
-    <button type="button" class="btn-ubi" (click)="exporter()"><i class="ri-file-excel-2-line"></i><span class="pe-lib">Exporter</span></button>
+    <app-export-liste [titre]="'Demandes à payer'" url="tresorerie/a-payer/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
   </app-page-entete>
 
   <div class="lst-carte">

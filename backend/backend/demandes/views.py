@@ -214,6 +214,16 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         return self._detail(copie, status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])
+    def pdf(self, request, pk=None):
+        """Fiche PDF de présentation de la demande."""
+        from django.http import HttpResponse
+        from .pdf import generer
+        demande = self.get_object()
+        r = HttpResponse(generer(demande, request.user), content_type='application/pdf')
+        r['Content-Disposition'] = f'attachment; filename="{demande.reference or f"brouillon-{demande.pk}"}.pdf"'
+        return r
+
+    @action(detail=True, methods=['get'])
     def historique(self, request, pk=None):
         actions = self.get_object().actions.select_related(
             'auteur_reel', 'pour_compte_de', 'etape_instance__etape', 'instance')

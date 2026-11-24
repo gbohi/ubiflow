@@ -11,6 +11,7 @@ import { PageEnteteComponent } from './page-entete/page-entete.component';
 import { ListePiedComponent } from './liste-pied/liste-pied.component';
 import { MontantPipe } from './montant.pipe';
 import { NumerotationDirective } from './numerotation/numerotation.directive';
+import { ExportListeComponent } from './export-liste/export-liste.component';
 
 @NgModule({
   declarations: [
@@ -19,6 +20,7 @@ import { NumerotationDirective } from './numerotation/numerotation.directive';
     ListePiedComponent,
     MontantPipe,
     NumerotationDirective,
+    ExportListeComponent,
   ],
   imports: [
     CommonModule,
@@ -28,6 +30,6 @@ import { NumerotationDirective } from './numerotation/numerotation.directive';
     BsDropdownModule,
   ],
   // BsDropdownModule : menu « ⋮ » des actions de ligne (gabarit commun des listes)
-  exports: [BreadcrumbsComponent, PageEnteteComponent, ListePiedComponent, MontantPipe, NumerotationDirective, BsDropdownModule, RouterModule]
+  exports: [BreadcrumbsComponent, PageEnteteComponent, ListePiedComponent, MontantPipe, NumerotationDirective, ExportListeComponent, BsDropdownModule, RouterModule]
 })
 export class SharedModule { }

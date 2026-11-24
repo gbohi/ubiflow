@@ -10,12 +10,22 @@ import { Delegation, DemandesService, TypeDemande } from 'src/app/core/services/
 import { OrganisationService, Responsabilite, aujourdhui, messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 import { aUnRole } from 'src/app/core/helpers/roles';
+import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
 @Component({
   selector: 'app-delegations',
   templateUrl: './delegations.component.html',
 })
 export class DelegationsComponent implements OnInit {
+  // ── Export Excel / PDF (toutes les lignes filtrées) ──
+  readonly colonnesExport: ColonneExport[] = [
+    { libelle: 'Délégant', champ: 'delegant_nom' }, { libelle: 'Délégataire', champ: 'delegataire_nom' },
+    { libelle: 'Début', champ: 'date_debut', format: 'date' }, { libelle: 'Fin', champ: 'date_fin', format: 'date' },
+    { libelle: 'Types de demande', champ: d => d.types_demande_libelles?.length ? d.types_demande_libelles.join(', ') : 'Tous les types' },
+    { libelle: 'Validations', champ: d => d.responsabilites_libelles?.length ? d.responsabilites_libelles.join(', ') : 'Toutes' },
+    { libelle: 'Motif', champ: 'motif' }, { libelle: 'État', champ: d => this.etats[d.etat || 'active']?.libelle ?? d.etat },
+  ];
+
   private readonly service = inject(DemandesService);
   private readonly organisation = inject(OrganisationService);
   private readonly toast = inject(ToastrService);

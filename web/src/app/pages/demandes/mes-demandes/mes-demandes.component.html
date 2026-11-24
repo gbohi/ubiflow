@@ -1,6 +1,7 @@
 <div class="lst">
   <app-page-entete [titre]="vue === 'toutes' ? 'Toutes les demandes' : 'Mes demandes'" icone="ri-file-list-3-line"
                    [compte]="total" unite="demande|demandes">
+    <app-export-liste [titre]="vue === 'toutes' ? 'Toutes les demandes' : 'Mes demandes'" url="demandes/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     @if (gestion) {
       <div class="btn-group btn-group-sm me-2" role="group" aria-label="Périmètre">
         <button type="button" class="btn" [class.btn-primary]="vue === 'mes'" [class.btn-light]="vue !== 'mes'" (click)="changerVue('mes')">Mes demandes</button>

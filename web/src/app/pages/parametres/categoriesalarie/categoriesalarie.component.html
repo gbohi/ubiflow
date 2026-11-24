@@ -3,6 +3,7 @@
   <app-page-entete titre="Catégories de salarié" icone="ri-price-tag-3-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
                    [compte]="totalItems" unite="catégorie de salarié|catégories de salarié">
+    <app-export-liste [titre]="'Catégories de salarié'" url="categoriesalaries/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle catégorie de salarié</span></button>
   </app-page-entete>
 

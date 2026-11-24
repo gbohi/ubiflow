@@ -3,6 +3,7 @@
   <app-page-entete titre="Responsabilités" icone="ri-shield-star-line"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Organisation'}]"
                    [compte]="responsabilites.length" unite="responsabilité|responsabilités">
+    <app-export-liste [titre]="'Responsabilités'" [lignes]="responsabilites" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi vert" (click)="nouvelle()"><i class="ri-add-line"></i><span class="pe-lib">Nouvelle responsabilité</span></button>
   </app-page-entete>
 

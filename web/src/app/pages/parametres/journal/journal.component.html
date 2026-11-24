@@ -2,6 +2,7 @@
   <app-page-entete titre="Journal d'activité" icone="ri-history-line" [compte]="total" unite="opération|opérations"
                    [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}]"></app-page-entete>
   <div class="lst-carte">
+    <app-export-liste titre="Journal d'activité" url="journal/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <div class="lst-barre flex-wrap gap-2">
       <div class="lst-recherche"><i class="ri-search-line"></i>
         <input type="search" placeholder="Objet, motif, auteur…" aria-label="Rechercher" [(ngModel)]="filtres.search" (keyup.enter)="charger()"></div>

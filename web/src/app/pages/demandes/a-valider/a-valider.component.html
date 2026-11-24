@@ -1,6 +1,7 @@
 <div class="lst">
   <app-page-entete titre="À valider" icone="ri-checkbox-multiple-line" [compte]="total"
                    [unite]="onglet === 'en_attente' ? 'validation en attente|validations en attente' : 'validation|validations'">
+    <app-export-liste [titre]="onglet === 'en_attente' ? 'Validations en attente' : 'Mes validations'" url="taches/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <div class="btn-group btn-group-sm" role="group">
       <button type="button" class="btn" [class.btn-primary]="onglet === 'en_attente'" [class.btn-light]="onglet !== 'en_attente'" (click)="changer('en_attente')">En attente</button>
       <button type="button" class="btn" [class.btn-primary]="onglet === 'faite'" [class.btn-light]="onglet !== 'faite'" (click)="changer('faite')">Mes validations</button>
