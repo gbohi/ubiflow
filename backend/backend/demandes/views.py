@@ -138,6 +138,10 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         if vue == 'toutes' and voit_toutes_les_demandes(user):
             # les brouillons des autres collaborateurs restent privés (décision 6)
             qs = Demande.objects.exclude(Q(statut=StatutDemande.BROUILLON) & ~Q(demandeur=user))
+            from api.permissions import filtre_perimetre
+            perimetre = filtre_perimetre(user)
+            if perimetre is not None:  # profil de consultation limité à son périmètre (§3.2)
+                qs = qs.filter(perimetre | Q(demandeur=user))
         elif vue == 'visibles':
             qs = services.demandes_visibles(user)
         else:

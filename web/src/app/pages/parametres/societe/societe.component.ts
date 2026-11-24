@@ -52,8 +52,8 @@ export class SocieteComponent implements OnInit {
   enregistrer(): void {
     if (!this.fiche || this.enCours) return;
     this.enCours = true;
-    const { raison_sociale, adresse, ville, pays, formulaires } = this.fiche;
-    this.service.enregistrerParametres({ raison_sociale, adresse, ville, pays, formulaires }).subscribe({
+    const { raison_sociale, adresse, ville, pays, formulaires, canal_email, canal_push } = this.fiche;
+    this.service.enregistrerParametres({ raison_sociale, adresse, ville, pays, formulaires, canal_email, canal_push }).subscribe({
       next: () => {
         if (!this.logo) { this.fin(); return; }
         this.service.envoyerLogo(this.logo).subscribe({ next: () => this.fin(), error: e => this.echec(e) });

@@ -9,6 +9,7 @@ import { DelegationsComponent } from './delegations/delegations.component';
 import { APayerComponent } from './a-payer/a-payer.component';
 import { ReversementsComponent } from './reversements/reversements.component';
 import { CloturesComponent } from './clotures/clotures.component';
+import { PreferencesComponent } from './preferences/preferences.component';
 import { RoleGuard } from 'src/app/core/guards/role.guard';
 import { ROLES_TRESORERIE } from 'src/app/core/services/tresorerie/tresorerie.service';
 
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: 'demandes/nouvelle', component: NouvelleDemandeComponent, title: 'Nouvelle demande | UbiFlow' },
   { path: 'demandes/:id', component: DemandeDetailComponent, title: 'Demande | UbiFlow' },
   { path: 'validations', component: AValiderComponent, title: 'À valider | UbiFlow' },
+  { path: 'notifications/preferences', component: PreferencesComponent, title: 'Préférences de notification | UbiFlow' },
   { path: 'delegations', component: DelegationsComponent, title: 'Délégations | UbiFlow' },
   { path: 'tresorerie/a-payer', component: APayerComponent, canActivate: [RoleGuard], data: { roles: ROLES_TRESORERIE },
     title: 'À payer | UbiFlow' },

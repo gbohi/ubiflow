@@ -248,8 +248,11 @@ def valideur(user, f):
 
 
 def direction(user, f):
+    from api.permissions import filtre_perimetre
     from tresorerie.models import Reversement
-    periode = list(demandes(f).exclude(statut=StatutDemande.ANNULEE) if not f.get('statut') else demandes(f))
+    q = filtre_perimetre(user)
+    base = Demande.objects.filter(q) if q is not None else None
+    periode = list(demandes(f, base).exclude(statut=StatutDemande.ANNULEE) if not f.get('statut') else demandes(f, base))
     approuvees = [d for d in periode if d.statut in APPROUVEES]
     missions = [d for d in periode if d.type_demande.famille == 'mission']
     tm = lambda d: (d.type_demande.parametres or {}).get('type_mission')

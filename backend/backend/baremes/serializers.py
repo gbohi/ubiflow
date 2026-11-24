@@ -118,7 +118,19 @@ class ParametreSystemeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ParametreSysteme
         fields = ['devise_reference', 'taille_max_piece_mo', 'raison_sociale', 'adresse', 'ville', 'pays', 'logo',
-                  'formulaires', 'jours_ouvres', 'updated_at', 'modifiable_devise']
+                  'formulaires', 'jours_ouvres', 'canal_email', 'canal_push', 'email_configure', 'push_configure',
+                  'updated_at', 'modifiable_devise']
+
+    email_configure = serializers.SerializerMethodField()
+    push_configure = serializers.SerializerMethodField()
+
+    def get_email_configure(self, obj):
+        from django.conf import settings
+        return bool(settings.EMAIL_HOST)
+
+    def get_push_configure(self, obj):
+        from django.conf import settings
+        return bool(settings.FIREBASE_CREDENTIALS)
 
     def validate_jours_ouvres(self, v):
         if not isinstance(v, list) or not v or any(not isinstance(j, int) or not 0 <= j <= 6 for j in v):

@@ -259,6 +259,22 @@ class ImportCollaborateurs(models.Model):
 # PARAMÈTRES SYSTÈME
 # ============================================================
 
+class PerimetreConsultation(models.Model):
+    """
+    Limite ce qu'un profil de consultation (direction, contrôleur, gestionnaire) voit dans
+    les listes et les tableaux de bord : toute l'entreprise, un département (et ses
+    sous-départements) ou une agence. Sans périmètre : toute l'entreprise.
+    """
+    TYPES = [('tout', "Toute l'entreprise"), ('departement', 'Un département'), ('agence', 'Une agence')]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='perimetres_consultation')
+    type = models.CharField(max_length=12, choices=TYPES, default='departement')
+    departement = models.ForeignKey('Service', on_delete=models.CASCADE, null=True, blank=True, related_name='+')
+    agence = models.ForeignKey('Agence', on_delete=models.CASCADE, null=True, blank=True, related_name='+')
+
+    class Meta:
+        ordering = ['user', 'type']
+
+
 class JourFerie(models.Model):
     """Jour non ouvré (délais de validation, rappels)."""
     date = models.DateField(unique=True)
@@ -285,6 +301,9 @@ class ParametreSysteme(models.Model):
     formulaires = models.JSONField(default=dict, blank=True)
     # Calendrier : jours ouvrés (0 = lundi … 6 = dimanche), jours fériés dans JourFerie
     jours_ouvres = models.JSONField(default=list, blank=True)
+    # Canaux de notification (en plus de l'application) ; actifs seulement si le serveur est configuré
+    canal_email = models.BooleanField(default=True)
+    canal_push = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
     user_updated = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 

@@ -1,5 +1,6 @@
-"""Création des notifications (dans l'application ; push et e-mail au lot 6)."""
+"""Création des notifications : dans l'application, puis e-mail et push après la transaction (canaux.py)."""
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from .models import Notification
 
@@ -17,6 +18,10 @@ def notifier(destinataires, evenement, titre, message='', demande=None, lien='')
         creees.append(Notification(destinataire=d, evenement=evenement, titre=titre[:200], message=message,
                                    demande=demande, lien=lien or (f'/demandes/{demande.pk}' if demande else '')))
     Notification.objects.bulk_create(creees)
+    ids = [n.pk for n in creees if n.pk]
+    if ids:
+        from .canaux import diffuser
+        transaction.on_commit(lambda: diffuser(ids))
     return creees
 
 

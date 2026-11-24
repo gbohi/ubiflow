@@ -91,6 +91,32 @@ def voit_toutes_les_demandes(user):
                 (user.is_superuser or get_roles(user) & ROLES_GESTION_DEMANDES))
 
 
+# Rôles qui voient tout sans limite de périmètre (gestion des demandes et des paiements)
+ROLES_SANS_PERIMETRE = ADMIN_ROLES | {ROLE_ADMIN_WORKFLOW, ROLE_ADMIN_FINANCES, ROLE_COMPTABLE}
+
+
+def filtre_perimetre(user):
+    """
+    Q à appliquer aux demandes pour un profil de consultation qui a des périmètres (§3.2) ;
+    None = aucune limite (administrateurs, comptables, ou aucun périmètre défini).
+    """
+    from django.db.models import Q
+    if not user or not user.is_authenticated or user.is_superuser or get_roles(user) & ROLES_SANS_PERIMETRE:
+        return None
+    from .models import PerimetreConsultation, Service
+    lignes = list(PerimetreConsultation.objects.filter(user=user))
+    if not lignes or any(p.type == 'tout' for p in lignes):
+        return None
+    q = Q(pk__in=[])
+    for p in lignes:
+        if p.type == 'departement' and p.departement_id:
+            ids = [p.departement_id] + [s.pk for s in Service.objects.all() if p.departement_id in [a.pk for a in s.ancetres()]]
+            q |= Q(departement_id__in=ids)
+        elif p.type == 'agence' and p.agence_id:
+            q |= Q(agence_id=p.agence_id)
+    return q
+
+
 def agences_gerees(user):
     """
     Agences dont un gestionnaire s'occupe : None pour un administrateur

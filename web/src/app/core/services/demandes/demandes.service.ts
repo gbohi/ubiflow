@@ -290,6 +290,10 @@ export class DemandesService {
   }
 
   // ── Notifications, journal ────────────────────────────────
+  preferencesNotification() { return this.http.get<any>(`${this.api}/notifications/preferences/`); }
+  enregistrerPreferences(p: { evenement: string; email: boolean; push: boolean }[]) {
+    return this.http.put<any>(`${this.api}/notifications/preferences/`, p);
+  }
   notifications(nonLues = false) {
     return this.http.get<any>(`${this.api}/notifications/`, { params: this.params({ non_lues: nonLues ? 1 : '' }) })
       .pipe(map(r => tableau<Notification>(r)));

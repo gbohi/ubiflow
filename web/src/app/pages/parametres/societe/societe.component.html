@@ -1,6 +1,6 @@
 <div class="lst">
   <app-page-entete titre="Société" icone="ri-building-4-line" [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Finances'}]"
-                   sousTitre="En-têtes de l'ordre de mission et de la note de frais">
+                   sousTitre="En-têtes des documents, canaux de notification">
     <button type="button" class="btn-ubi vert" [disabled]="enCours || !fiche" (click)="enregistrer()"><i class="ri-save-line"></i><span class="pe-lib">Enregistrer</span></button>
   </app-page-entete>
 
@@ -41,6 +41,21 @@
           </div>
           <input type="file" class="form-control" accept=".png,.jpg,.jpeg,.webp" aria-label="Logo" (change)="choisirLogo($event)">
           <div class="form-text">PNG sur fond transparent ou blanc, de préférence.</div>
+        </div>
+        <div class="lst-carte p-3 p-md-4 mb-3">
+          <h6 class="mb-3">Canaux de notification</h6>
+          <div class="form-check form-switch mb-1">
+            <input id="so-mail" class="form-check-input" type="checkbox" [(ngModel)]="fiche.canal_email">
+            <label class="form-check-label" for="so-mail">E-mails</label>
+          </div>
+          <p class="small mb-3" [class.text-success]="fiche.email_configure" [class.text-muted]="!fiche.email_configure">
+            {{ fiche.email_configure ? 'Serveur SMTP configuré.' : 'Serveur SMTP à configurer sur le serveur (EMAIL_HOST…) : aucun e-mail ne part en attendant.' }}</p>
+          <div class="form-check form-switch mb-1">
+            <input id="so-push" class="form-check-input" type="checkbox" [(ngModel)]="fiche.canal_push">
+            <label class="form-check-label" for="so-push">Notifications push (application mobile)</label>
+          </div>
+          <p class="small mb-0" [class.text-success]="fiche.push_configure" [class.text-muted]="!fiche.push_configure">
+            {{ fiche.push_configure ? 'Compte Firebase configuré.' : 'Compte de service Firebase à configurer sur le serveur (FIREBASE_CREDENTIALS).' }}</p>
         </div>
         <div class="lst-carte p-3 p-md-4">
           <h6 class="mb-3">Références des formulaires qualité</h6>

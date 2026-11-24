@@ -36,6 +36,7 @@ import { BaremesComponent } from './baremes/baremes.component';
 import { LieuxComponent } from './lieux/lieux.component';
 import { SocieteComponent } from './societe/societe.component';
 import { CalendrierComponent } from './calendrier/calendrier.component';
+import { PerimetresComponent } from './perimetres/perimetres.component';
 
 @NgModule({
   declarations: [
@@ -44,6 +45,7 @@ import { CalendrierComponent } from './calendrier/calendrier.component';
     LieuxComponent,
     SocieteComponent,
     CalendrierComponent,
+    PerimetresComponent,
     AgenceComponent,
     StatutComponent,
     DepartementComponent,

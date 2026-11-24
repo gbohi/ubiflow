@@ -1,0 +1,35 @@
+<div class="lst">
+  <app-page-entete titre="Préférences de notification" icone="ri-notification-3-line" sousTitre="L'application vous montre toujours toutes les notifications ; choisissez ce que vous recevez en plus">
+    <button type="button" class="btn-ubi vert" [disabled]="enCours || !donnees" (click)="enregistrer()"><i class="ri-save-line"></i><span class="pe-lib">Enregistrer</span></button>
+  </app-page-entete>
+  @if (donnees) {
+    @if (!donnees.email_actif || !donnees.push_actif) {
+      <div class="alert alert-info small">
+        @if (!donnees.email_actif) { <div><i class="ri-mail-line me-1"></i>L'envoi d'e-mails n'est pas encore activé par l'administrateur : vos choix s'appliqueront dès son activation.</div> }
+        @if (!donnees.push_actif) { <div><i class="ri-smartphone-line me-1"></i>Les notifications push sur mobile ne sont pas encore activées.</div> }
+      </div>
+    }
+    @if (donnees.email_actif && !donnees.adresse) {
+      <div class="alert alert-warning small"><i class="ri-error-warning-line me-1"></i>Aucune adresse e-mail n'est enregistrée sur votre compte : demandez à l'administrateur de la renseigner.</div>
+    }
+    <div class="lst-carte">
+      <div class="lst-table-wrap">
+        <table class="lst-table" sansNumero>
+          <thead><tr><th>Événement</th><th class="text-center">Application</th><th class="text-center">E-mail</th><th class="text-center">Push mobile</th></tr></thead>
+          <tbody>
+            @for (e of donnees.evenements; track e.evenement) {
+              <tr>
+                <td>{{ e.libelle }}@if (!e.desactivable) { <small class="d-block text-muted">Obligatoire</small> }</td>
+                <td class="text-center"><i class="ri-check-line text-success" aria-label="Toujours"></i></td>
+                <td class="text-center"><div class="form-check form-switch d-inline-block">
+                  <input class="form-check-input" type="checkbox" [(ngModel)]="e.email" [disabled]="!e.desactivable" [attr.aria-label]="'E-mail : ' + e.libelle"></div></td>
+                <td class="text-center"><div class="form-check form-switch d-inline-block">
+                  <input class="form-check-input" type="checkbox" [(ngModel)]="e.push" [disabled]="!e.desactivable" [attr.aria-label]="'Push : ' + e.libelle"></div></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

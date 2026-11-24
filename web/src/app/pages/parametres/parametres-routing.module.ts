@@ -23,6 +23,7 @@ import { BaremesComponent } from './baremes/baremes.component';
 import { LieuxComponent } from './lieux/lieux.component';
 import { SocieteComponent } from './societe/societe.component';
 import { CalendrierComponent } from './calendrier/calendrier.component';
+import { PerimetresComponent } from './perimetres/perimetres.component';
 
 const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
 const FINANCES = ['super_admin', 'admin', 'admin_finances', 'comptable', 'controleur'];
@@ -58,6 +59,8 @@ const routes: Routes = [
     title: 'Barèmes | UbiFlow' },
   { path: 'lieux', component: LieuxComponent, canActivate: [RoleGuard], data: { roles: FINANCES },
     title: 'Lieux et distances | UbiFlow' },
+  { path: 'perimetres', component: PerimetresComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
+    title: 'Périmètres de consultation | UbiFlow' },
   { path: 'calendrier', component: CalendrierComponent, canActivate: [RoleGuard], data: { roles: ADMINS },
     title: 'Calendrier | UbiFlow' },
   { path: 'societe', component: SocieteComponent, canActivate: [RoleGuard], data: { roles: ['super_admin', 'admin', 'admin_finances'] },

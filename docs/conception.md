@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.7 — référence pour le développement. Toute évolution de règle
+Version 1.8 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -662,6 +662,13 @@ lié par `origine_copie`.
   réaffecter).
 - Les demandes en retard alimentent les tableaux de bord.
 
+> **Mise en œuvre (lot 6)** : « heures ouvrées » = 24 h par jour ouvré (jours
+> ouvrés et jours fériés : Paramètres → Calendrier). L'échéance est calculée à
+> l'ouverture de la tâche ; la commande `taches_planifiees` (service Docker
+> « planificateur », toutes les heures) envoie les rappels (puis un par jour),
+> les escalades (une fois, tracées dans l'historique) et les rappels de clôture
+> (`delai_cloture_jours` après le retour, puis une fois par semaine).
+
 ### 5.9 Réaffectation exceptionnelle
 
 Rôle `admin_workflow` : remplacer le valideur d'une tâche en attente ou le
@@ -872,6 +879,16 @@ tableaux de bord.
 - Préférences par utilisateur ; « validation attendue » n'est pas
   désactivable.
 
+> **Mise en œuvre (lot 6)** : `notifications/canaux.py` (catalogue des
+> événements et canaux par défaut ; « validation attendue » et « rappel de
+> validation » obligatoires). E-mail : SMTP de la société (`EMAIL_HOST`…),
+> version texte et HTML avec lien vers la demande (`FRONTEND_URL`). Push :
+> Firebase Cloud Messaging v1 (`FIREBASE_CREDENTIALS`, jetons `AppareilMobile`
+> désactivés quand Firebase les refuse). Chaque canal peut être coupé par
+> l'administrateur (Paramètres → Société). L'enregistrement du jeton par
+> l'application mobile se branchera quand le projet Firebase de la société
+> sera créé (`google-services.json` / `GoogleService-Info.plist`).
+
 ---
 
 ## 12. Profils et droits
@@ -930,6 +947,15 @@ Filtres communs : période, type, statut, département, agence, catégorie,
 demandeur. Exports Excel et PDF de toute liste et de tout tableau. Les
 montants agrégés sont dans la devise de référence (taux figés).
 
+> **Mise en œuvre (lot 6)** : app `pilotage`, `GET /tableaux-de-bord/{profil}/`
+> renvoie une description générique (indicateurs, colonnes mensuelles, barres
+> classées, tableaux) ; le web l'affiche et en tire les exports Excel (une
+> feuille par bloc) et PDF (graphiques en image et tableaux). La période porte
+> sur la date de soumission (date de paiement pour la comptabilité). Les
+> filtres d'organisation (statut, département, agence, catégorie, demandeur)
+> s'appliquent au tableau Direction. Les profils de consultation sont limités
+> par leurs `PerimetreConsultation` (Paramètres → Périmètres de consultation).
+
 ---
 
 ## 15. API (principaux points d'entrée)
@@ -980,7 +1006,7 @@ barèmes, trésorerie, reporting avancé.
 | **3. Barèmes et missions** ✅ | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
 | **4. Paiement et trésorerie** ✅ | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** ✅ | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
-| **6. Pilotage et canaux** | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
+| **6. Pilotage et canaux** ✅ | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
 | **7. Mobile** | Périmètre du §16 | Parcours demandeur et valideur complets sur Android et iOS |
 
 Chaque lot livre l'API, les écrans web correspondants et les tests ; le

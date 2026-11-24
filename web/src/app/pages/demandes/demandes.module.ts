@@ -19,12 +19,13 @@ import { APayerComponent } from './a-payer/a-payer.component';
 import { ReversementsComponent } from './reversements/reversements.component';
 import { ClotureMissionComponent } from './cloture-mission/cloture-mission.component';
 import { CloturesComponent } from './clotures/clotures.component';
+import { PreferencesComponent } from './preferences/preferences.component';
 
 @NgModule({
   declarations: [
     ChampsDemandeComponent, MesDemandesComponent, NouvelleDemandeComponent, DemandeDetailComponent,
     AValiderComponent, DelegationsComponent, MissionFormComponent, RecapMissionComponent,
-    PaiementModalComponent, APayerComponent, ReversementsComponent, ClotureMissionComponent, CloturesComponent,
+    PaiementModalComponent, APayerComponent, ReversementsComponent, ClotureMissionComponent, CloturesComponent, PreferencesComponent,
   ],
   imports: [CommonModule, FormsModule, SharedModule, ModalModule.forRoot(), NgSelectModule, DemandesRoutingModule],
   exports: [ChampsDemandeComponent],

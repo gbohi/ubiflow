@@ -154,18 +154,25 @@ def est_valideur(demande, user):
     return taches.filter(moteur.filtre_taches_de(user)).exists() or taches.filter(traitee_par=user).exists()
 
 
+def _dans_perimetre(demande, user):
+    from api.permissions import filtre_perimetre
+    q = filtre_perimetre(user)
+    return q is None or Demande.objects.filter(q, pk=demande.pk).exists()
+
+
 def peut_voir(demande, user):
-    return (demande.demandeur_id == user.pk or demande.cree_par_id == user.pk
-            or voit_toutes_les_demandes(user) or est_valideur(demande, user))
+    return (demande.demandeur_id == user.pk or demande.cree_par_id == user.pk or est_valideur(demande, user)
+            or (voit_toutes_les_demandes(user) and _dans_perimetre(demande, user)))
 
 
 def demandes_visibles(user):
-    if voit_toutes_les_demandes(user):
-        return Demande.objects.all()
+    from api.permissions import filtre_perimetre
     mes_taches = Tache.objects.filter(moteur.filtre_taches_de(user) | Q(traitee_par=user))
-    return Demande.objects.filter(
-        Q(demandeur=user) | Q(cree_par=user)
-        | Q(pk__in=mes_taches.values('etape_instance__instance__demande'))).distinct()
+    miennes = Q(demandeur=user) | Q(cree_par=user) | Q(pk__in=mes_taches.values('etape_instance__instance__demande'))
+    if voit_toutes_les_demandes(user):
+        q = filtre_perimetre(user)
+        return Demande.objects.all() if q is None else Demande.objects.filter(q | miennes).distinct()
+    return Demande.objects.filter(miennes).distinct()
 
 
 def _exiger_demandeur(demande, user, statuts, action):

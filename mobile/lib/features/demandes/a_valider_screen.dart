@@ -69,6 +69,8 @@ class _AValiderScreenState extends State<AValiderScreen> {
                         subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text('${d['type_libelle']} — ${d['objet']}', maxLines: 2, overflow: TextOverflow.ellipsis),
                           Text('Étape : ${t['etape']}', style: const TextStyle(fontSize: 12)),
+                          if (t['en_retard'] == true)
+                            const Text('En retard', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
                           if (t['pour_compte_de'] != null)
                             Text('Pour le compte de ${t['pour_compte_de']}',
                                 style: const TextStyle(fontSize: 12, color: Colors.orange)),

@@ -26,6 +26,7 @@ import { DemandesService, Notification } from 'src/app/core/services/demandes/de
         <div class="d-flex align-items-center p-3 border-bottom">
           <h6 class="m-0 fs-base">Notifications</h6>
           @if (nonLues > 0) { <button type="button" class="btn btn-link btn-sm ms-auto p-0" (click)="toutLire($event)">Tout marquer comme lu</button> }
+          <a routerLink="/notifications/preferences" class="btn btn-link btn-sm p-0 ms-2" title="Préférences de notification" aria-label="Préférences de notification"><i class="ri-settings-4-line"></i></a>
         </div>
         <div style="max-height: 360px; overflow: auto">
           @for (n of notifications; track n.id) {

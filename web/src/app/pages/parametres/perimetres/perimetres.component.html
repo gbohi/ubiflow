@@ -1,0 +1,57 @@
+<div class="lst">
+  <app-page-entete titre="Périmètres de consultation" icone="ri-focus-3-line" [fil]="[{label: 'Paramètres', lien: '/parametres/accueil'}, {label: 'Personnel'}]"
+                   [compte]="lignes.length" unite="périmètre|périmètres">
+    <app-export-liste titre="Périmètres de consultation" [lignes]="lignes" [colonnes]="colonnesExport"></app-export-liste>
+    <button type="button" class="btn-ubi vert" (click)="nouveau()"><i class="ri-add-line"></i><span class="pe-lib">Nouveau périmètre</span></button>
+  </app-page-entete>
+  <p class="small text-muted">Un collaborateur direction, contrôleur ou gestionnaire sans périmètre voit toute l'entreprise. Avec un ou plusieurs
+    périmètres, il ne voit (listes, fiches, tableaux de bord) que les demandes de ces départements (sous-départements compris) ou agences.
+    Les administrateurs et la comptabilité ne sont jamais limités.</p>
+  <div class="lst-carte">
+    <div class="lst-table-wrap lst-cartes-wrap">
+      <table class="lst-table lst-cartes">
+        <thead><tr><th>Collaborateur</th><th>Périmètre</th><th class="lst-c-act"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+          @for (l of lignes; track l.id) {
+            <tr><td class="lst-c-principal"><b>{{ l.user_nom }}</b></td>
+              <td data-label="Périmètre">{{ l.type_libelle }}@if (l.departement_libelle) { : {{ l.departement_libelle }} }@if (l.agence_libelle) { : {{ l.agence_libelle }} }</td>
+              <td class="lst-c-act"><div class="lst-act"><button type="button" class="lst-ic" title="Retirer" aria-label="Retirer" (click)="supprimer(l)"><i class="ri-delete-bin-6-line"></i></button></div></td></tr>
+          } @empty {
+            <tr class="lst-l-vide"><td colspan="3" class="lst-c-plein"><div class="lst-vide"><i class="ri-focus-3-line"></i><h5>Aucun périmètre : chacun voit toute l'entreprise</h5></div></td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div bsModal #ficheModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Nouveau périmètre</h5>
+      <button type="button" class="btn-close" aria-label="Fermer" (click)="ficheModal.hide()"></button></div>
+    <div class="modal-body"><div class="row g-3">
+      <div class="col-12"><label class="form-label" for="pc-user">Collaborateur</label>
+        <ng-select labelForId="pc-user" [items]="collaborateurs" bindValue="id" bindLabel="libelle" [(ngModel)]="fiche.user"></ng-select></div>
+      <div class="col-12"><label class="form-label" for="pc-type">Périmètre</label>
+        <select id="pc-type" class="form-select" [(ngModel)]="fiche.type">
+          <option value="departement">Un département (et ses sous-départements)</option><option value="agence">Une agence</option>
+          <option value="tout">Toute l'entreprise</option></select></div>
+      @if (fiche.type === 'departement') {
+        <div class="col-12"><label class="form-label" for="pc-dep">Département</label>
+          <select id="pc-dep" class="form-select" [(ngModel)]="fiche.departement" [class.is-invalid]="erreur('departement')">
+            @for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.libelle_service }}</option> }</select>
+          @if (erreur('departement')) { <div class="invalid-feedback">{{ erreur('departement') }}</div> }</div>
+      }
+      @if (fiche.type === 'agence') {
+        <div class="col-12"><label class="form-label" for="pc-ag">Agence</label>
+          <select id="pc-ag" class="form-select" [(ngModel)]="fiche.agence" [class.is-invalid]="erreur('agence')">
+            @for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }</select>
+          @if (erreur('agence')) { <div class="invalid-feedback">{{ erreur('agence') }}</div> }</div>
+      }
+    </div></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="ficheModal.hide()">Annuler</button>
+      <button type="button" class="btn btn-primary" [disabled]="!fiche.user" (click)="enregistrer()">Enregistrer</button>
+    </div>
+  </div></div>
+</div>

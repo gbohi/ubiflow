@@ -25,6 +25,11 @@ de validation paramétrables. État d'avancement (voir `docs/conception.md`,
   format de la société ; décisions du 24/11/2026 (annulation par un
   administrateur, alertes de doublon / chevauchement / régularisation…), voir
   `docs/formation/`.
+- **Lot 6 — Pilotage et canaux** : tableaux de bord par profil (collaborateur,
+  valideur, direction, comptabilité, administrateur) avec exports Excel et PDF ;
+  délais, rappels et escalades des validations (heures ouvrées, jours fériés) ;
+  e-mails (SMTP) et push mobile (Firebase), préférences de notification ;
+  périmètres de consultation.
 
 | Dossier    | Contenu                                                        |
 |------------|----------------------------------------------------------------|
@@ -102,6 +107,8 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
 | Clôture | `demandes/{id}/cloture/` (+ `soumettre/`, `valider/`, `retourner/`), `missions/clotures/` (à contrôler) | `missions/cloture.py` |
 | Documents | `demandes/{id}/pdf/`, `ordre-mission/`, `note-frais/` ; `annuler-admin/`, `corriger-montant/` | `demandes/pdf.py`, `demandes/documents_mission.py` |
+| Tableaux de bord | `tableaux-de-bord/`, `tableaux-de-bord/{profil}/` ; `perimetres-consultation/` | `pilotage/indicateurs.py` |
+| Notifications | `notifications/preferences/`, `notifications/appareils/` ; `jours-feries/` | `notifications/canaux.py`, `workflow/services_planifies.py` |
 | Trésorerie | `tresorerie/a-payer/` (+ `?export=xlsx`), `tresorerie/reglements/` (+ `annuler/`), `tresorerie/reversements/` (+ `percevoir/`, `abandonner/`), `demandes/parents-possibles/` | `tresorerie/services.py` |
 
 Règles principales :
@@ -181,6 +188,13 @@ docker compose exec backend python manage.py createsuperuser   # 1re fois
 
 Le conteneur applique les migrations, crée la table de cache et collecte
 les fichiers statiques à chaque démarrage.
+
+Le service `planificateur` lance `python manage.py taches_planifiees` toutes
+les heures (rappels et escalades des validations, rappels de clôture). Pour
+activer les e-mails, renseigner `EMAIL_HOST`… dans `.env` ; pour le push
+mobile, monter le fichier JSON du compte de service Firebase et indiquer son
+chemin dans `FIREBASE_CREDENTIALS`. Chaque canal se coupe ensuite dans
+Paramètres → Société.
 
 > Le fichier `.env` se trouve désormais dans `backend/` (à côté de
 > `docker-compose.yml`) et non plus dans `backend/backend/`.
