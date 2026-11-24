@@ -4,13 +4,25 @@
 
     <main class="auth-ub-zone">
         <div class="auth-ub-carte">
-            <h2 class="auth-ub-h2">Mot de passe oublié</h2>
+            <!-- Frise des étapes (comme l'application mobile) -->
+            <ol class="auth-ub-etapes" [attr.aria-label]="'Étape ' + (numeroEtape > 3 ? 3 : numeroEtape) + ' sur 3'">
+                @for (e of etapes; track e; let i = $index) {
+                    <li [class.faite]="i + 1 < numeroEtape" [class.active]="i + 1 === numeroEtape">
+                        <span class="auth-ub-etape-pt">
+                            @if (i + 1 < numeroEtape) { <i class="ri-check-line" aria-hidden="true"></i> } @else { {{ i + 1 }} }
+                        </span>
+                        <span class="auth-ub-etape-lib">{{ e }}</span>
+                    </li>
+                }
+            </ol>
+
+            <h2 class="auth-ub-h2">{{ titre }}</h2>
             <p class="auth-ub-aide">
                 @switch (etape) {
                     @case ('matricule') { Saisissez votre matricule : un code vous sera envoyé par SMS. }
-                    @case ('code') { Saisissez le code à 6 chiffres reçu par SMS (valable 10 minutes). }
-                    @case ('mdp') { Choisissez votre nouveau mot de passe. }
-                    @case ('termine') { Votre mot de passe a été modifié. }
+                    @case ('code') { {{ infoMessage || 'Si ce compte existe, un code a été envoyé par SMS au numéro enregistré.' }} Il est valable 10 minutes. }
+                    @case ('mdp') { Choisissez un mot de passe sécurisé. }
+                    @case ('termine') { Vous pouvez vous connecter avec votre nouveau mot de passe. }
                 }
             </p>
 
@@ -19,9 +31,6 @@
                     <i class="ri-error-warning-fill fs-lg flex-shrink-0"></i>
                     <span>{{ errorMessage }}</span>
                 </div>
-            }
-            @if (infoMessage) {
-                <div class="alert alert-info py-2 mb-3" role="status">{{ infoMessage }}</div>
             }
 
             <!-- Étape 1 : matricule -->
@@ -39,7 +48,7 @@
                     </div>
                     <button class="auth-ub-bouton mt-2" type="submit" [disabled]="isLoading">
                         @if (isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                        Recevoir un code
+                        Envoyer le code SMS <i class="ri-send-plane-line ms-2" aria-hidden="true"></i>
                     </button>
                 </form>
             }
@@ -48,7 +57,7 @@
             @if (etape === 'code') {
                 <form [formGroup]="codeForm" (ngSubmit)="verifierCode()" novalidate>
                     <div class="mb-3">
-                        <label for="code" class="form-label">Code reçu</label>
+                        <label for="code" class="form-label">Code à 6 chiffres</label>
                         <div class="auth-ub-champ">
                             <i class="ri-message-2-line auth-ub-champ-ico" aria-hidden="true"></i>
                             <input type="text" id="code" class="form-control fs-lg" formControlName="code"
@@ -60,11 +69,14 @@
                     </div>
                     <button class="auth-ub-bouton mt-2" type="submit" [disabled]="isLoading">
                         @if (isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                        Vérifier le code
+                        Vérifier le code <i class="ri-shield-check-line ms-2" aria-hidden="true"></i>
                     </button>
-                    <div class="text-center mt-3 small">
-                        <a href="javascript:void(0)" class="auth-ub-lien" (click)="demanderCode()">Renvoyer un code</a>
-                        <span class="text-muted mx-2">·</span>
+                    <div class="d-flex flex-column align-items-center gap-1 mt-3 small">
+                        @if (renvoiRestant > 0) {
+                            <span class="auth-ub-attente"><i class="ri-refresh-line"></i> Renvoyer le code dans {{ renvoiRestant }} s</span>
+                        } @else {
+                            <a href="javascript:void(0)" class="auth-ub-lien" (click)="demanderCode()"><i class="ri-refresh-line"></i> Renvoyer le code</a>
+                        }
                         <a href="javascript:void(0)" class="auth-ub-lien" (click)="recommencer()">Changer de matricule</a>
                     </div>
                 </form>
@@ -86,13 +98,20 @@
                                 <i [ngClass]="fieldTextType ? 'ri-eye-off-line' : 'ri-eye-line'"></i>
                             </button>
                         </div>
-                        <ul class="list-unstyled fs-sm mt-2 mb-0">
-                            @for (r of regles; track r.cle) {
-                                <li [class.text-success]="regleOk(r.test)" [class.text-muted]="!regleOk(r.test)">
-                                    <i [ngClass]="regleOk(r.test) ? 'ri-check-line' : 'ri-close-line'"></i> {{ r.libelle }}
-                                </li>
-                            }
-                        </ul>
+                        <!-- Force du mot de passe et règles (comme l'application mobile) -->
+                        <div class="auth-ub-force" [ngClass]="force.classe">
+                            <div class="auth-ub-force-ligne">
+                                <span class="auth-ub-force-barre"><span [style.width.%]="score * 25"></span></span>
+                                @if (mdpForm.value.password) { <b>{{ force.libelle }}</b> }
+                            </div>
+                            <ul class="auth-ub-regles">
+                                @for (r of regles; track r.cle) {
+                                    <li [class.ok]="regleOk(r.test)">
+                                        <i [ngClass]="regleOk(r.test) ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'" aria-hidden="true"></i>{{ r.libelle }}
+                                    </li>
+                                }
+                            </ul>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="password2" class="form-label">Confirmer le mot de passe</label>
@@ -106,15 +125,16 @@
                     </div>
                     <button class="auth-ub-bouton mt-2" type="submit" [disabled]="isLoading">
                         @if (isLoading) { <span class="spinner-border spinner-border-sm me-2"></span> }
-                        Enregistrer le mot de passe
+                        Réinitialiser le mot de passe <i class="ri-lock-password-line ms-2" aria-hidden="true"></i>
                     </button>
                 </form>
             }
 
             <!-- Terminé -->
             @if (etape === 'termine') {
-                <div class="alert alert-success mb-3" role="status">
-                    Mot de passe réinitialisé. Vous pouvez vous connecter avec votre nouveau mot de passe.
+                <div class="auth-ub-succes" role="status">
+                    <i class="ri-checkbox-circle-fill" aria-hidden="true"></i>
+                    <span>Mot de passe réinitialisé avec succès.</span>
                 </div>
                 <a routerLink="/auth/login" class="auth-ub-bouton text-decoration-none">Se connecter <i class="ri-arrow-right-line ms-2"></i></a>
             }

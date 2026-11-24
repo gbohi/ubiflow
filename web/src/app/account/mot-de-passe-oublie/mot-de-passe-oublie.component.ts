@@ -1,5 +1,5 @@
 // src/app/account/mot-de-passe-oublie/mot-de-passe-oublie.component.ts
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { AbstractControl, UntypedFormBuilder, UntypedFormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { UserService } from 'src/app/core/services/user/user.service';
@@ -33,7 +33,7 @@ function confirmationIdentique(groupe: AbstractControl): ValidationErrors | null
   selector: 'app-mot-de-passe-oublie',
   templateUrl: './mot-de-passe-oublie.component.html',
 })
-export class MotDePasseOublieComponent {
+export class MotDePasseOublieComponent implements OnDestroy {
 
   etape: Etape = 'matricule';
   isLoading = false;
@@ -43,6 +43,12 @@ export class MotDePasseOublieComponent {
   regles = REGLES_MDP;
 
   private resetToken = '';
+
+  /** Frise des étapes, comme sur l'application mobile */
+  readonly etapes = ['Matricule', 'Code SMS', 'Nouveau mot de passe'];
+  /** Délai avant de pouvoir redemander un code (secondes) */
+  renvoiRestant = 0;
+  private minuterie: ReturnType<typeof setInterval> | null = null;
 
   matriculeForm: UntypedFormGroup;
   codeForm: UntypedFormGroup;
@@ -56,6 +62,33 @@ export class MotDePasseOublieComponent {
       { validators: confirmationIdentique },
     );
   }
+
+  /** 1, 2, 3 ; 4 une fois terminé (toutes les étapes cochées) */
+  get numeroEtape(): number { return { matricule: 1, code: 2, mdp: 3, termine: 4 }[this.etape]; }
+
+  get titre(): string {
+    return { matricule: 'Mot de passe oublié', code: 'Code de vérification', mdp: 'Nouveau mot de passe',
+             termine: 'Mot de passe modifié' }[this.etape];
+  }
+
+  /** Force du nouveau mot de passe : nombre de règles respectées (0 à 4) */
+  get score(): number { return this.regles.filter(r => this.regleOk(r.test)).length; }
+  get force(): { libelle: string; classe: string } {
+    const s = this.score;
+    return s <= 1 ? { libelle: 'Faible', classe: 'faible' } : s === 2 ? { libelle: 'Moyen', classe: 'moyen' }
+         : s === 3 ? { libelle: 'Fort', classe: 'fort' } : { libelle: 'Très fort', classe: 'tres-fort' };
+  }
+
+  private demarrerRenvoi(): void {
+    this.renvoiRestant = 60;
+    if (this.minuterie) clearInterval(this.minuterie);
+    this.minuterie = setInterval(() => {
+      this.renvoiRestant--;
+      if (this.renvoiRestant <= 0 && this.minuterie) { clearInterval(this.minuterie); this.minuterie = null; }
+    }, 1000);
+  }
+
+  ngOnDestroy(): void { if (this.minuterie) clearInterval(this.minuterie); }
 
   get username(): string { return (this.matriculeForm.value.username || '').trim(); }
 
@@ -74,6 +107,7 @@ export class MotDePasseOublieComponent {
             : res.message;
           this.codeForm.reset();
           this.etape = 'code';
+          this.demarrerRenvoi();
         },
         error: err => this.errorMessage = this._texte(err),
       });
