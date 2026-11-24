@@ -453,7 +453,7 @@ def annuler_instance(instance, auteur, motif, infos=None):
     instance.save()
     demande = instance.demande
     notifier([t.valideur for t in en_attente], 'demande_annulee', f"{demande.reference} annulée",
-             f"Le demandeur a annulé sa demande. Motif : {motif}", demande)
+             f"La demande a été annulée. Motif : {motif}", demande)
 
 
 def reaffecter_tache(tache, nouveau, auteur, motif, infos=None):

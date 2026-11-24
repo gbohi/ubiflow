@@ -247,6 +247,8 @@ def abandonner(reversement, user, motif, infos=None):
         if r.etat != 'a_percevoir':
             raise ErreurMetier("Ce reversement est déjà traité.")
         demande = Demande.objects.select_for_update().get(pk=r.demande_id)
+        if demande.demandeur_id == user.pk:
+            raise Interdit("Vous ne pouvez pas abandonner un reversement qui vous concerne.")
         r.etat, r.motif_abandon, r.traite_par, r.traite_le = 'abandonne', motif, user, timezone.now()
         r.save()
         moteur.tracer(demande, 'reversement', auteur=user, infos=infos,
@@ -259,23 +261,68 @@ def abandonner(reversement, user, motif, infos=None):
 # ANNULATION APRÈS APPROBATION (§4.3)
 # ═══════════════════════════════════════════════════════════════
 
+STATUTS_ANNULABLES = {StatutDemande.EN_VALIDATION, StatutDemande.A_CORRIGER, StatutDemande.APPROUVEE,
+                      StatutDemande.EN_ATTENTE_CLOTURE, StatutDemande.CLOTUREE}
+
+
+def annuler_definitivement(demande, motif, origine, auteur=None, infos=None, donnees=None, _cascade=True):
+    """
+    Annulation d'une demande soumise, quel que soit son stade (§4.3, décisions 1, 2 et 5) :
+    circuit en cours arrêté, reversement du montant payé, demandes rattachées encore
+    actives (frais complémentaires, demande d'annulation en cours) annulées aussi.
+    `origine` : texte de l'historique (« par la demande ANN-… », « par l'administrateur … »).
+    """
+    demande = Demande.objects.select_for_update().get(pk=demande.pk)
+    if demande.statut not in STATUTS_ANNULABLES:
+        return demande
+    instance = demande.instances.filter(etat='en_cours').first()
+    if instance:
+        moteur.annuler_instance(instance, auteur, motif, infos)
+    demande.statut, demande.annulee_le, demande.motif_annulation = StatutDemande.ANNULEE, timezone.now(), motif
+    demande.save(update_fields=['statut', 'annulee_le', 'motif_annulation', 'updated_at'])
+    moteur.tracer(demande, 'annulation', auteur=auteur, infos=infos, instance=instance,
+                  motif=f"Annulée {origine} : {motif}", donnees=donnees)
+    du = (demande.montant_paye or 0) - (demande.montant_reverse or 0) - sum(
+        r.montant_du for r in demande.reversements.filter(etat='a_percevoir'))
+    if du > 0:
+        creer_reversement(demande, du, 'annulation', f"Annulation après paiement ({origine})", infos=infos)
+    mettre_a_jour(demande, infos=infos)
+    notifier([demande.demandeur], 'demande_annulee', f"{demande.reference} annulée", f"Votre demande est annulée {origine}.",
+             demande)
+    if _cascade:
+        filles = (Demande.objects.filter(demande_parent=demande)
+                  .exclude(statut__in=(StatutDemande.REJETEE, StatutDemande.ANNULEE))
+                  .exclude(type_demande__famille='annulation', statut=StatutDemande.CLOTUREE))
+        for fille in filles:  # frais complémentaires (même payés et clôturés), annulation en cours
+            if fille.statut == StatutDemande.BROUILLON:
+                fille.statut, fille.annulee_le = StatutDemande.ANNULEE, timezone.now()
+                fille.motif_annulation = f"Demande d'origine {demande.reference} annulée"
+                fille.save(update_fields=['statut', 'annulee_le', 'motif_annulation', 'updated_at'])
+                continue
+            annuler_definitivement(fille, f"Demande d'origine {demande.reference} annulée", 'automatiquement',
+                                   auteur, infos, _cascade=False)
+    return demande
+
+
 def annuler_apres_approbation(demande, annulation, infos=None):
     """La demande d'annulation `annulation` est approuvée : la demande initiale est annulée."""
-    demande = Demande.objects.select_for_update().get(pk=demande.pk)
-    if demande.statut not in STATUTS_PAYABLES:
-        return  # déjà clôturée ou annulée entre-temps
     motif = (annulation.donnees or {}).get('motif') or annulation.objet
-    demande.statut, demande.annulee_le = StatutDemande.ANNULEE, timezone.now()
-    demande.motif_annulation = f"{annulation.reference} : {motif}"
-    demande.save(update_fields=['statut', 'annulee_le', 'motif_annulation', 'updated_at'])
-    moteur.tracer(demande, 'annulation', infos=infos, motif=f"Annulée par la demande {annulation.reference} : {motif}",
-                  donnees={'demande_annulation': annulation.pk})
-    if (demande.montant_paye or 0) > 0:
-        creer_reversement(demande, demande.montant_paye, 'annulation',
-                          f"Annulation après paiement ({annulation.reference})", infos=infos)
-    mettre_a_jour(demande, infos=infos)
-    notifier([demande.demandeur], 'demande_annulee', f"{demande.reference} annulée",
-             f"Votre demande est annulée suite à l'approbation de {annulation.reference}.", demande)
+    annuler_definitivement(demande, f"{annulation.reference} : {motif}", f"par la demande {annulation.reference}",
+                           infos=infos, donnees={'demande_annulation': annulation.pk})
+
+
+def annuler_par_administrateur(demande, admin, motif, infos=None):
+    """Décision 1 : un administrateur annule la demande d'un collaborateur (absence, doublon, départ)."""
+    from api.permissions import is_admin
+    if not is_admin(admin):
+        raise Interdit("Réservé aux administrateurs.")
+    motif = (motif or '').strip()
+    if not motif:
+        raise ErreurMetier({'motif': "Le motif est obligatoire."})
+    if demande.statut not in STATUTS_ANNULABLES:
+        raise ErreurMetier(f"Une demande « {demande.get_statut_display()} » ne peut pas être annulée.")
+    with transaction.atomic():
+        return annuler_definitivement(demande, motif, f"par l'administrateur {moteur.nom(admin)}", admin, infos)
 
 
 def synthese(demande):
@@ -291,3 +338,36 @@ def synthese(demande):
                              'statut_libelle': c.get_statut_display(), 'montant_demande': c.montant_demande,
                              'montant_approuve': c.montant_approuve, 'montant_paye': c.montant_paye}
                             for c in complements.exclude(statut=StatutDemande.BROUILLON).order_by('created_at')]}
+
+
+def peut_corriger_montant(demande, user):
+    """Décision 11 : le DAF (titulaire) ou un administrateur des finances, tant que rien n'est payé."""
+    from api import organisation as org
+    if demande.statut not in STATUTS_PAYABLES or (demande.montant_paye or 0) > 0 or not demande.type_demande.avec_montant:
+        return False
+    return is_admin_finances(user) or any(u.pk == user.pk for u in org.titulaires('DAF'))
+
+
+def corriger_montant_approuve(demande, user, montant, motif, infos=None):
+    motif = (motif or '').strip()
+    if not motif:
+        raise ErreurMetier({'motif': 'Le motif de la correction est obligatoire.'})
+    montant = _montant(montant)
+    with transaction.atomic():
+        demande = Demande.objects.select_for_update().get(pk=demande.pk)
+        if not peut_corriger_montant(demande, user):
+            raise Interdit("Correction impossible : réservée au DAF, avant tout paiement d'une demande approuvée.")
+        if annulation_en_cours(demande) is not None:
+            raise ErreurMetier("Une demande d'annulation est en cours.")
+        ancien = demande.montant_approuve
+        if montant == ancien:
+            raise ErreurMetier({'montant': 'Le montant est inchangé.'})
+        demande.montant_approuve = montant
+        demande.save(update_fields=['montant_approuve', 'updated_at'])
+        moteur.tracer(demande, 'correction', auteur=user, infos=infos,
+                      motif=f"Montant approuvé corrigé : {fmt(ancien, demande.devise)} → {fmt(montant, demande.devise)}. {motif}",
+                      donnees={'avant': {'montant_approuve': str(ancien)}, 'apres': {'montant_approuve': str(montant)}})
+        mettre_a_jour(demande, user, infos)
+        notifier([demande.demandeur] + comptables(), 'correction', f"{demande.reference} : montant approuvé corrigé",
+                 f"Nouveau montant approuvé : {fmt(montant, demande.devise)} ({motif}).", demande)
+    return demande

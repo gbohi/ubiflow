@@ -56,7 +56,7 @@ export interface MaTache {
 
 export interface Demande {
   id: number; reference: string | null; type_demande: number; type_code: string; type_libelle: string;
-  type_icone?: string; demandeur: number; demandeur_nom: string; objet: string; montant_demande: string | null;
+  type_icone?: string; alertes?: { code: string; message: string; demande?: number; reference?: string }[]; demandeur: number; demandeur_nom: string; objet: string; montant_demande: string | null;
   montant_approuve: string | null; devise: string; statut: string; statut_libelle: string;
   statut_financier: string; statut_financier_libelle: string; soumise_le: string | null; approuvee_le: string | null;
   created_at: string; updated_at: string;
@@ -78,7 +78,7 @@ export interface Demande {
   synthese?: { engage_total: string; paye_total: string; solde_total: string; complements: any[] } | null;
   actions?: { modifier: boolean; soumettre: boolean; supprimer: boolean; annuler: boolean; dupliquer: boolean;
               ajouter_document: boolean; commenter: boolean; payer?: boolean; demander_annulation?: boolean;
-              frais_complementaires?: boolean };
+              frais_complementaires?: boolean; annuler_admin?: boolean; corriger_montant?: boolean; reaffecter?: boolean };
 }
 
 export interface EntreePlan {
@@ -224,7 +224,11 @@ export class DemandesService {
       `${this.api}/taches/${tache}/${action}/`, { motif, modifications });
   }
   reaffecter(tache: number, valideur: number, motif: string) {
-    return this.http.post(`${this.api}/taches/${tache}/reaffecter/`, { valideur, motif });
+    return this.http.post(`${this.api}/taches/${tache}/reaffecter/`, { valideur, motif }, detaille());
+  }
+  annulerAdmin(id: number, motif: string) { return this.http.post<Demande>(`${this.api}/demandes/${id}/annuler-admin/`, { motif }, detaille()); }
+  corrigerMontant(id: number, montant: any, motif: string) {
+    return this.http.post<Demande>(`${this.api}/demandes/${id}/corriger-montant/`, { montant, motif }, detaille());
   }
 
   // ── Délégations ───────────────────────────────────────────

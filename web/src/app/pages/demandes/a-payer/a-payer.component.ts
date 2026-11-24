@@ -83,6 +83,8 @@ export class APayerComponent implements OnInit {
     return !!(f.type_demande || f.departement || f.agence || f.du || f.au || f.montant_min || f.montant_max || f.search);
   }
 
+  alertesTexte(d: Demande): string { return (d.alertes ?? []).map(a => a.message).join('\n'); }
+
   reste(d: Demande): number { return Number(d.montant_approuve ?? 0) - Number(d.montant_paye ?? 0); }
 
   payer(d: Demande, e: Event): void {

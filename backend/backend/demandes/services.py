@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from api import organisation as org
 from api.models import ParametreSysteme
-from api.permissions import voit_toutes_les_demandes
+from api.permissions import is_admin_workflow, voit_toutes_les_demandes
 from notifications.services import administrateurs, notifier
 from workflow import moteur
 from workflow.erreurs import ErreurMetier, Interdit
@@ -431,6 +431,8 @@ def soumettre(demande, user, motif='', infos=None):
         extensions.pour(demande.type_demande).apres_version(demande, contenu)
         demande.documents.filter(version_contenu__isnull=True).update(version_contenu=contenu)
         demande.version_courante = contenu
+        from .controles import alertes
+        demande.alertes = alertes(demande)
         demande.statut = StatutDemande.EN_VALIDATION
         demande.montant_approuve = None
         demande.statut_financier = StatutFinancier.SANS_OBJET
@@ -590,13 +592,18 @@ def peut_telecharger(doc, user):
 # ═══════════════════════════════════════════════════════════════
 
 def actions_possibles(demande, user):
-    from tresorerie.services import annulation_en_cours, peut_payer
+    from api.permissions import is_admin
+    from tresorerie.services import STATUTS_ANNULABLES, annulation_en_cours, peut_corriger_montant, peut_payer
     s = demande.statut
     demandeur = demande.demandeur_id == user.pk
     approuvee = s in (StatutDemande.APPROUVEE, StatutDemande.EN_ATTENTE_CLOTURE)
     return {
+        'annuler_admin': is_admin(user) and s in STATUTS_ANNULABLES,
+        'corriger_montant': peut_corriger_montant(demande, user),
+        'reaffecter': is_admin_workflow(user) and s == StatutDemande.EN_VALIDATION,
         'payer': peut_payer(demande, user) and annulation_en_cours(demande) is None,
-        'demander_annulation': demandeur and approuvee and demande.type_demande.famille != 'annulation'
+        'demander_annulation': demandeur and (approuvee or s == StatutDemande.CLOTUREE)
+                               and demande.type_demande.famille != 'annulation'
                                and annulation_en_cours(demande) is None,
         'frais_complementaires': demandeur and approuvee and demande.type_demande.famille == 'mission',
         'modifier': demandeur and s in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER),

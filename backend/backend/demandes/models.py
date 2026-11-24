@@ -145,6 +145,8 @@ class Demande(models.Model):
     montant_demande_ref = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
     # Copie figée à la soumission : taux de change, barèmes des missions (§3.6)
     parametres_figes = models.JSONField(default=dict, blank=True)
+    # Alertes non bloquantes calculées à la soumission (doublon, chevauchement, régularisation)
+    alertes = models.JSONField(default=list, blank=True)
     departement = models.ForeignKey('api.Service', on_delete=models.PROTECT, null=True, blank=True,
                                     related_name='demandes')
     agence = models.ForeignKey('api.Agence', on_delete=models.PROTECT, null=True, blank=True,

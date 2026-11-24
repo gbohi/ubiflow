@@ -285,6 +285,18 @@ class UserFilter(django_filters.FilterSet):
         return queryset.filter(Q(**{f'{relation}__{name}': value}) & en_cours).distinct()
 
 
+def _verifier_aucune_validation_en_attente(user):
+    """Décision 7 : un valideur qui a des validations en attente ne peut pas être désactivé."""
+    from rest_framework.exceptions import ValidationError
+    from workflow.models import Tache
+    taches = list(Tache.objects.filter(valideur=user, etat='en_attente')
+                  .select_related('etape_instance__instance__demande', 'etape_instance__etape')[:20])
+    if taches:
+        liste = ', '.join(f"{t.etape_instance.instance.demande.reference} ({t.etape_instance.etape.libelle})" for t in taches)
+        raise ValidationError({'is_active': f"{user.nom} {user.prenom} a {len(taches)} validation(s) en attente : {liste}. "
+                                            "Réaffectez-les depuis la fiche de chaque demande avant de désactiver le compte."})
+
+
 class UserViewSet(BaseViewSet):
     """
     Gestion des comptes : réservée aux administrateurs.
@@ -350,6 +362,8 @@ class UserViewSet(BaseViewSet):
             # Éviter qu'un administrateur se bloque lui-même
             if serializer.validated_data.get('is_active') is False:
                 raise PermissionDenied("Vous ne pouvez pas désactiver votre propre compte.")
+        if serializer.instance.is_active and serializer.validated_data.get('is_active') is False:
+            _verifier_aucune_validation_en_attente(serializer.instance)
             groupes = serializer.validated_data.get('groups')
             if groupes is not None and not self.request.user.is_superuser \
                     and not {g.name for g in groupes} & ADMIN_ROLES:
@@ -479,6 +493,8 @@ class UserViewSet(BaseViewSet):
             if not actif and user.pk == request.user.pk:
                 raise PermissionDenied("Vous ne pouvez pas désactiver votre propre compte.")
             _verifier_peut_gerer(request, user)
+            if not actif:
+                _verifier_aucune_validation_en_attente(user)
         return User.objects.filter(pk__in=[u.pk for u in users]).update(is_active=actif)
 
     @action(detail=True, methods=['patch'], url_path='activer')

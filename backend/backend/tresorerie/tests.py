@@ -290,3 +290,108 @@ class PdfDemandeTests(TresorerieBase):
         self.assertTrue(r.data['logo'])
         self.en(self.agent)
         self.assertEqual(self.client.get(f'/api/api/demandes/{pk}/ordre-mission/').status_code, 200)
+
+
+class DecisionsTests(TresorerieBase):
+    """Décisions du 24/11/2026 (docs/formation)."""
+
+    def mission_soumise(self, **autres):
+        pk = self.creer_mission(**autres)
+        self.soumettre(pk)
+        return pk
+
+    def test_1_annulation_par_un_administrateur(self):
+        pk = self.mission_soumise()
+        admin = self.user('adm', groupes=('admin',))
+        self.en(self.agent)
+        self.assertFalse(self.client.get(f'/api/api/demandes/{pk}/').data['actions']['annuler_admin'])
+        self.assertEqual(self.client.post(f'/api/api/demandes/{pk}/annuler-admin/', {'motif': 'x'}, format='json').status_code, 403)
+        self.en(admin)
+        self.assertEqual(self.client.post(f'/api/api/demandes/{pk}/annuler-admin/', {}, format='json').status_code, 400)
+        r = self.client.post(f'/api/api/demandes/{pk}/annuler-admin/', {'motif': 'Doublon de MLO-1'}, format='json')
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data['statut'], 'annulee')
+        self.assertFalse(Demande.objects.get(pk=pk).instances.filter(etat='en_cours').exists())
+        self.assertIn("par l'administrateur", Demande.objects.get(pk=pk).actions.last().motif)
+
+    def test_2_annulation_d_une_demande_cloturee(self):
+        frc = self.approuver_frc()
+        self.payer(frc, '500000')
+        self.assertEqual(Demande.objects.get(pk=frc).statut, 'cloturee')
+        r = self.creer_type(self.ann, parent=frc, donnees={'motif': 'Réception annulée, facture remboursée'}, objet='Annulation')
+        self.assertEqual(r.status_code, 201, r.data)
+        self.soumettre(r.data['id'])
+        self.approuver(r.data['id'])
+        d = Demande.objects.get(pk=frc)
+        self.assertEqual((d.statut, d.statut_financier), ('annulee', 'reversement_attendu'))
+        self.assertEqual(d.reversements.get().montant_du, Decimal('500000'))
+
+    def test_4_pas_d_abandon_de_son_propre_reversement(self):
+        self.agent.groups.add(*self.finances.groups.all())
+        frc = self.approuver_frc()
+        self.payer(frc, '500000')
+        admin = self.user('adm', groupes=('admin',))
+        self.en(admin).client.post(f'/api/api/demandes/{frc}/annuler-admin/', {'motif': 'Erreur'}, format='json')
+        rev = Reversement.objects.get(demande_id=frc)
+        self.en(self.agent)
+        self.assertEqual(self.client.post(f'/api/api/tresorerie/reversements/{rev.pk}/abandonner/', {'motif': 'x'},
+                                          format='json').status_code, 403)
+
+    def test_5_frais_complementaires_annules_avec_la_mission(self):
+        pk = self.mission_soumise()
+        self.approuver(pk)
+        fcm = self.creer_type(self.fcm, parent=pk, montant='40000', donnees={'motif': 'Nuit'}, objet='Prolongation').data['id']
+        Demande.objects.get(pk=fcm).documents.create(fichier=fichier('f.pdf'), nom_origine='f.pdf', taille=1, empreinte='x',
+                                                     ajoute_par=self.agent, type_piece_id=self.fcm.exigences.get().type_piece_id)
+        self.soumettre(fcm)
+        self.approuver(fcm)
+        self.payer(fcm, '40000')
+        admin = self.user('adm', groupes=('admin',))
+        self.en(admin).client.post(f'/api/api/demandes/{pk}/annuler-admin/', {'motif': 'Mission supprimée'}, format='json')
+        f = Demande.objects.get(pk=fcm)
+        self.assertEqual((f.statut, f.statut_financier), ('annulee', 'reversement_attendu'))
+
+    def test_6_brouillons_des_autres_masques(self):
+        brouillon = self.creer_mission()
+        admin = self.user('adm', groupes=('admin',))
+        self.en(admin)
+        ids = [d['id'] for d in self.client.get('/api/api/demandes/?vue=toutes').data['results']]
+        self.assertNotIn(brouillon, ids)
+
+    def test_7_desactivation_bloquee_si_validations_en_attente(self):
+        self.mission_soumise()
+        admin = self.user('adm', groupes=('admin',))
+        self.en(admin)
+        r = self.client.patch(f'/api/api/users/{self.chef.pk}/', {'is_active': False}, format='json')
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('MLO-', str(r.data))
+        self.assertTrue(type(self.chef).objects.get(pk=self.chef.pk).is_active)
+
+    def test_8_et_9_chevauchement_et_regularisation(self):
+        self.mission_soumise()
+        pk = self.mission_soumise(depart_le='2026-12-03T08:00:00', retour_le='2026-12-05T18:00:00')
+        codes = [a['code'] for a in Demande.objects.get(pk=pk).alertes]
+        self.assertEqual(codes, ['chevauchement'])
+        passe = self.mission_soumise(depart_le='2026-01-10T08:00:00', retour_le='2026-01-11T18:00:00')
+        self.assertEqual([a['code'] for a in Demande.objects.get(pk=passe).alertes], ['regularisation'])
+
+    def test_10_doublon_probable(self):
+        self.soumettre(self.creer())
+        pk = self.creer()
+        d = self.soumettre(pk)
+        self.assertEqual([a['code'] for a in d['alertes']], ['doublon'])
+
+    def test_11_correction_du_montant_approuve_par_le_daf(self):
+        frc = self.approuver_frc()
+        url = f'/api/api/demandes/{frc}/corriger-montant/'
+        self.en(self.agent)
+        self.assertEqual(self.client.post(url, {'montant': '450000', 'motif': 'x'}, format='json').status_code, 403)
+        self.en(self.daf)
+        self.assertEqual(self.client.post(url, {'montant': '450000'}, format='json').status_code, 400)
+        r = self.client.post(url, {'montant': '450000', 'motif': 'Facture définitive'}, format='json')
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(Decimal(r.data['montant_approuve']), Decimal('450000'))
+        self.payer(frc, '200000', attendu=400)
+        self.payer(frc, '450000')
+        self.en(self.daf)
+        self.assertEqual(self.client.post(url, {'montant': '400000', 'motif': 'x'}, format='json').status_code, 403)  # déjà payée

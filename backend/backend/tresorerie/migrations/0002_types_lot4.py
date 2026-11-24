@@ -9,7 +9,7 @@ from django.db import migrations
 from django.utils import timezone
 
 TOUTES = ['approuver', 'rejeter', 'retourner']
-STATUTS_PARENT = ['approuvee', 'en_attente_cloture']
+STATUTS_PARENT = ['approuvee', 'en_attente_cloture']  # + 'cloturee' pour ANN (migration 0003)
 
 # code, libellé, famille, icône, ordre, description, avec_montant, fractionné, paramètres,
 # champs (code, libellé, nature, obligatoire, sensible, options, aide),

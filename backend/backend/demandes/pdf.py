@@ -292,6 +292,10 @@ def generer(demande, user):
                                                     if demande.devise != demande.devise_reference and demande.montant_demande_ref else ''),
                                                  S_PETIT)]
 
+    if demande.alertes and demande.statut != 'brouillon':
+        h += [Spacer(1, 3 * mm), _encadre(["Points d'attention :"] + [x.get('message', '') for x in demande.alertes],
+                                         '#FEF4E4', '#E8A33D')]
+
     # ── Demandeur ──
     u = demande.demandeur
     h += _section('Demandeur')

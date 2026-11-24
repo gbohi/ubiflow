@@ -1,4 +1,4 @@
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, mixins, status, viewsets
@@ -136,7 +136,8 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         user = self.request.user
         vue = self.request.query_params.get('vue', 'mes')
         if vue == 'toutes' and voit_toutes_les_demandes(user):
-            qs = Demande.objects.all()
+            # les brouillons des autres collaborateurs restent privés (décision 6)
+            qs = Demande.objects.exclude(Q(statut=StatutDemande.BROUILLON) & ~Q(demandeur=user))
         elif vue == 'visibles':
             qs = services.demandes_visibles(user)
         else:
@@ -207,6 +208,21 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         demande = services.annuler(self.get_object(), request.user, request.data.get('motif', ''),
                                    infos_requete(request))
         return self._detail(demande)
+
+    @action(detail=True, methods=['post'], url_path='annuler-admin')
+    def annuler_admin(self, request, pk=None):
+        """Annulation par un administrateur (décision 1) : { motif }."""
+        from tresorerie.services import annuler_par_administrateur
+        annuler_par_administrateur(self.get_object(), request.user, request.data.get('motif', ''), infos_requete(request))
+        return self._detail(self.get_object())
+
+    @action(detail=True, methods=['post'], url_path='corriger-montant')
+    def corriger_montant(self, request, pk=None):
+        """Correction motivée du montant approuvé avant paiement (décision 11) : { montant, motif }."""
+        from tresorerie.services import corriger_montant_approuve
+        corriger_montant_approuve(self.get_object(), request.user, request.data.get('montant'),
+                                  request.data.get('motif', ''), infos_requete(request))
+        return self._detail(self.get_object())
 
     @action(detail=True, methods=['post'])
     def dupliquer(self, request, pk=None):

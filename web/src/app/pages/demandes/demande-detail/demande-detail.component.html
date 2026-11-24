@@ -21,6 +21,15 @@
     <span class="lst-tag fs-6" [ngClass]="classes[demande.statut]">{{ demande.statut_libelle }}</span>
   </app-page-entete>
 
+  @if (demande.alertes?.length && demande.statut !== 'brouillon') {
+    <div class="alert alert-warning small" data-test="alertes"><b><i class="ri-alarm-warning-line me-1"></i>Points d'attention</b>
+      <ul class="mb-0 ps-3">
+        @for (a of demande.alertes; track $index) {
+          <li>{{ a.message }}@if (a.demande) { — <a [routerLink]="['/demandes', a.demande]">voir {{ a.reference }}</a> }</li>
+        }
+      </ul>
+    </div>
+  }
   @if (demande.demande_parent) {
     <div class="alert alert-light border small"><i class="ri-links-line me-1"></i>Rattachée à
       <a [routerLink]="['/demandes', demande.demande_parent]"><b>{{ demande.demande_parent_reference }}</b></a> ({{ demande.demande_parent_type }})</div>
@@ -237,6 +246,19 @@
       }
 
       <!-- Actions du demandeur -->
+      @if (demande.actions?.annuler_admin || demande.actions?.corriger_montant) {
+        <div class="lst-carte p-3 mb-3">
+          <h6 class="small text-muted text-uppercase mb-2">Administration</h6>
+          <div class="d-grid gap-2">
+            @if (demande.actions?.corriger_montant) {
+              <button type="button" class="btn btn-outline-primary" (click)="ouvrirCorrection()"><i class="ri-edit-line me-1"></i>Corriger le montant approuvé</button>
+            }
+            @if (demande.actions?.annuler_admin) {
+              <button type="button" class="btn btn-outline-danger" (click)="motifAdmin = ''; annulationAdminModal.show()"><i class="ri-forbid-2-line me-1"></i>Annuler la demande (administrateur)</button>
+            }
+          </div>
+        </div>
+      }
       @if (demande.actions?.soumettre || demande.actions?.annuler || demande.actions?.dupliquer || demande.actions?.supprimer
            || demande.actions?.demander_annulation || demande.actions?.frais_complementaires) {
         <div class="lst-carte p-3 mb-3">
@@ -289,6 +311,9 @@
                       <i class="me-1" [ngClass]="t.decision === 'approuvee' ? 'ri-check-line text-success' : t.decision === 'rejetee' ? 'ri-close-line text-danger' : t.decision === 'retournee' ? 'ri-arrow-go-back-line text-warning' : t.etat === 'en_attente' ? 'ri-time-line text-primary' : 'ri-subtract-line text-muted'"></i>
                       {{ t.valideur }}@if (t.traitee_par && t.traitee_par !== t.valideur) { <span class="text-muted"> (par {{ t.traitee_par }})</span> }
                       @if (t.traitee_le) { <span class="text-muted"> · {{ t.traitee_le | date:'dd/MM HH:mm' }}</span> }
+                      @if (t.etat === 'en_attente' && demande.actions?.reaffecter) {
+                        <button type="button" class="btn btn-link btn-sm p-0 ms-1" (click)="ouvrirReaffectation(t)">réaffecter</button>
+                      }
                     </div>
                   }
                 }
@@ -394,6 +419,63 @@
     <div class="modal-footer">
       <button type="button" class="btn btn-light" (click)="annulationReglementModal.hide()">Fermer</button>
       <button type="button" class="btn btn-danger" [disabled]="enCours || !motifAnnulationReglement.trim()" (click)="annulerReglement()">Annuler le paiement</button>
+    </div>
+  </div></div>
+</div>
+
+<div bsModal #annulationAdminModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Annuler la demande (administrateur)</h5>
+      <button type="button" class="btn-close" aria-label="Fermer" (click)="annulationAdminModal.hide()"></button></div>
+    <div class="modal-body">
+      <p class="small">La demande de {{ demande.demandeur_nom }} sera annulée définitivement. Le circuit en cours est arrêté ;
+        si un paiement a eu lieu, un reversement est créé ; les frais complémentaires rattachés sont annulés aussi.</p>
+      <label class="form-label" for="aa-motif">Motif <span class="text-danger">*</span></label>
+      <textarea id="aa-motif" class="form-control" rows="3" [(ngModel)]="motifAdmin" placeholder="Absence, doublon, départ du collaborateur…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="annulationAdminModal.hide()">Fermer</button>
+      <button type="button" class="btn btn-danger" [disabled]="enCours || !motifAdmin.trim()" (click)="annulerAdmin()">Annuler la demande</button>
+    </div>
+  </div></div>
+</div>
+
+<div bsModal #correctionModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Corriger le montant approuvé</h5>
+      <button type="button" class="btn-close" aria-label="Fermer" (click)="correctionModal.hide()"></button></div>
+    <div class="modal-body">
+      <p class="small">Montant approuvé actuel : <b>{{ demande.montant_approuve | montant:demande.devise }}</b>. La correction est possible tant que rien n'est payé ;
+        le demandeur et la comptabilité sont prévenus.</p>
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="cm-montant">Nouveau montant ({{ demande.devise }})</label>
+          <input id="cm-montant" type="number" min="0" class="form-control" [(ngModel)]="correction.montant"></div>
+        <div class="col-12"><label class="form-label" for="cm-motif">Motif <span class="text-danger">*</span></label>
+          <textarea id="cm-motif" class="form-control" rows="2" [(ngModel)]="correction.motif"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="correctionModal.hide()">Fermer</button>
+      <button type="button" class="btn btn-primary" [disabled]="enCours || !correction.motif.trim() || !correction.montant" (click)="corrigerMontant()">Enregistrer</button>
+    </div>
+  </div></div>
+</div>
+
+<div bsModal #reaffectationModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Réaffecter une validation</h5>
+      <button type="button" class="btn-close" aria-label="Fermer" (click)="reaffectationModal.hide()"></button></div>
+    <div class="modal-body">
+      @if (tacheAReaffecter) { <p class="small">Validation actuellement attribuée à <b>{{ tacheAReaffecter.valideur }}</b>.</p> }
+      <label class="form-label" for="ra-valideur">Nouveau valideur</label>
+      <ng-select labelForId="ra-valideur" [items]="collaborateurs" bindValue="id" bindLabel="libelle" [(ngModel)]="reaffectation.valideur"
+                 placeholder="Choisir un collaborateur"></ng-select>
+      <label class="form-label mt-3" for="ra-motif">Motif <span class="text-danger">*</span></label>
+      <textarea id="ra-motif" class="form-control" rows="2" [(ngModel)]="reaffectation.motif" placeholder="Absence, départ…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="reaffectationModal.hide()">Fermer</button>
+      <button type="button" class="btn btn-primary" [disabled]="enCours || !reaffectation.valideur || !reaffectation.motif.trim()" (click)="reaffecter()">Réaffecter</button>
     </div>
   </div></div>
 </div>

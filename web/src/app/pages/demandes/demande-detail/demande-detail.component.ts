@@ -12,7 +12,7 @@ import { ToastrService } from 'ngx-toastr';
 import {
   Action, CLASSES_STATUT, CycleCircuit, Demande, DemandesService, MaTache, TypePiece, enregistrerFichier,
 } from 'src/app/core/services/demandes/demandes.service';
-import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
+import { OrganisationService, messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import {
   ROLES_ADMIN_FINANCES, ROLES_TRESORERIE, Reglement, TresorerieService,
 } from 'src/app/core/services/tresorerie/tresorerie.service';
@@ -184,6 +184,59 @@ export class DemandeDetailComponent implements OnInit {
     this.service.pdf(this.demande.id, document).subscribe({
       next: b => { this.pdfEnCours = false; enregistrerFichier(b, `${prefixe}${this.demande?.reference || 'brouillon-' + this.demande?.id}.pdf`); },
       error: e => { this.pdfEnCours = false; this.toast.error(messageErreur(e)); },
+    });
+  }
+
+  // ── Administration (décisions 1, 7, 11) ──────────────────
+  private readonly organisation = inject(OrganisationService);
+  @ViewChild('annulationAdminModal', { static: false }) annulationAdminModal?: ModalDirective;
+  @ViewChild('correctionModal', { static: false }) correctionModal?: ModalDirective;
+  @ViewChild('reaffectationModal', { static: false }) reaffectationModal?: ModalDirective;
+  motifAdmin = '';
+  correction = { montant: null as any, motif: '' };
+  collaborateurs: { id: number; libelle: string }[] = [];
+  tacheAReaffecter: any = null;
+  reaffectation = { valideur: null as number | null, motif: '' };
+
+  annulerAdmin(): void {
+    if (!this.demande || this.enCours) return;
+    this.enCours = true;
+    this.service.annulerAdmin(this.demande.id, this.motifAdmin).subscribe({
+      next: () => { this.enCours = false; this.annulationAdminModal?.hide(); this.toast.success('Demande annulée.'); this.charger(); },
+      error: e => { this.enCours = false; this.toast.error(messageErreur(e)); },
+    });
+  }
+
+  ouvrirCorrection(): void {
+    this.correction = { montant: this.demande?.montant_approuve ? Number(this.demande.montant_approuve) : null, motif: '' };
+    this.correctionModal?.show();
+  }
+
+  corrigerMontant(): void {
+    if (!this.demande || this.enCours) return;
+    this.enCours = true;
+    this.service.corrigerMontant(this.demande.id, this.correction.montant, this.correction.motif).subscribe({
+      next: () => { this.enCours = false; this.correctionModal?.hide(); this.toast.success('Montant approuvé corrigé.'); this.charger(); },
+      error: e => { this.enCours = false; this.toast.error(messageErreur(e)); },
+    });
+  }
+
+  ouvrirReaffectation(t: any): void {
+    this.tacheAReaffecter = t;
+    this.reaffectation = { valideur: null, motif: '' };
+    if (!this.collaborateurs.length) {
+      this.organisation.collaborateursTous().subscribe(u => this.collaborateurs = (u ?? []).filter(x => x.is_active)
+        .map(x => ({ id: x.id, libelle: `${x.nom} ${x.prenom} (${x.username})` })));
+    }
+    this.reaffectationModal?.show();
+  }
+
+  reaffecter(): void {
+    if (!this.tacheAReaffecter || !this.reaffectation.valideur || this.enCours) return;
+    this.enCours = true;
+    this.service.reaffecter(this.tacheAReaffecter.id, this.reaffectation.valideur, this.reaffectation.motif).subscribe({
+      next: () => { this.enCours = false; this.reaffectationModal?.hide(); this.toast.success('Validation réaffectée.'); this.charger(); },
+      error: e => { this.enCours = false; this.toast.error(messageErreur(e)); },
     });
   }
 
