@@ -4,8 +4,13 @@
 
     <main class="auth-ub-zone">
         <div class="auth-ub-carte">
-            <h2 class="auth-ub-h2">Connexion</h2>
-            <p class="auth-ub-aide">Utilisez votre matricule et votre mot de passe UbiFlow.</p>
+            @if (souvenir) {
+                <h2 class="auth-ub-h2">Bon retour{{ prenomSouvenir ? ', ' + prenomSouvenir : '' }}</h2>
+                <p class="auth-ub-aide">Saisissez votre mot de passe pour continuer.</p>
+            } @else {
+                <h2 class="auth-ub-h2">Connexion</h2>
+                <p class="auth-ub-aide">Utilisez votre matricule et votre mot de passe UbiFlow.</p>
+            }
 
             <!-- (ngSubmit) : la touche Entrée valide le formulaire -->
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
@@ -18,24 +23,36 @@
                     </div>
                 }
 
-                <!-- Matricule -->
-                <div class="mb-3">
-                    <label for="username" class="form-label">Matricule</label>
-                    <div class="auth-ub-champ">
-                        <i class="ri-user-3-line auth-ub-champ-ico" aria-hidden="true"></i>
-                        <input type="text"
-                               class="form-control"
-                               formControlName="username"
-                               id="username"
-                               autocomplete="username"
-                               autocapitalize="none"
-                               [ngClass]="{ 'is-invalid': submitted && f['username'].errors }"
-                               placeholder="Votre matricule">
-                        @if (submitted && f['username'].errors) {
-                            <div class="invalid-feedback">Le matricule est requis</div>
-                        }
+                <!-- Matricule : carte « Bon retour » si mémorisé, sinon champ -->
+                @if (souvenir) {
+                    <div class="auth-ub-retour">
+                        <span class="auth-ub-retour-av" aria-hidden="true">{{ initiales }}</span>
+                        <div class="auth-ub-retour-id">
+                            <b>{{ souvenir.nom || souvenir.matricule }}</b>
+                            <small>Matricule {{ souvenir.matricule }}</small>
+                        </div>
+                        <button type="button" class="auth-ub-retour-changer" (click)="changerDeCompte()">Changer</button>
                     </div>
-                </div>
+                } @else {
+                    <!-- Matricule -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Matricule</label>
+                        <div class="auth-ub-champ">
+                            <i class="ri-user-3-line auth-ub-champ-ico" aria-hidden="true"></i>
+                            <input type="text"
+                                   class="form-control"
+                                   formControlName="username"
+                                   id="username"
+                                   autocomplete="username"
+                                   autocapitalize="none"
+                                   [ngClass]="{ 'is-invalid': submitted && f['username'].errors }"
+                                   placeholder="Votre matricule">
+                            @if (submitted && f['username'].errors) {
+                                <div class="invalid-feedback">Le matricule est requis</div>
+                            }
+                        </div>
+                    </div>
+                }
 
                 <!-- Mot de passe -->
                 <div class="mb-3">
@@ -63,6 +80,13 @@
                             <div class="invalid-feedback">Le mot de passe est requis</div>
                         }
                     </div>
+                </div>
+
+                <!-- Se souvenir de moi : le matricule seulement, jamais le mot de passe -->
+                <div class="auth-ub-souvenir">
+                    <input type="checkbox" class="form-check-input" id="souvenir" formControlName="souvenir">
+                    <label for="souvenir">Se souvenir de moi</label>
+                    <small>matricule uniquement</small>
                 </div>
 
                 <!-- Bouton connexion -->

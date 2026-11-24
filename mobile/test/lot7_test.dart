@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ubiflow/core/services/accueil_service.dart';
 import 'package:ubiflow/core/widgets/remix.dart';
+import 'package:ubiflow/core/services/souvenir_service.dart';
 import 'package:ubiflow/features/accueil/accueil_screen.dart' show ilYA;
 import 'package:ubiflow/features/demandes/demande_form_screen.dart';
 import 'package:ubiflow/features/demandes/fichiers.dart';
@@ -24,6 +25,13 @@ void main() {
     expect(Remix.deClasse('ri-road-map-line'), Remix.roadMap);
     expect(Remix.roadMap.fontFamily, 'Remixicon');
     expect(Remix.deClasse('ri-inconnue'), isNull);
+  });
+
+  test('se souvenir de moi : prénom et initiales de la carte « Bon retour »', () {
+    const s = Souvenir('M004', 'KONE Fatou');
+    expect(s.prenom, 'Fatou');
+    expect(s.initiales, 'FK');
+    expect(const Souvenir('M009', '').initiales, 'M');
   });
 
   test('ancienneté lisible', () {

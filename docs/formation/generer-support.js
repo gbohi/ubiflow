@@ -41,6 +41,11 @@ const contenu = [
     ['Administrateur', 'Toutes, en particulier 3, 6, 8, 10'],
   ], [4300, 5000]),
 
+  h1('Se connecter'),
+  puce('Le matricule et le mot de passe sont les mêmes sur le web et sur l\'application mobile.'),
+  puce([b('Se souvenir de moi : '), 'cochée, cette case mémorise le matricule sur cet appareil (navigateur ou téléphone). À la connexion suivante, même après une déconnexion, l\'écran affiche « Bon retour » avec le nom et le matricule : il ne reste qu\'à saisir le mot de passe. Le mot de passe n\'est jamais mémorisé.']),
+  puce([b('Changer : '), 'sur un poste partagé, ce bouton efface le matricule mémorisé et réaffiche le formulaire complet. Décocher la case avant de se connecter l\'efface aussi.']),
+
   h1('1. La page d\'accueil'),
   p('À la connexion, la page d\'accueil présente une synthèse adaptée au profil de l\'utilisateur, avec une phrase qui résume la situation (« 3 demandes attendent une action de votre part »). Une personne qui a plusieurs profils (par exemple la DAF, qui est aussi valideuse et demandeuse) change de vue avec les boutons en haut à droite.'),
   tableau(['Vue', 'Les 4 indicateurs', 'Listes et graphiques'], [
