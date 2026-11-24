@@ -1,0 +1,60 @@
+<div bsModal #modal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enregistrer un paiement</h5>
+        <button type="button" class="btn-close" aria-label="Fermer" (click)="modal.hide()"></button>
+      </div>
+      @if (demande) {
+        <div class="modal-body">
+          <div class="d-flex flex-wrap gap-3 small p-2 mb-3 rounded bg-light">
+            <span><b>{{ demande.reference }}</b> · {{ demande.type_libelle }}</span>
+            <span>Approuvé : <b>{{ (demande.montant_approuve ?? demande.montant_demande) | montant:demande.devise }}</b></span>
+            <span>Reste à payer : <b class="text-primary">{{ reste | montant:demande.devise }}</b></span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="pa-montant">Montant ({{ demande.devise }})</label>
+              <input id="pa-montant" type="number" min="0" class="form-control" [(ngModel)]="fiche.montant"
+                     [readonly]="!fractionne" [class.is-invalid]="erreur('montant')">
+              @if (!fractionne) { <div class="form-text">Ce type de demande se paie en une seule fois.</div> }
+              @if (erreur('montant')) { <div class="invalid-feedback">{{ erreur('montant') }}</div> }
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pa-date">Date du paiement</label>
+              <input id="pa-date" type="date" class="form-control" [max]="aujourdhui" [(ngModel)]="fiche.date_paiement"
+                     [class.is-invalid]="erreur('date_paiement')">
+              @if (erreur('date_paiement')) { <div class="invalid-feedback">{{ erreur('date_paiement') }}</div> }
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pa-mode">Mode</label>
+              <select id="pa-mode" class="form-select" [(ngModel)]="fiche.mode">
+                @for (m of modes; track m.code) { <option [ngValue]="m.code">{{ m.libelle }}</option> }
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="pa-ref">Référence</label>
+              <input id="pa-ref" class="form-control" maxlength="100" [(ngModel)]="fiche.reference" placeholder="N° de virement, de chèque…">
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="pa-benef">Bénéficiaire</label>
+              <input id="pa-benef" class="form-control" maxlength="255" [(ngModel)]="fiche.beneficiaire">
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="pa-just">Justificatif de paiement</label>
+              <input id="pa-just" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="choisirFichier($event)"
+                     [class.is-invalid]="erreur('justificatif')">
+              @if (erreur('justificatif')) { <div class="invalid-feedback">{{ erreur('justificatif') }}</div> }
+            </div>
+          </div>
+        </div>
+      }
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" (click)="modal.hide()">Annuler</button>
+        <button type="button" class="btn btn-primary" [disabled]="enCours" (click)="enregistrer()">
+          @if (enCours) { <span class="spinner-border spinner-border-sm me-1"></span> }Enregistrer le paiement
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

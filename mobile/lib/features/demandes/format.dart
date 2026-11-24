@@ -53,3 +53,32 @@ List<(String, String, String)> lignesRecap(Map calcul) {
       (rubriquesMission[l['rubrique']] ?? '${l['rubrique']}', '${l['libelle']}', montant(l['montant_ref'], ref)),
   ];
 }
+
+// ── Paiements (lot 4) ─────────────────────────────────────────
+
+/// Synthèse des paiements : (libellé, valeur) — approuvé, payé, reste, puis un
+/// libellé par règlement (les règlements annulés sont signalés).
+List<(String, String)> resumePaiements(Map d) {
+  final devise = d['devise'] as String? ?? '';
+  final annulee = d['statut'] == 'annulee';
+  final lignes = <(String, String)>[
+    ('Statut', '${d['statut_financier_libelle'] ?? '—'}'),
+    ('Approuvé', montant(d['montant_approuve'] ?? d['montant_demande'], devise)),
+    ('Payé', montant(d['montant_paye'] ?? 0, devise)),
+    ('Reste à payer', montant(annulee ? 0 : (d['solde'] ?? 0), devise)),
+  ];
+  for (final r in List<Map>.from(d['reglements'] as List? ?? [])) {
+    final ref = (r['reference'] as String? ?? '').isEmpty ? '' : ' · ${r['reference']}';
+    lignes.add(('${r['annule'] == true ? 'Paiement annulé' : 'Paiement'} du ${dateCourte(r['date_paiement']).split(' ').first}',
+        '${montant(r['montant'], r['devise'] as String? ?? devise)} · ${r['mode_libelle']}$ref'));
+  }
+  for (final r in List<Map>.from(d['reversements'] as List? ?? [])) {
+    lignes.add(('Reversement (${'${r['etat_libelle']}'.toLowerCase()})', montant(r['montant_du'], r['devise'] as String? ?? devise)));
+  }
+  return lignes;
+}
+
+bool aDesPaiements(Map d) =>
+    d['statut_financier'] != 'sans_objet' ||
+    (d['reglements'] as List? ?? []).isNotEmpty ||
+    (d['reversements'] as List? ?? []).isNotEmpty;

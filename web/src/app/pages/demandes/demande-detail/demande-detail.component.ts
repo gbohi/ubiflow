@@ -13,7 +13,13 @@ import {
   Action, CLASSES_STATUT, CycleCircuit, Demande, DemandesService, MaTache, TypePiece, enregistrerFichier,
 } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
+import {
+  ROLES_ADMIN_FINANCES, ROLES_TRESORERIE, Reglement, TresorerieService,
+} from 'src/app/core/services/tresorerie/tresorerie.service';
+import { TokenStorageService } from 'src/app/core/services/token-storage.service';
+import { aUnRole } from 'src/app/core/helpers/roles';
 import { ContenuDemande } from '../champs-demande/champs-demande.component';
+import { PaiementModalComponent } from '../paiement-modal/paiement-modal.component';
 
 @Component({
   selector: 'app-demande-detail',
@@ -38,6 +44,17 @@ export class DemandeDetailComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly classes = CLASSES_STATUT;
+  readonly classesFinancier: Record<string, string> = {
+    a_payer: 't-or', partiellement_payee: 't-or', payee: 't-ve', soldee: 't-ve', reversement_attendu: 't-ro',
+  };
+  private readonly tresorerieService = inject(TresorerieService);
+  private readonly utilisateur = inject(TokenStorageService).getUser();
+  readonly tresorerie = aUnRole(this.utilisateur, ROLES_TRESORERIE);
+  readonly adminFinances = aUnRole(this.utilisateur, ROLES_ADMIN_FINANCES);
+  @ViewChild(PaiementModalComponent) paiement!: PaiementModalComponent;
+  @ViewChild('annulationReglementModal', { static: false }) annulationReglementModal?: ModalDirective;
+  reglementAAnnuler: Reglement | null = null;
+  motifAnnulationReglement = '';
   demande: Demande | null = null;
   contenu: ContenuDemande = { objet: '', montant_demande: null, devise: '', donnees: {} };
   /** Saisie d'une mission (copie de travail de `demande.mission`) */
@@ -155,6 +172,22 @@ export class DemandeDetailComponent implements OnInit {
         error: e => { this.soumissionModal?.hide(); echec(e); },
       }),
       error: e => { this.soumissionModal?.hide(); echec(e); },
+    });
+  }
+
+  // ── Paiements ────────────────────────────────────────────
+  ouvrirAnnulationReglement(r: Reglement): void {
+    this.reglementAAnnuler = r;
+    this.motifAnnulationReglement = '';
+    this.annulationReglementModal?.show();
+  }
+
+  annulerReglement(): void {
+    if (!this.reglementAAnnuler || this.enCours) return;
+    this.enCours = true;
+    this.tresorerieService.annulerReglement(this.reglementAAnnuler.id, this.motifAnnulationReglement).subscribe({
+      next: () => { this.enCours = false; this.annulationReglementModal?.hide(); this.toast.success('Paiement annulé.'); this.charger(); },
+      error: e => { this.enCours = false; this.toast.error(messageErreur(e)); },
     });
   }
 

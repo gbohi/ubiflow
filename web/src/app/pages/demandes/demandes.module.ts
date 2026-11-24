@@ -14,11 +14,15 @@ import { AValiderComponent } from './a-valider/a-valider.component';
 import { DelegationsComponent } from './delegations/delegations.component';
 import { MissionFormComponent } from './mission-form/mission-form.component';
 import { RecapMissionComponent } from './recap-mission/recap-mission.component';
+import { PaiementModalComponent } from './paiement-modal/paiement-modal.component';
+import { APayerComponent } from './a-payer/a-payer.component';
+import { ReversementsComponent } from './reversements/reversements.component';
 
 @NgModule({
   declarations: [
     ChampsDemandeComponent, MesDemandesComponent, NouvelleDemandeComponent, DemandeDetailComponent,
     AValiderComponent, DelegationsComponent, MissionFormComponent, RecapMissionComponent,
+    PaiementModalComponent, APayerComponent, ReversementsComponent,
   ],
   imports: [CommonModule, FormsModule, SharedModule, ModalModule.forRoot(), NgSelectModule, DemandesRoutingModule],
   exports: [ChampsDemandeComponent],

@@ -70,8 +70,15 @@ export interface Demande {
   circuit?: CycleCircuit[]; mes_taches?: MaTache[]; origine_copie?: number | null; origine_copie_reference?: string | null;
   motif_annulation?: string; annulee_le?: string | null;
   type_famille?: string; type_parametres?: Record<string, any>; mission?: any; calcul?: any;
+  demande_parent?: number | null; demande_parent_reference?: string | null; demande_parent_type?: string | null;
+  cloturee_le?: string | null; paiement_fractionne?: boolean; montant_reverse?: string;
+  reglements?: any[]; reversements?: any[];
+  rattachees?: { id: number; reference: string | null; type_libelle: string; type_code: string; objet: string; statut: string;
+                 statut_libelle: string; montant_approuve: string | null; montant_demande: string | null; devise: string }[];
+  synthese?: { engage_total: string; paye_total: string; solde_total: string; complements: any[] } | null;
   actions?: { modifier: boolean; soumettre: boolean; supprimer: boolean; annuler: boolean; dupliquer: boolean;
-              ajouter_document: boolean; commenter: boolean };
+              ajouter_document: boolean; commenter: boolean; payer?: boolean; demander_annulation?: boolean;
+              frais_complementaires?: boolean };
 }
 
 export interface EntreePlan {
@@ -171,7 +178,8 @@ export class DemandesService {
     return this.http.get<{ count: number; results: Demande[] }>(`${this.api}/demandes/`, { params: this.params(f) });
   }
   demande(id: number): Observable<Demande> { return this.http.get<Demande>(`${this.api}/demandes/${id}/`); }
-  creer(d: { type_demande: number; objet: string; montant_demande: any; devise?: string; donnees: any; mission?: any }) {
+  creer(d: { type_demande: number; objet: string; montant_demande: any; devise?: string; donnees: any; mission?: any;
+          demande_parent?: number | null }) {
     return this.http.post<Demande>(`${this.api}/demandes/`, d, detaille());
   }
   modifier(id: number, d: { objet?: string; montant_demande?: any; donnees?: any; mission?: any }) {
@@ -196,6 +204,9 @@ export class DemandesService {
   }
   telechargerDocument(id: number, doc: number): Observable<Blob> {
     return this.http.get(`${this.api}/demandes/${id}/documents/${doc}/fichier/`, { responseType: 'blob' });
+  }
+  parentsPossibles(typeDemande: number) {
+    return this.http.get<any[]>(`${this.api}/demandes/parents-possibles/`, { params: this.params({ type_demande: typeDemande }) });
   }
   compteurs() {
     return this.http.get<{ mes_demandes: Record<string, number>; a_valider: number }>(`${this.api}/demandes/compteurs/`);

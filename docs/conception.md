@@ -1,6 +1,6 @@
 # UbiFlow — Dossier de conception fonctionnelle et technique
 
-Version 1.5 — référence pour le développement. Toute évolution de règle
+Version 1.6 — référence pour le développement. Toute évolution de règle
 métier doit d'abord être reportée dans ce document.
 
 ---
@@ -389,6 +389,12 @@ l'écart est visible des valideurs.
   saisi), `justificatif` → Document
 - `enregistre_par`, `annule` (bool), `motif_annulation`
 
+> **Mise en œuvre (lot 4)** : app `tresorerie`. Un règlement est exprimé dans
+> la devise de la demande ; `taux_change` et `montant_ref` le convertissent
+> dans la devise de référence (taux figé de la demande, sinon taux du jour du
+> paiement). Le justificatif est une pièce jointe de la demande (type
+> « justificatif de paiement »). Un règlement annulé reste affiché, barré.
+
 **Reversement**
 - `demande`, `montant_du`, `motif` (écart réel / payé, annulation après
   paiement), `etat` : `a_percevoir` | `percu` | `abandonne`
@@ -688,6 +694,14 @@ N+1 figé d'une demande en cours, avec **motif obligatoire**. Action
   workflow.
 - **Types mission** : formulaire et calcul codés (§7), complétés au besoin
   par des `ChampType` additionnels.
+- **Demandes rattachées (mise en œuvre lot 4)** : la règle de rattachement est
+  dans `TypeDemande.parametres['parent']` (`types` autorisés ou `*`, `statuts`
+  de la demande d'origine, `unique_en_cours`) plutôt que dans `parent_requis`,
+  qui ne permet qu'un seul type. ANN appartient à la famille `annulation` :
+  son approbation annule la demande d'origine (reversement du montant payé).
+  Tant qu'une annulation est en cours, la demande d'origine ne peut pas être payée.
+- **Clôture (lot 4)** : seul le mode A est actif (clôture dès le paiement
+  complet, ou dès l'approbation sans montant) ; le mode B arrive au lot 5.
 - **Frais complémentaires** : le montant approuvé de la mission initiale ne
   change jamais. La fiche mission affiche « engagé total = mission +
   compléments approuvés », « payé total », « solde ».
@@ -952,7 +966,7 @@ barèmes, trésorerie, reporting avancé.
 | **1. Organisation** ✅ | Matricule, statut, situation véhicule, départements hiérarchisés, responsabilités, N+1 (modes, historique, réaffectation), rôles métier, import Excel | Résolution du N+1 et des titulaires à une date donnée testée ; import Excel avec rapport d'erreurs |
 | **2. Moteur et socle** ✅ | Types de demande, champs paramétrables, demandes, versions de contenu, numérotation, workflow (versions, étapes, conditions, désignation, simulation), tâches, actions, retours, rejets, annulations, délégations, pièces jointes, journal, notifications in-app | Type FRC entièrement opérationnel sur web ; tous les scénarios du moteur couverts par des tests automatisés |
 | **3. Barèmes et missions** ✅ | Devise de référence, per diem, tarifs km, tarifs par ville, forfait transport hors pays, taux de change, villes, distances ; MLO et MHP ; calcul et figement | Calculs conformes au §7 ; changement de barème sans effet sur les demandes existantes |
-| **4. Paiement et trésorerie** | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
+| **4. Paiement et trésorerie** ✅ | PAI, RMB, FCM, ANN ; file à payer, règlements fractionnés, séparation des tâches, reversements | Statuts financiers conformes au §4.2 |
 | **5. Clôture** | Modes A et B, rapport, pièces de clôture, dépenses réelles, reversement, contrôle de clôture | Une mission va de la création à la clôture avec reversement |
 | **6. Pilotage et canaux** | Tableaux de bord par profil, exports Excel/PDF, PDF ordre de mission avec QR code, push Firebase, e-mail SMTP, rappels, escalades, jours fériés | Indicateurs vérifiés sur un jeu de données de test |
 | **7. Mobile** | Périmètre du §16 | Parcours demandeur et valideur complets sur Android et iOS |

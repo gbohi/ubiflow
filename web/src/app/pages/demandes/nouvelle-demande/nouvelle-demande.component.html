@@ -34,6 +34,18 @@
           @if (type.description) { <div class="form-text">{{ type.description }}</div> }
         </div>
       </div>
+      @if (avecParent) {
+        <div class="mb-3">
+          <label class="form-label" for="dem-parent">Demande concernée <span class="text-danger">*</span></label>
+          <ng-select labelForId="dem-parent" [items]="parents" bindValue="id" [(ngModel)]="parent" placeholder="Choisir parmi vos demandes approuvées"
+                     [class.is-invalid]="erreurs?.demande_parent" notFoundText="Aucune demande éligible">
+            <ng-template ng-label-tmp let-item="item">{{ libelleParent(item) }}</ng-template>
+            <ng-template ng-option-tmp let-item="item">{{ libelleParent(item) }}</ng-template>
+          </ng-select>
+          @if (erreurs?.demande_parent) { <div class="text-danger small mt-1">{{ erreurs.demande_parent }}</div> }
+          @if (!parents.length) { <div class="form-text">Aucune de vos demandes n'est éligible pour ce type pour le moment.</div> }
+        </div>
+      }
       <app-champs-demande [contenu]="contenu" [champs]="type.champs || []" [avecMontant]="type.avec_montant && !estMission" [erreurs]="erreurs"></app-champs-demande>
       @if (estMission) {
         <hr class="my-3">

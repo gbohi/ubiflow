@@ -7,6 +7,10 @@
     <span class="lst-tag fs-6" [ngClass]="classes[demande.statut]">{{ demande.statut_libelle }}</span>
   </app-page-entete>
 
+  @if (demande.demande_parent) {
+    <div class="alert alert-light border small"><i class="ri-links-line me-1"></i>Rattachée à
+      <a [routerLink]="['/demandes', demande.demande_parent]"><b>{{ demande.demande_parent_reference }}</b></a> ({{ demande.demande_parent_type }})</div>
+  }
   @if (retourEnCours) {
     <div class="alert alert-warning"><i class="ri-arrow-go-back-line me-1"></i><b>Demande retournée pour correction</b>
       par {{ retourEnCours.auteur_nom }} ({{ retourEnCours.etape_libelle }}) : {{ retourEnCours.motif }}
@@ -46,6 +50,86 @@
           <div class="alert alert-info small mt-3 mb-0">Montant approuvé : <b>{{ demande.montant_approuve | montant:demande.devise }}</b></div>
         }
       </div>
+
+      <!-- Paiements -->
+      @if (demande.statut_financier !== 'sans_objet' || demande.reglements?.length || demande.reversements?.length) {
+        <div class="lst-carte p-3 p-md-4 mb-3" data-test="paiements">
+          <div class="d-flex align-items-center mb-3">
+            <h6 class="mb-0">Paiements</h6>
+            <span class="lst-tag ms-2" [ngClass]="classesFinancier[demande.statut_financier]">{{ demande.statut_financier_libelle }}</span>
+            @if (demande.actions?.payer) {
+              <button type="button" class="btn btn-sm btn-primary ms-auto" (click)="paiement.ouvrir(demande, demande.paiement_fractionne ?? true)">
+                <i class="ri-hand-coin-line me-1"></i>Enregistrer un paiement</button>
+            }
+          </div>
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Approuvé</div>
+              <b>{{ (demande.montant_approuve ?? demande.montant_demande) | montant:demande.devise }}</b></div></div>
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Payé</div>
+              <b>{{ demande.montant_paye | montant:demande.devise }}</b></div></div>
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Reste à payer</div>
+              <b>{{ (demande.statut === 'annulee' ? 0 : demande.solde) | montant:demande.devise }}</b></div></div>
+          </div>
+          @if (demande.reglements?.length) {
+            <div class="table-responsive"><table class="table table-sm align-middle mb-2">
+              <thead class="table-light"><tr><th>Date</th><th>Mode</th><th>Référence</th><th>Bénéficiaire</th><th class="text-end">Montant</th><th></th></tr></thead>
+              <tbody>
+                @for (r of demande.reglements; track r.id) {
+                  <tr [class.text-decoration-line-through]="r.annule" [class.text-muted]="r.annule">
+                    <td class="text-nowrap">{{ r.date_paiement | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ r.mode_libelle }}</td>
+                    <td class="small">{{ r.reference || '—' }}
+                      @if (r.justificatif) { <a href="javascript:void(0)" class="ms-1" (click)="telecharger({ id: r.justificatif, nom_origine: r.justificatif_nom })" title="Justificatif"><i class="ri-attachment-2"></i></a> }</td>
+                    <td class="small">{{ r.beneficiaire }}<span class="d-block text-muted">saisi par {{ r.enregistre_par_nom }}</span></td>
+                    <td class="text-end text-nowrap">{{ r.montant | montant:r.devise }}</td>
+                    <td class="text-end">
+                      @if (r.annule) { <span class="small" [title]="r.motif_annulation">annulé</span> }
+                      @else if (adminFinances && demande.statut !== 'annulee') {
+                        <button type="button" class="btn btn-sm btn-link text-danger p-0" (click)="ouvrirAnnulationReglement(r)">Annuler</button> }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table></div>
+          }
+          @for (rv of demande.reversements; track rv.id) {
+            <div class="alert small py-2 mb-2" [class.alert-warning]="rv.etat === 'a_percevoir'" [class.alert-light]="rv.etat !== 'a_percevoir'">
+              <i class="ri-arrow-go-back-line me-1"></i><b>Reversement {{ rv.montant_du | montant:rv.devise }}</b> — {{ rv.origine_libelle }} :
+              {{ rv.etat_libelle | lowercase }}
+              @if (rv.etat === 'percu') { le {{ rv.percu_le | date:'dd/MM/yyyy' }} }
+              @if (rv.etat === 'abandonne') { ({{ rv.motif_abandon }}) }
+              @if (rv.etat === 'a_percevoir' && tresorerie) { · <a routerLink="/tresorerie/reversements">traiter</a> }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Mission et frais complémentaires -->
+      @if (demande.synthese && demande.synthese.complements.length) {
+        <div class="lst-carte p-3 p-md-4 mb-3" data-test="synthese">
+          <h6 class="mb-3">Mission et frais complémentaires</h6>
+          <div class="row g-2 text-center mb-3">
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Engagé total</div><b>{{ demande.synthese.engage_total | montant:demande.devise }}</b></div></div>
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Payé total</div><b>{{ demande.synthese.paye_total | montant:demande.devise }}</b></div></div>
+            <div class="col-4"><div class="p-2 rounded bg-light"><div class="small text-muted">Solde</div><b>{{ demande.synthese.solde_total | montant:demande.devise }}</b></div></div>
+          </div>
+          <p class="small text-muted mb-0">Engagé = mission ({{ demande.montant_approuve | montant:demande.devise }}) + frais complémentaires approuvés.</p>
+        </div>
+      }
+      @if (demande.rattachees?.length) {
+        <div class="lst-carte p-3 p-md-4 mb-3">
+          <h6 class="mb-2">Demandes rattachées</h6>
+          <ul class="list-unstyled mb-0 small">
+            @for (r of demande.rattachees; track r.id) {
+              <li class="d-flex flex-wrap gap-2 align-items-center py-1">
+                <a [routerLink]="['/demandes', r.id]"><b>{{ r.reference || 'Brouillon' }}</b></a> {{ r.type_libelle }} — {{ r.objet }}
+                <span class="lst-tag" [ngClass]="classes[r.statut]">{{ r.statut_libelle }}</span>
+                @if (r.montant_approuve || r.montant_demande) { <span class="ms-auto">{{ (r.montant_approuve ?? r.montant_demande) | montant:r.devise }}</span> }
+              </li>
+            }
+          </ul>
+        </div>
+      }
 
       <!-- Pièces jointes -->
       <div class="lst-carte p-3 p-md-4 mb-3">
@@ -139,7 +223,8 @@
       }
 
       <!-- Actions du demandeur -->
-      @if (demande.actions?.soumettre || demande.actions?.annuler || demande.actions?.dupliquer || demande.actions?.supprimer) {
+      @if (demande.actions?.soumettre || demande.actions?.annuler || demande.actions?.dupliquer || demande.actions?.supprimer
+           || demande.actions?.demander_annulation || demande.actions?.frais_complementaires) {
         <div class="lst-carte p-3 mb-3">
           <div class="d-grid gap-2">
             @if (demande.actions?.soumettre) {
@@ -150,6 +235,14 @@
             }
             @if (demande.actions?.annuler) {
               <button type="button" class="btn btn-outline-secondary" (click)="motifAnnulation = ''; annulationModal.show()"><i class="ri-forbid-line me-1"></i>Annuler la demande</button>
+            }
+            @if (demande.actions?.frais_complementaires) {
+              <a class="btn btn-outline-primary" routerLink="/demandes/nouvelle" [queryParams]="{ code: 'FCM', parent: demande.id }">
+                <i class="ri-add-box-line me-1"></i>Demander des frais complémentaires</a>
+            }
+            @if (demande.actions?.demander_annulation) {
+              <a class="btn btn-outline-secondary" routerLink="/demandes/nouvelle" [queryParams]="{ code: 'ANN', parent: demande.id }">
+                <i class="ri-close-circle-line me-1"></i>Demander l'annulation</a>
             }
             @if (demande.actions?.dupliquer) {
               <button type="button" class="btn btn-light" (click)="dupliquer()"><i class="ri-file-copy-line me-1"></i>Dupliquer en nouvelle demande</button>
@@ -204,6 +297,7 @@
           @if (demande.soumise_le) { <dt class="col-5 text-muted fw-normal">Soumise le</dt><dd class="col-7">{{ demande.soumise_le | date:'dd/MM/yyyy HH:mm' }}</dd> }
           @if (demande.approuvee_le) { <dt class="col-5 text-muted fw-normal">Approuvée le</dt><dd class="col-7">{{ demande.approuvee_le | date:'dd/MM/yyyy HH:mm' }}</dd> }
           @if (demande.statut_financier !== 'sans_objet') { <dt class="col-5 text-muted fw-normal">Paiement</dt><dd class="col-7">{{ demande.statut_financier_libelle }}</dd> }
+          @if (demande.cloturee_le) { <dt class="col-5 text-muted fw-normal">Clôturée le</dt><dd class="col-7">{{ demande.cloturee_le | date:'dd/MM/yyyy HH:mm' }}</dd> }
           @if (demande.origine_copie_reference) { <dt class="col-5 text-muted fw-normal">Copie de</dt><dd class="col-7"><a [routerLink]="['/demandes', demande.origine_copie]">{{ demande.origine_copie_reference }}</a></dd> }
         </dl>
       </div>
@@ -267,5 +361,26 @@
       </div>
     </div>
   </div>
+</div>
+
+<app-paiement-modal (paye)="charger()"></app-paiement-modal>
+
+<div bsModal #annulationReglementModal="bs-modal" class="modal fade" [config]="{backdrop: 'static'}">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Annuler un paiement</h5>
+      <button type="button" class="btn-close" aria-label="Fermer" (click)="annulationReglementModal.hide()"></button></div>
+    @if (reglementAAnnuler) {
+      <div class="modal-body">
+        <p class="small">Paiement du {{ reglementAAnnuler.date_paiement | date:'dd/MM/yyyy' }} de
+          <b>{{ reglementAAnnuler.montant | montant:reglementAAnnuler.devise }}</b> (erreur de saisie). Il restera visible, barré.</p>
+        <label class="form-label" for="ar-motif">Motif <span class="text-danger">*</span></label>
+        <textarea id="ar-motif" class="form-control" rows="2" [(ngModel)]="motifAnnulationReglement"></textarea>
+      </div>
+    }
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" (click)="annulationReglementModal.hide()">Fermer</button>
+      <button type="button" class="btn btn-danger" [disabled]="enCours || !motifAnnulationReglement.trim()" (click)="annulerReglement()">Annuler le paiement</button>
+    </div>
+  </div></div>
 </div>
 }

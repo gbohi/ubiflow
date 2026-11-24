@@ -283,13 +283,13 @@ def finaliser(instance, infos=None):
     notifier([demande.demandeur], 'demande_approuvee', f"{demande.reference} approuvée",
              f"Votre demande « {demande.objet} » est approuvée.", demande)
     from demandes import extensions
-    from tresorerie.services import comptables, mettre_a_jour
+    from tresorerie.services import comptables, fmt, mettre_a_jour
     extensions.pour(demande.type_demande).apres_approbation(demande, infos)
     mettre_a_jour(demande, infos=infos)  # à payer, ou clôture immédiate d'une demande sans montant (mode A)
     if demande.statut_financier == StatutFinancier.A_PAYER:
         notifier(comptables(), 'a_payer', f"{demande.reference} à payer",
-                 f"{demande.type_demande.libelle} de {nom(demande.demandeur)} : {demande.montant_approuve} "
-                 f"{demande.devise}.", demande)
+                 f"{demande.type_demande.libelle} de {nom(demande.demandeur)} : "
+                 f"{fmt(demande.montant_approuve, demande.devise)}.", demande)
 
 
 # ═══════════════════════════════════════════════════════════════

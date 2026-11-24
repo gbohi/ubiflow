@@ -135,6 +135,15 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
         CarteListe(lignes: [for (final (l, v) in resumeMission(d['mission'] as Map)) _ligne(l, v)]),
         const SizedBox(height: 12),
       ],
+      if (aDesPaiements(d)) ...[
+        const LibelleSection('Paiements'),
+        CarteListe(lignes: [for (final (l, v) in resumePaiements(d)) _ligne(l, v)]),
+        const SizedBox(height: 12),
+      ],
+      if (d['demande_parent_reference'] != null) ...[
+        CarteListe(lignes: [_ligne('Rattachée à', '${d['demande_parent_reference']} (${d['demande_parent_type']})')]),
+        const SizedBox(height: 12),
+      ],
       if (d['calcul'] is Map) ...[
         const LibelleSection('Récapitulatif des frais'),
         CarteListe(lignes: [

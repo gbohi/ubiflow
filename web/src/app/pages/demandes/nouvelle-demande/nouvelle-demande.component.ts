@@ -26,6 +26,10 @@ export class NouvelleDemandeComponent implements OnInit {
   type: TypeDemande | null = null;
   contenu: ContenuDemande = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
   mission: Record<string, any> = {};
+  /** Demande à laquelle rattacher la nouvelle (frais complémentaires, annulation) */
+  parents: any[] = [];
+  parent: number | null = null;
+  private parentDemande: number | null = null;
   erreurs: any = null;
   enCours = false;
   chargement = true;
@@ -35,8 +39,11 @@ export class NouvelleDemandeComponent implements OnInit {
       next: t => {
         this.types = t.filter(x => x.circuit_publie);
         this.chargement = false;
-        const id = Number(this.route.snapshot.queryParamMap.get('type'));
-        const choisi = this.types.find(x => x.id === id) ?? (this.types.length === 1 ? this.types[0] : null);
+        const q = this.route.snapshot.queryParamMap;
+        const id = Number(q.get('type'));
+        this.parentDemande = Number(q.get('parent')) || null;
+        const choisi = this.types.find(x => x.id === id || (!!q.get('code') && x.code === q.get('code')))
+          ?? (this.types.length === 1 ? this.types[0] : null);
         if (choisi) this.choisir(choisi);
       },
       error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
@@ -58,6 +65,21 @@ export class NouvelleDemandeComponent implements OnInit {
     this.erreurs = null;
     this.contenu = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
     this.mission = {};
+    this.parents = [];
+    this.parent = null;
+    if (this.avecParent) {
+      this.service.parentsPossibles(t.id!).subscribe(p => {
+        this.parents = p;
+        this.parent = p.find(x => x.id === this.parentDemande)?.id ?? (p.length === 1 ? p[0].id : null);
+      });
+    }
+  }
+
+  get avecParent(): boolean { return !!this.type?.parametres?.['parent']; }
+
+  libelleParent(p: any): string {
+    const montant = p.montant_approuve ? ` — ${Number(p.montant_approuve).toLocaleString('fr-FR').replace(/[\u202f\s]/g, '\u00a0')} ${p.devise}` : '';
+    return `${p.reference} · ${p.type_libelle} · ${p.objet}${montant}`;
   }
 
   get estMission(): boolean { return this.type?.famille === 'mission'; }
@@ -70,7 +92,8 @@ export class NouvelleDemandeComponent implements OnInit {
     this.enCours = true;
     this.erreurs = null;
     this.service.creer({ type_demande: this.type.id!, objet: this.contenu.objet, montant_demande: this.contenu.montant_demande,
-                         donnees: this.contenu.donnees, ...(this.estMission ? { mission: this.mission } : {}) }).subscribe({
+                         donnees: this.contenu.donnees, ...(this.estMission ? { mission: this.mission } : {}),
+                         ...(this.avecParent ? { demande_parent: this.parent } : {}) }).subscribe({
       next: d => {
         if (!soumettre) {
           this.toast.success('Brouillon enregistré.');

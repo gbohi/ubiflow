@@ -15,6 +15,10 @@ de validation paramétrables. État d'avancement (voir `docs/conception.md`,
   diem, tarifs kilométriques, transport par ville, forfait hors pays, taux de
   change), pays, villes, distances ; **missions locales (MLO)** et **hors pays
   (MHP)** avec calcul en direct et figement des barèmes à la soumission.
+- **Lot 4 — Paiement et trésorerie** : file à payer (filtres, export Excel),
+  règlements fractionnés, séparation approbation / paiement, reversements ;
+  types **demande de paiement (PAI)**, **remboursement (RMB)**, **frais
+  complémentaires de mission (FCM)** et **demande d'annulation (ANN)**.
 
 | Dossier    | Contenu                                                        |
 |------------|----------------------------------------------------------------|
@@ -90,6 +94,7 @@ dans `backend/backend/api/organisation.py` ; l'import Excel dans
 | Barèmes | `baremes/per-diem/`, `baremes/kilometrique/`, `baremes/transport-ville/`, `baremes/forfait-hors-pays/`, `baremes/taux-change/`, `parametres-systeme/` | `baremes/` |
 | Lieux | `pays/`, `villes/`, `distances/` (+ `entre/?a=&b=`) | `missions/` |
 | Calcul des missions | `missions/calculer/` (aperçu, rien n'est enregistré) | `missions/calcul.py`, `missions/extension.py` |
+| Trésorerie | `tresorerie/a-payer/` (+ `?export=xlsx`), `tresorerie/reglements/` (+ `annuler/`), `tresorerie/reversements/` (+ `percevoir/`, `abandonner/`), `demandes/parents-possibles/` | `tresorerie/services.py` |
 
 Règles principales :
 - une demande est un **brouillon** jusqu'à sa soumission (elle peut être
@@ -111,7 +116,14 @@ Règles principales :
   déterminant (dates, destination) change : il est alors refait aux barèmes
   du jour et la différence est notée dans l'historique ;
 - une demande simple peut être saisie dans une autre devise : elle est
-  convertie dans la devise de référence au taux de la première soumission.
+  convertie dans la devise de référence au taux de la première soumission ;
+- statut financier : à payer → partiellement payée → payée → soldée, ou
+  reversement attendu ; une demande en clôture automatique est clôturée dès
+  qu'elle est payée (ou dès son approbation si elle n'a pas de montant) ;
+- une demande approuvée s'annule par une **demande d'annulation (ANN)** :
+  approuvée, elle annule la demande d'origine et, si celle-ci était payée,
+  crée un reversement à percevoir (ou à abandonner, avec motif, par un
+  administrateur des finances).
 
 Listes : chaque `<table class="lst-table">` reçoit automatiquement une
 colonne « N° » (directive `shared/numerotation`, `[numeroDebut]` pour les

@@ -46,6 +46,14 @@ def _date(brute, nom):
     return d
 
 
+def fmt(montant, devise=''):
+    """1 500 000 XOF (espace insécable entre les milliers, centimes seulement s'il y en a)."""
+    m = Decimal(str(montant or 0))
+    texte = f"{m:,.0f}" if m == m.to_integral() else f"{m:,.2f}"
+    texte = texte.replace(',', '\u00a0').replace('.', ',')
+    return f"{texte} {devise}".strip()
+
+
 def comptables():
     User = get_user_model()
     return list(User.objects.filter(is_active=True, groups__name='comptable').distinct())
@@ -123,9 +131,9 @@ def enregistrer_reglement(demande, user, montant, date_paiement=None, mode='vire
         montant = _montant(montant)
         solde = demande.solde
         if montant > solde:
-            raise ErreurMetier({'montant': f"Le montant dépasse le reste à payer ({solde} {demande.devise})."})
+            raise ErreurMetier({'montant': f"Le montant dépasse le reste à payer ({fmt(solde, demande.devise)})."})
         if not td.paiement_fractionne_autorise and montant != solde:
-            raise ErreurMetier({'montant': f"Ce type de demande se paie en une fois : {solde} {demande.devise}."})
+            raise ErreurMetier({'montant': f"Ce type de demande se paie en une fois : {fmt(solde, demande.devise)}."})
         if mode not in dict(MODES_PAIEMENT):
             raise ErreurMetier({'mode': 'Mode de paiement inconnu.'})
         d = _date(date_paiement, 'date_paiement')
@@ -147,13 +155,13 @@ def enregistrer_reglement(demande, user, montant, date_paiement=None, mode='vire
             enregistre_par=user)
         demande.montant_paye = (demande.montant_paye or 0) + montant
         moteur.tracer(demande, 'paiement', auteur=user, infos=infos,
-                      motif=f"Paiement de {montant} {demande.devise} ({r.get_mode_display().lower()}"
+                      motif=f"Paiement de {fmt(montant, demande.devise)} ({r.get_mode_display().lower()}"
                             f"{', réf. ' + r.reference if r.reference else ''}).",
                       donnees={'reglement': r.pk})
         mettre_a_jour(demande, user, infos)
         reste = demande.solde
         notifier([demande.demandeur], 'paiement', f"{demande.reference} : paiement effectué",
-                 f"{montant} {demande.devise} ont été payés" + (f" ; reste {reste} {demande.devise}." if reste else "."),
+                 f"{fmt(montant, demande.devise)} ont été payés" + (f" ; reste {fmt(reste, demande.devise)}." if reste else "."),
                  demande)
     return r
 
@@ -177,8 +185,8 @@ def annuler_reglement(reglement, user, motif, infos=None):
         demande.montant_paye -= r.montant
         if demande.statut == StatutDemande.CLOTUREE and demande.type_demande.mode_cloture == 'automatique':
             demande.statut, demande.cloturee_le = StatutDemande.APPROUVEE, None  # rouverte : de nouveau à payer
-        moteur.tracer(demande, 'paiement_annule', auteur=user, infos=infos, motif=f"Paiement de {r.montant} "
-                      f"{r.devise} du {r.date_paiement:%d/%m/%Y} annulé : {motif}", donnees={'reglement': r.pk})
+        moteur.tracer(demande, 'paiement_annule', auteur=user, infos=infos, motif=f"Paiement de {fmt(r.montant, r.devise)} du {r.date_paiement:%d/%m/%Y} annulé : {motif}",
+                      donnees={'reglement': r.pk})
         mettre_a_jour(demande, user, infos)
     return r
 
@@ -192,12 +200,12 @@ def creer_reversement(demande, montant, origine, motif, user=None, infos=None):
     r = Reversement.objects.create(demande=demande, montant_du=montant, devise=demande.devise, origine=origine,
                                    motif=motif)
     moteur.tracer(demande, 'reversement', auteur=user, infos=infos,
-                  motif=f"Reversement attendu : {montant} {demande.devise} ({r.get_origine_display().lower()}).",
+                  motif=f"Reversement attendu : {fmt(montant, demande.devise)} ({r.get_origine_display().lower()}).",
                   donnees={'reversement': r.pk})
     notifier([demande.demandeur], 'reversement', f"{demande.reference} : reversement à effectuer",
-             f"Vous devez reverser {montant} {demande.devise} à la société ({motif}).", demande)
+             f"Vous devez reverser {fmt(montant, demande.devise)} à la société ({motif}).", demande)
     notifier(comptables(), 'reversement', f"{demande.reference} : reversement à percevoir",
-             f"{montant} {demande.devise} à percevoir de {moteur.nom(demande.demandeur)}.", demande)
+             f"{fmt(montant, demande.devise)} à percevoir de {moteur.nom(demande.demandeur)}.", demande)
     return r
 
 
@@ -220,11 +228,11 @@ def percevoir(reversement, user, date_perception=None, mode='virement', referenc
         r.save()
         demande.montant_reverse = (demande.montant_reverse or 0) + r.montant_du
         moteur.tracer(demande, 'reversement', auteur=user, infos=infos,
-                      motif=f"Reversement de {r.montant_du} {r.devise} perçu le {r.percu_le:%d/%m/%Y}.",
+                      motif=f"Reversement de {fmt(r.montant_du, r.devise)} perçu le {r.percu_le:%d/%m/%Y}.",
                       donnees={'reversement': r.pk})
         mettre_a_jour(demande, user, infos)
         notifier([demande.demandeur], 'reversement', f"{demande.reference} : reversement reçu",
-                 f"Votre reversement de {r.montant_du} {r.devise} est enregistré.", demande)
+                 f"Votre reversement de {fmt(r.montant_du, r.devise)} est enregistré.", demande)
     return r
 
 
@@ -242,7 +250,7 @@ def abandonner(reversement, user, motif, infos=None):
         r.etat, r.motif_abandon, r.traite_par, r.traite_le = 'abandonne', motif, user, timezone.now()
         r.save()
         moteur.tracer(demande, 'reversement', auteur=user, infos=infos,
-                      motif=f"Reversement de {r.montant_du} {r.devise} abandonné : {motif}", donnees={'reversement': r.pk})
+                      motif=f"Reversement de {fmt(r.montant_du, r.devise)} abandonné : {motif}", donnees={'reversement': r.pk})
         mettre_a_jour(demande, user, infos)
     return r
 

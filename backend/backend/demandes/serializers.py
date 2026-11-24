@@ -109,7 +109,7 @@ class DemandeListeSerializer(_EtapeEnCoursMixin, serializers.ModelSerializer):
     class Meta:
         model = Demande
         fields = ['id', 'reference', 'type_demande', 'type_code', 'type_libelle', 'type_icone', 'demandeur', 'demandeur_nom',
-                  'objet', 'montant_demande', 'montant_approuve', 'devise', 'statut', 'statut_libelle',
+                  'objet', 'montant_demande', 'montant_approuve', 'montant_paye', 'devise', 'statut', 'statut_libelle',
                   'statut_financier', 'statut_financier_libelle', 'soumise_le', 'approuvee_le', 'created_at',
                   'updated_at', 'etape_en_cours']
 
