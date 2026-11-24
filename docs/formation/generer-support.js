@@ -42,7 +42,7 @@ const contenu = [
   ], [4300, 5000]),
 
   h1('1. La page d\'accueil'),
-  p('À la connexion, la page d\'accueil présente une synthèse adaptée au profil de l\'utilisateur. Une personne qui a plusieurs profils (par exemple la DAF, qui est aussi valideuse et demandeuse) change de vue avec les boutons en haut à droite.'),
+  p('À la connexion, la page d\'accueil présente une synthèse adaptée au profil de l\'utilisateur, avec une phrase qui résume la situation (« 3 demandes attendent une action de votre part »). Une personne qui a plusieurs profils (par exemple la DAF, qui est aussi valideuse et demandeuse) change de vue avec les boutons en haut à droite.'),
   tableau(['Vue', 'Les 4 indicateurs', 'Listes et graphiques'], [
     ['Collaborateur', 'Toutes mes demandes, En cours de validation, Approuvées, Actions attendues', 'Mes dernières demandes, prochaines missions, demandes retournées pour correction, rapports de mission à soumettre'],
     ['Valideur', 'À valider, En retard, Validées aujourd\'hui, Retournées ou rejetées', 'Mes validations en attente, avec un bouton « À valider »'],
@@ -50,9 +50,10 @@ const contenu = [
     ['DAF / chef comptable', 'Montant total approuvé, En attente de paiement, Montant payé, Demandes à traiter', 'Demandes approuvées à payer (en tête), paiements récents, missions avec frais complémentaires, répartition par département'],
   ], [1900, 3600, 3800]),
   espace(),
-  puce([b('Alertes : '), 'bandeaux orange ou rouges (demande à corriger, mission à clôturer, reversement à effectuer). Un clic ouvre la liste concernée.']),
-  puce([b('Actions rapides : '), 'Mission, Mission hors pays, Remboursement, Autre demande ; Valider et Payer selon les droits.']),
-  puce([b('Colonne de droite : '), 'notifications récentes, dernières activités sur mes demandes, raccourcis vers les modules.']),
+  puce([b('À faire maintenant : '), 'tout ce qui attend une action de l\'utilisateur, quelle que soit la vue choisie : validations, paiements, clôtures à contrôler, demandes à corriger, missions à clôturer, reversements à effectuer. Les retards apparaissent en premier, puis les plus anciens ; chaque ligne a son bouton (Valider, Payer, Contrôler, Corriger, Déclarer mes dépenses).']),
+  puce([b('Barre d\'actions : '), '« Nouvelle demande » et les types les plus courants (Mission, Mission hors pays, Remboursement), puis les accès propres au rôle (À payer, Reversements, Tableaux de bord).']),
+  puce([b('Colonne de droite : '), 'notifications récentes et activité récente, regroupée par demande (par exemple « Clôture ×3, Reversement ×2 »).']),
+  puce([b('Recherche : '), 'le champ en haut de chaque écran retrouve une demande par sa référence, son objet ou le nom ou le matricule du demandeur (touche « / » pour y accéder). Seules les demandes que l\'utilisateur a le droit de voir apparaissent : les siennes, celles qu\'il valide ou a validées et, pour les profils de gestion, celles de leur périmètre ; jamais les brouillons des autres.']),
 
   h1('2. Créer et suivre une demande'),
   puce('Menu « Nouvelle demande » (ou une action rapide) : choisir le type (étape 1/2), puis remplir le formulaire (étape 2/2).'),
@@ -139,7 +140,7 @@ const contenu = [
   h2('9.1 Notifications'),
   puce('Chaque événement (validation attendue, demande approuvée, retournée, rejetée, paiement effectué, clôture attendue, reversement…) crée une notification dans l\'application (cloche en haut de l\'écran).'),
   puce('Selon l\'événement, elle est aussi envoyée par e-mail et en notification push sur le téléphone. Un appui sur la notification ouvre directement la demande.'),
-  puce('Chacun choisit ses canaux dans « Préférences de notification » (icône réglages du bloc « Notifications récentes » de la page d\'accueil). « Validation attendue » et « Rappel de validation » ne peuvent pas être désactivés.'),
+  puce('Chacun choisit ses canaux dans « Préférences de notification » (icône réglages de la cloche ou du bloc « Notifications » de l\'accueil). « Validation attendue » et « Rappel de validation » ne peuvent pas être désactivés.'),
   puce('L\'administrateur active ou coupe les canaux e-mail et push pour toute la société (Paramètres → Société).'),
   h2('9.2 Délégations'),
   puce('Un valideur absent confie ses validations à un collègue pour une période : menu « Délégations » (web) ou Profil → Mes délégations (mobile).'),
@@ -162,7 +163,7 @@ const contenu = [
   h1('12. L\'application mobile'),
   p('L\'application UbiFlow (Android et iPhone) se connecte avec le même matricule et le même mot de passe que le web. Elle comporte quatre onglets : Accueil, Demandes, À valider, Profil.'),
   tableau(['Je veux…', 'Sur mobile'], [
-    ['Voir ma synthèse', 'Onglet Accueil : mêmes indicateurs et listes que sur le web, selon mon profil.'],
+    ['Voir ma synthèse', 'Onglet Accueil : mêmes indicateurs que sur le web, puis « À faire » avec un bouton par action, mes demandes en cours et les notifications.'],
     ['Créer une demande', 'Action rapide de l\'accueil ou bouton « Nouvelle demande » de l\'onglet Demandes ; pour une mission, l\'estimation des frais s\'affiche pendant la saisie.'],
     ['Joindre un justificatif', 'Fiche de la demande → « Ajouter une pièce » : prendre une photo, choisir dans la galerie ou choisir un fichier (PDF, Word, Excel).'],
     ['Télécharger un document', 'Icône PDF en haut de la fiche : fiche, ordre de mission, note de frais, demande de paiement.'],

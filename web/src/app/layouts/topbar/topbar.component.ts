@@ -49,6 +49,11 @@ export class TopbarComponent {
     return role ? LIBELLES_ROLES[role] : 'Utilisateur';
   }
 
+  /** Poste actuel du collaborateur (à défaut, son rôle) */
+  get posteAffiche(): string {
+    return this.userData?.dernier_poste?.poste_libelle || this.roleAffiche;
+  }
+
   @Output() mobileMenuButtonClicked = new EventEmitter();
 
   constructor(@Inject(DOCUMENT) private document: any,

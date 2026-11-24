@@ -10,6 +10,7 @@ import '../../core/widgets/common_widgets.dart';
 import '../../shared/theme/app_theme.dart';
 import 'cloture_screen.dart';
 import 'commun.dart';
+import '../../core/widgets/remix.dart';
 import 'demande_form_screen.dart';
 import 'fichiers.dart';
 
@@ -97,10 +98,15 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
   Widget build(BuildContext context) {
     final d = _demande;
     return Scaffold(
+      bottomNavigationBar: _barreActions(d),
       body: Column(children: [
         EnTeteMarine(
-          titre: d?['reference'] as String? ?? (d == null ? 'Demande' : 'Brouillon'),
-          sousTitre: d == null ? null : '${d['type_libelle']} — ${d['demandeur_nom']}',
+          titre: d?['reference'] as String? ?? (d == null ? 'Demande' : '${d['type_libelle']}'),
+          sousTitre: d == null
+              ? null
+              : d['reference'] == null
+                  ? 'Brouillon créé le ${dateCourte(d['created_at']).replaceFirst(' ', ' à ')} · non soumis'
+                  : '${d['type_libelle']} · ${d['demandeur_nom']}',
           actions: [if (d != null && d['reference'] != null) _menuDocuments(d)],
         ),
         Expanded(
@@ -126,7 +132,6 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
       const SizedBox(height: 12),
 
       if (taches.isNotEmpty) _panneauDecision(taches.first),
-      _actionsDemandeur(d),
 
       const LibelleSection('Contenu'),
       CarteListe(lignes: [
@@ -214,6 +219,8 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
             ].join('\n')),
           ),
       ]),
+      const SizedBox(height: 8),
+      _actionsDestructrices(d),
     ]);
   }
 
@@ -288,26 +295,74 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
     }
   }
 
-  Widget _actionsDemandeur(Map<String, dynamic> d) {
+  Future<void> _soumettre(Map<String, dynamic> d) async {
+    if (!await _confirmer('Soumettre la demande ?',
+        'Elle part en validation et ne sera plus modifiable, sauf retour pour correction.', 'Soumettre')) {
+      return;
+    }
+    _executer(() => demandesService.soumettre(d['id'] as int), 'Demande soumise.');
+  }
+
+  /// Barre fixée en bas : « Modifier » (secondaire) et « Soumettre » (principal)
+  Widget? _barreActions(Map<String, dynamic>? d) {
+    if (d == null) return null;
+    final a = Map<String, dynamic>.from(d['actions'] as Map? ?? {});
+    if (a['soumettre'] != true && a['modifier'] != true) return null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: SafeArea(
+        top: false,
+        child: Row(children: [
+          if (a['modifier'] == true)
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: _enCours ? null : () => _modifier(d),
+                  icon: const Icon(Remix.edit, size: 18),
+                  label: const Text('Modifier'),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                ),
+              ),
+            ),
+          if (a['modifier'] == true && a['soumettre'] == true) const SizedBox(width: 10),
+          if (a['soumettre'] == true)
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 46,
+                child: FilledButton.icon(
+                  onPressed: _enCours ? null : () => _soumettre(d),
+                  icon: _enCours
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Remix.sendPlane, size: 18),
+                  label: Text(d['statut'] == 'a_corriger' ? 'Soumettre à nouveau' : 'Soumettre'),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent, foregroundColor: AppColors.primary, elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                ),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  /// Actions destructrices, en rouge, à l'écart en bas de la fiche
+  Widget _actionsDestructrices(Map<String, dynamic> d) {
     final a = Map<String, dynamic>.from(d['actions'] as Map? ?? {});
     final id = d['id'] as int;
-    final boutons = <Widget>[
-      if (a['soumettre'] == true)
-        BoutonVert(
-          label: d['statut'] == 'a_corriger' ? 'Soumettre à nouveau' : 'Soumettre pour validation',
-          icone: Icons.send_rounded,
-          chargement: _enCours,
-          onPressed: () async {
-            if (!await _confirmer('Soumettre la demande ?',
-                'Elle part en validation et ne sera plus modifiable, sauf retour pour correction.', 'Soumettre')) {
-              return;
-            }
-            _executer(() => demandesService.soumettre(id), 'Demande soumise.');
-          },
-        ),
-      if (a['modifier'] == true)
-        OutlinedButton.icon(onPressed: _enCours ? null : () => _modifier(d), icon: const Icon(Icons.edit_outlined),
-            label: const Text('Modifier')),
+    return Column(children: [
       if (a['supprimer'] == true)
         TextButton.icon(
           onPressed: _enCours
@@ -316,7 +371,7 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
                   if (!await _confirmer('Supprimer le brouillon ?', 'Le brouillon et ses pièces seront supprimés.', 'Supprimer')) return;
                   _executer(() => demandesService.supprimer(id), 'Brouillon supprimé.', fermer: true);
                 },
-          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+          icon: const Icon(Remix.deleteBin, color: AppColors.error, size: 18),
           label: const Text('Supprimer le brouillon', style: TextStyle(color: AppColors.error)),
         ),
       if (a['annuler'] == true)
@@ -327,17 +382,10 @@ class _DemandeDetailScreenState extends State<DemandeDetailScreen> {
                   final motif = await _demanderMotif('Annuler la demande');
                   if (motif != null) _executer(() => demandesService.annuler(id, motif), 'Demande annulée.');
                 },
-          icon: const Icon(Icons.block_rounded, color: AppColors.error),
+          icon: const Icon(Remix.closeCircle, color: AppColors.error, size: 18),
           label: const Text('Annuler la demande', style: TextStyle(color: AppColors.error)),
         ),
-    ];
-    if (boutons.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        for (final b in boutons) Padding(padding: const EdgeInsets.only(bottom: 6), child: b),
-      ]),
-    );
+    ]);
   }
 
   // ── Documents PDF ─────────────────────────────────────────

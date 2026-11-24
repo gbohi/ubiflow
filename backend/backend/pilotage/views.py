@@ -23,6 +23,37 @@ class AccueilView(APIView):
         return Response(accueil(request.user, request.query_params.get('profil')))
 
 
+class RechercheView(APIView):
+    """
+    GET /recherche/?q=  recherche globale de la barre du haut : demandes que l'utilisateur
+    a le droit de voir (les siennes, celles qu'il valide ou a validées, et pour les
+    profils de gestion toutes celles de son périmètre ; jamais les brouillons des autres),
+    par référence, objet ou demandeur (nom, prénom, matricule). 8 résultats au plus.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        from demandes.models import StatutDemande
+        from demandes.services import demandes_visibles
+        q = (request.query_params.get('q') or '').strip()
+        if len(q) < 2:
+            return Response({'q': q, 'demandes': [], 'total': 0})
+        filtre = Q()
+        for mot in q.split()[:4]:
+            filtre &= (Q(reference__icontains=mot) | Q(objet__icontains=mot) | Q(demandeur__nom__icontains=mot)
+                       | Q(demandeur__prenom__icontains=mot) | Q(demandeur__username__iexact=mot))
+        qs = (demandes_visibles(request.user).exclude(Q(statut=StatutDemande.BROUILLON) & ~Q(demandeur=request.user))
+              .filter(filtre).select_related('type_demande', 'demandeur').order_by('-updated_at'))
+        total = qs.count()
+        return Response({'q': q, 'total': total, 'demandes': [{
+            'id': d.pk, 'reference': d.reference or 'Brouillon', 'objet': d.objet, 'type': d.type_demande.libelle,
+            'type_code': d.type_demande.code, 'type_icone': d.type_demande.icone, 'statut': d.statut,
+            'statut_libelle': d.get_statut_display(), 'demandeur': f"{d.demandeur.nom} {d.demandeur.prenom}".strip(),
+            'montant': str(d.montant_approuve if d.montant_approuve is not None else d.montant_demande or '') or None,
+            'devise': d.devise} for d in qs[:8]]})
+
+
 class TableauDeBordView(APIView):
     """
     GET /tableaux-de-bord/{profil}/?du=&au=&type_demande=&statut=&departement=&agence=&categorie=&demandeur=

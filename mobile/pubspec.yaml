@@ -69,3 +69,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+  fonts:
+    # Icônes Remix, les mêmes que sur le web
+    - family: Remixicon
+      fonts:
+        - asset: assets/fonts/remixicon.ttf

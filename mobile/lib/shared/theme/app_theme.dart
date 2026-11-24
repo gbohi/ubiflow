@@ -5,21 +5,21 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // ── Couleurs Ubipharm ──────────────────────────────────────
-  static const primary       = Color(0xFF092440); // Bleu marine
-  static const primaryLight  = Color(0xFF0d3360); // Bleu marine clair
-  static const primaryDark   = Color(0xFF061728); // Bleu marine foncé
-  static const accent        = Color(0xFF5BD988); // Vert Ubipharm
-  static const accentDark    = Color(0xFF3EC970); // Vert foncé
+  static const primary       = Color(0xFF05253E); // Bleu marine
+  static const primaryLight  = Color(0xFF0C3556); // Bleu marine clair
+  static const primaryDark   = Color(0xFF031A2C); // Bleu marine foncé
+  static const accent        = Color(0xFF51D78E); // Vert Ubipharm
+  static const accentDark    = Color(0xFF3FC67D); // Vert foncé
   static const accentLight   = Color(0xFFEAFBF1); // Vert très clair
 
   // ── Status ────────────────────────────────────────────────
-  static const success       = Color(0xFF5BD988); // Vert Ubipharm
+  static const success       = Color(0xFF51D78E); // Vert Ubipharm
   static const successLight  = Color(0xFFEAFBF1);
   static const warning       = Color(0xFFFFAB00);
   static const warningLight  = Color(0xFFFFF8E1);
   static const error         = Color(0xFFFF1744);
   static const errorLight    = Color(0xFFFFEBEE);
-  static const info          = Color(0xFF092440);
+  static const info          = Color(0xFF05253E);
   static const infoLight     = Color(0xFFE8EEF5);
 
   // ── Light theme ───────────────────────────────────────────
@@ -27,7 +27,7 @@ class AppColors {
   static const lightSurface       = Color(0xFFFFFFFF);
   static const lightCard          = Color(0xFFFFFFFF);
   static const lightBorder        = Color(0xFFE2EAF4);
-  static const lightTextPrimary   = Color(0xFF092440);
+  static const lightTextPrimary   = Color(0xFF05253E);
   static const lightTextSecondary = Color(0xFF5A7090);
   static const lightTextHint      = Color(0xFF9BB0C5);
 
@@ -44,20 +44,13 @@ class AppColors {
   static const primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF092440), Color(0xFF0d3360)],
+    colors: [Color(0xFF05253E), Color(0xFF0C3556)],
   );
 
-  static const accentGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF5BD988), Color(0xFF3EC970)],
-  );
+  // Aplats (les dégradés ont été retirés : couleurs exactes du logo)
+  static const accentGradient = LinearGradient(colors: [Color(0xFF51D78E), Color(0xFF51D78E)]);
 
-  static const heroGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF092440), Color(0xFF0F3A6E)],
-  );
+  static const heroGradient = LinearGradient(colors: [Color(0xFF05253E), Color(0xFF05253E)]);
 }
 
 class AppTheme {

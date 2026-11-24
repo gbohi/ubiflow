@@ -309,7 +309,7 @@ export class DemandesService {
 /** Classe de pastille selon le statut d'une demande */
 export const CLASSES_STATUT: Record<string, string> = {
   brouillon: 't-gr', en_validation: 't-bl', a_corriger: 't-or', rejetee: 't-ro', approuvee: 't-ve',
-  en_attente_cloture: 't-or', cloturee: 't-na', annulee: 't-gr',
+  en_attente_cloture: 't-or', cloturee: 't-gr', annulee: 't-gr',
 };
 
 /** Montant lisible : « 1 250 000 XOF » */

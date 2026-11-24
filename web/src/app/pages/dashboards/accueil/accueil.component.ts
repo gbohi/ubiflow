@@ -1,9 +1,10 @@
 // src/app/pages/dashboards/accueil/accueil.component.ts
 //
 // Accueil de synthèse : comprendre en quelques secondes ce qui se passe et ce
-// qu'il faut faire. Indicateurs, listes et graphiques selon le profil
-// (collaborateur, valideur, direction, finances) ; actions rapides, alertes,
-// notifications récentes, dernières activités et raccourcis pour tous.
+// qu'il faut faire. Phrase de synthèse, barre d'actions unique, 4 indicateurs,
+// bloc « À faire maintenant » (tout ce qui attend une action, les plus anciens
+// d'abord), listes et graphiques de la vue, notifications et activité récente
+// groupée par demande.
 
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -14,35 +15,7 @@ import { complet } from '../graphes/format';
 @Component({
   selector: 'app-accueil',
   templateUrl: './accueil.component.html',
-  styles: [`
-    .acc-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
-    .acc-kpi { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 14px; padding: 16px 18px; display: flex; gap: 14px;
-               align-items: flex-start; color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
-    a.acc-kpi:hover { border-color: #2a78d6; box-shadow: 0 4px 14px rgba(15, 58, 110, .08); }
-    .acc-kpi .acc-ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px;
-                       background: #e8f0fd; color: #0F3A6E; flex-shrink: 0; }
-    .acc-kpi.attention .acc-ic { background: #fef4e4; color: #9a6510; } .acc-kpi.alerte .acc-ic { background: #fde8e4; color: #c4381f; }
-    .acc-kpi small { color: #52514e; display: block; font-size: 12.5px; }
-    .acc-kpi b { font-size: 1.75rem; font-weight: 600; line-height: 1.15; display: block; }
-    .acc-kpi .acc-u { font-size: 12px; font-weight: 500; color: #52514e; margin-left: 3px; }
-    .acc-kpi .acc-st { font-size: 11.5px; color: #8a8984; }
-    .acc-carte { background: #fff; border: 1px solid var(--bs-border-color); border-radius: 14px; padding: 16px 18px; }
-    .acc-carte h6 { font-size: 14.5px; margin: 0; }
-    .acc-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-    .acc-action { border: 1px solid var(--bs-border-color); border-radius: 12px; padding: 14px 10px; text-align: center; color: inherit;
-                  text-decoration: none; display: block; background: #fafbfd; transition: border-color .15s, background .15s; }
-    .acc-action:hover { border-color: #2a78d6; background: #fff; }
-    .acc-action i { font-size: 22px; color: #0F3A6E; display: block; margin-bottom: 4px; }
-    .acc-action span { font-size: 13px; font-weight: 500; }
-    .acc-ligne { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #f0efeb; color: inherit; text-decoration: none; }
-    .acc-ligne:first-child { border-top: 0; }
-    .acc-ligne:hover .acc-titre { color: #2a78d6; }
-    .acc-titre { font-weight: 500; font-size: 13.5px; } .acc-sous { font-size: 12px; color: #8a8984; }
-    .acc-alerte { border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 13.5px; }
-    .acc-alerte.attention { background: #fef4e4; color: #7a5009; } .acc-alerte.alerte { background: #fde8e4; color: #9e2c17; }
-    .acc-notif { padding: 8px 0; border-top: 1px solid #f0efeb; font-size: 13px; } .acc-notif:first-child { border-top: 0; }
-    .acc-notif.non-lue b::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2a78d6; margin-right: 6px; }
-  `],
+  host: { class: 'acc-page' },
 })
 export class AccueilComponent implements OnInit {
   private readonly service = inject(PilotageService);
@@ -53,6 +26,8 @@ export class AccueilComponent implements OnInit {
   readonly icone = iconeType;
   readonly teinte = teinteType;
   donnees: any = null;
+  /** Heure de référence des « il y a… » (fixée au chargement : affichage stable) */
+  private maintenant = Date.now();
   chargement = true;
 
   ngOnInit(): void { this.charger(this.route.snapshot.queryParamMap.get('profil') ?? undefined); }
@@ -60,7 +35,7 @@ export class AccueilComponent implements OnInit {
   charger(profil?: string): void {
     this.chargement = true;
     this.service.accueil(profil).subscribe({
-      next: d => { this.donnees = d; this.chargement = false; },
+      next: d => { this.maintenant = Date.now(); this.donnees = d; this.chargement = false; },
       error: () => this.chargement = false,
     });
   }
@@ -93,9 +68,27 @@ export class AccueilComponent implements OnInit {
 
   montant(v: any): string { return `${complet(Number(v))} ${this.donnees?.devise ?? ''}`; }
 
+  /** Nouvelle demande d'un type donné (ou choix du type) */
+  nouvelle(code: string | null): void {
+    this.router.navigate(['/demandes/nouvelle'], { queryParams: code ? { code } : {} });
+  }
+
+  libelleMotif(e: any): { texte: string; classe: string } | null {
+    if (e.retard) return { texte: 'En retard', classe: 'm-retard' };
+    return ({ a_payer: { texte: 'À payer', classe: 'm-payer' }, a_corriger: { texte: 'À corriger', classe: 'm-retard' },
+              reversement: { texte: 'Reversement', classe: 'm-retard' } } as any)[e.motif] ?? null;
+  }
+
+  /** Action principale (pleine) pour payer et clôturer, secondaire pour le reste */
+  actionPrincipale(e: any): boolean { return ['a_payer', 'a_cloturer', 'a_corriger'].includes(e.motif); }
+
+  resumeActivite(a: any): string[] {
+    return a.compte.map((c: any) => c.nombre > 1 ? `${c.type} ×${c.nombre}` : c.type);
+  }
+
   depuis(iso: string | null): string {
     if (!iso) return '';
-    const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    const min = Math.floor((this.maintenant - new Date(iso).getTime()) / 60000);
     if (min < 60) return min <= 1 ? "à l'instant" : `il y a ${min} min`;
     const h = Math.floor(min / 60);
     if (h < 24) return `il y a ${h} h`;

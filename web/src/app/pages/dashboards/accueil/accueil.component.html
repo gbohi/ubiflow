@@ -1,153 +1,136 @@
-<div class="lst">
-  @if (chargement && !donnees) {
-    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
-  }
-  @if (donnees) {
-    <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
-      <div>
-        <h3 class="mb-1" style="font-weight: 600">Bonjour, {{ donnees.prenom }}</h3>
-        <div class="text-muted">Voici le résumé de votre activité · {{ dateDuJour }}</div>
-      </div>
-      @if (donnees.profils.length > 1) {
-        <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Vue de l'accueil">
-          @for (p of donnees.profils; track p.code) {
-            <button type="button" class="btn" [class.btn-primary]="p.code === donnees.profil" [class.btn-light]="p.code !== donnees.profil"
-                    (click)="choisir(p.code)">{{ p.libelle }}</button>
-          }
-        </div>
-      }
+@if (chargement && !donnees) {
+  <div class="text-center text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>Chargement…</div>
+} @else if (donnees) {
+  <div class="acc-entete">
+    <div>
+      <h1>Bonjour {{ donnees.prenom }}</h1>
+      <p>{{ dateDuJour }} · <b>{{ donnees.resume }}</b></p>
     </div>
-
-    <div [style.opacity]="chargement ? .55 : 1">
-      <!-- Indicateurs -->
-      <div class="acc-kpis mb-3" data-test="kpis">
-        @for (k of donnees.kpis; track k.cle) {
-          @if (lien(k.lien); as l) {
-            <a class="acc-kpi" [ngClass]="k.ton" [routerLink]="l.route" [queryParams]="l.params">
-              <span class="acc-ic"><i [class]="k.icone"></i></span>
-              <span><small>{{ k.libelle }}</small><b>{{ valeur(k) }}@if (k.format === 'montant') {<span class="acc-u">{{ donnees.devise }}</span>}</b>
-                <span class="acc-st">{{ k.sous_titre }}</span></span>
-            </a>
-          } @else {
-            <div class="acc-kpi" [ngClass]="k.ton">
-              <span class="acc-ic"><i [class]="k.icone"></i></span>
-              <span><small>{{ k.libelle }}</small><b>{{ valeur(k) }}@if (k.format === 'montant') {<span class="acc-u">{{ donnees.devise }}</span>}</b>
-                <span class="acc-st">{{ k.sous_titre }}</span></span>
-            </div>
-          }
+    @if (donnees.profils.length > 1) {
+      <div class="acc-vues" role="tablist" aria-label="Vue de l'accueil">
+        @for (p of donnees.profils; track p.code) {
+          <button type="button" role="tab" [class.on]="p.code === donnees.profil" [attr.aria-selected]="p.code === donnees.profil"
+                  (click)="choisir(p.code)">{{ p.libelle }}</button>
         }
       </div>
+    }
+  </div>
 
-      <!-- Alertes -->
-      @if (donnees.alertes.length) {
-        <div class="d-grid gap-2 mb-3" data-test="alertes">
-          @for (a of donnees.alertes; track $index) {
-            <a class="acc-alerte" [ngClass]="a.ton" href="javascript:void(0)" (click)="ouvrir(a.lien)">
-              <i [class]="a.ton === 'alerte' ? 'ri-alarm-warning-line' : 'ri-error-warning-line'"></i>{{ a.texte }}<i class="ri-arrow-right-line ms-auto"></i></a>
+  <!-- Une seule barre : nouvelle demande, types fréquents, accès propres au rôle -->
+  <div class="acc-barre">
+    <a class="acc-chip principal" (click)="nouvelle(null)" role="button"><i class="ri-add-circle-line"></i>Nouvelle demande</a>
+    @for (a of donnees.actions_rapides; track a.libelle) {
+      @if (a.code) { <a class="acc-chip" role="button" (click)="nouvelle(a.code)"><i [class]="a.icone"></i>{{ a.libelle }}</a> }
+    }
+    @if (donnees.acces.length) { <span class="sep"></span> }
+    @for (a of donnees.acces; track a.lien) {
+      <a class="acc-chip" [routerLink]="a.lien"><i [class]="a.icone"></i>{{ a.libelle }}</a>
+    }
+  </div>
+
+  <div class="acc-kpis">
+    @for (k of donnees.kpis; track k.cle) {
+      @if (k.lien) {
+        <a class="acc-kpi" [ngClass]="k.ton" [routerLink]="lien(k.lien)?.route" [queryParams]="lien(k.lien)?.params" [attr.data-test]="'kpi-' + k.cle">
+          <div class="lib">{{ k.libelle }}</div>
+          <div class="val">{{ valeur(k) }}@if (k.format === 'montant') {<small>{{ donnees.devise }}</small>}</div>
+          <div class="sous">{{ k.sous_titre }}</div>
+        </a>
+      } @else {
+        <div class="acc-kpi" [ngClass]="k.ton" [attr.data-test]="'kpi-' + k.cle">
+          <div class="lib">{{ k.libelle }}</div>
+          <div class="val">{{ valeur(k) }}@if (k.format === 'montant') {<small>{{ donnees.devise }}</small>}</div>
+          <div class="sous">{{ k.sous_titre }}</div>
+        </div>
+      }
+    }
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <section class="acc-carte acc-afaire" data-test="a-faire">
+        <h2>À faire maintenant @if (donnees.a_faire_total) { <span class="n">{{ donnees.a_faire_total }}</span> }</h2>
+        @if (donnees.a_faire.length) {
+          <div class="acc-intro">Paiements, validations, corrections et clôtures qui vous attendent : les retards d'abord, puis les plus anciens.</div>
+          @for (e of donnees.a_faire; track e.motif + e.id) {
+            <div class="acc-ligne">
+              <span class="lst-av carre" [ngClass]="teinte(e.type_code)"><i [class]="icone(e.type_icone)"></i></span>
+              <div>
+                <a class="t1 text-decoration-none" [routerLink]="['/demandes', e.id]">{{ e.objet }}</a>
+                @if (libelleMotif(e)) { <span class="acc-motif" [ngClass]="libelleMotif(e)?.classe"><i class="ri-alarm-warning-line" [class.d-none]="!e.retard"></i>{{ libelleMotif(e)?.texte }}</span> }
+                <div class="t2">{{ e.reference }} · {{ e.demandeur }}@if (e.info) { · {{ e.info }} }</div>
+              </div>
+              <div class="mt">@if (e.montant) { {{ montant(e.montant) }} }<small>{{ depuis(e.depuis) }}</small></div>
+              <a class="btn-ubi sm" [class.vert]="actionPrincipale(e)" [routerLink]="['/demandes', e.id]">{{ e.action }}</a>
+            </div>
+          }
+        } @else {
+          <div class="acc-vide"><i class="ri-checkbox-circle-line text-success me-1"></i>Rien ne vous attend : tout est à jour.</div>
+        }
+      </section>
+
+      @for (l of donnees.listes; track l.cle) {
+        <section class="acc-carte">
+          <h2>{{ l.titre }} @if (l.lignes.length) { <span class="n">{{ l.lignes.length }}</span> }
+            @if (l.lien_tout) { <a [routerLink]="lien(l.lien_tout)?.route" [queryParams]="lien(l.lien_tout)?.params">Tout voir →</a> }</h2>
+          @for (x of l.lignes; track $index) {
+            <a class="acc-ligne sans-action" [routerLink]="['/demandes', x.id]">
+              <span class="lst-av carre" [ngClass]="teinte(x.type_code)"><i [class]="icone(x.type_icone)"></i></span>
+              <div>
+                <div class="t1">{{ x.objet }}</div>
+                <div class="t2">{{ x.reference }} · {{ x.type }}@if (x.demandeur && donnees.profil !== 'collaborateur') { · {{ x.demandeur }} }@if (x.info) { · {{ x.info }} }</div>
+              </div>
+              <div class="mt">
+                @if (x.montant) { {{ montant(x.montant) }} }
+                <small><span class="lst-tag" [ngClass]="classes[x.statut]">{{ x.statut_libelle }}</span></small>
+              </div>
+            </a>
+          } @empty { <div class="acc-vide">{{ l.vide }}</div> }
+        </section>
+      }
+
+      @if (donnees.graphes.length) {
+        <div class="row g-3 mt-0">
+          @for (g of donnees.graphes; track g.cle) {
+            <div [class]="donnees.graphes.length > 1 ? 'col-lg-6' : 'col-12'">
+              <section class="acc-carte h-100">
+                <h2>{{ g.titre }}</h2>
+                <div class="acc-graphe">
+                  @if (g.type === 'barres') {
+                    @if (g.donnees.length) { <app-graphe-barres [donnees]="g.donnees" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="donnees.graphes.length > 1 ? 420 : 760" [LIB]="150"></app-graphe-barres> }
+                    @else { <div class="small text-muted py-3">Aucune donnée.</div> }
+                  } @else {
+                    <app-graphe-colonnes [donnees]="g.donnees" [series]="g.series" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="520" [H]="230"></app-graphe-colonnes>
+                  }
+                </div>
+              </section>
+            </div>
           }
         </div>
       }
-
-      <div class="row g-3">
-        <div class="col-xl-8">
-          <!-- Actions rapides -->
-          <div class="acc-carte mb-3">
-            <div class="d-flex align-items-center mb-3"><h6>Actions rapides</h6><span class="small text-muted ms-2">Accès direct</span></div>
-            <div class="acc-actions">
-              @for (a of donnees.actions_rapides; track a.libelle) {
-                <a class="acc-action" [routerLink]="a.lien" [queryParams]="a.code ? { code: a.code } : {}"><i [class]="a.icone"></i><span>{{ a.libelle }}</span></a>
-              }
-              @if (donnees.profils.includes('valideur')) {
-                <a class="acc-action" routerLink="/validations"><i class="ri-checkbox-multiple-line"></i><span>Valider</span></a>
-              }
-              @if (donnees.profils.includes('finances')) {
-                <a class="acc-action" routerLink="/tresorerie/a-payer"><i class="ri-wallet-3-line"></i><span>Payer</span></a>
-              }
-            </div>
-          </div>
-
-          <!-- Graphiques légers -->
-          @if (donnees.graphes.length) {
-            <div class="row g-3 mb-3">
-              @for (g of donnees.graphes; track g.cle) {
-                <div [class]="donnees.graphes.length > 1 ? 'col-lg-6' : 'col-12'">
-                  <div class="acc-carte h-100">
-                    <h6 class="mb-2">{{ g.titre }}</h6>
-                    @if (g.type === 'barres') {
-                      @if (g.donnees.length) { <app-graphe-barres [donnees]="g.donnees" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="420" [LIB]="130"></app-graphe-barres> }
-                      @else { <div class="small text-muted py-3">Aucune donnée.</div> }
-                    } @else {
-                      <app-graphe-colonnes [donnees]="g.donnees" [series]="g.series" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="520" [H]="230"></app-graphe-colonnes>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Listes prioritaires -->
-          @for (l of donnees.listes; track l.cle) {
-            <div class="acc-carte mb-3" [attr.data-test]="'liste-' + l.cle">
-              <div class="d-flex align-items-center mb-1">
-                <h6>{{ l.titre }}</h6>
-                @if (l.lignes.length) { <span class="badge bg-light text-dark ms-2">{{ l.lignes.length }}</span> }
-                @if (lien(l.lien_tout); as t) { <a class="small ms-auto" [routerLink]="t.route" [queryParams]="t.params">Voir tout →</a> }
-              </div>
-              @for (r of l.lignes; track $index) {
-                <a class="acc-ligne" [routerLink]="['/demandes', r.id]">
-                  <span class="lst-av carre" [ngClass]="teinte(r.type_code)"><i [class]="icone(r.type_icone)"></i></span>
-                  <span class="flex-grow-1 min-w-0">
-                    <span class="acc-titre d-block text-truncate">{{ r.objet || r.type }}</span>
-                    <span class="acc-sous">{{ r.reference }} · {{ r.type }}@if (l.cle !== 'dernieres' && l.cle !== 'prochaines' && l.cle !== 'a_corriger' && l.cle !== 'rapports') { · {{ r.demandeur }} }
-                      @if (r.etape) { · {{ r.etape }} } @if (r.info) { · {{ r.info }} }</span>
-                  </span>
-                  @if (r.montant) { <span class="text-nowrap fw-semibold small">{{ montant(r.montant) }}</span> }
-                  @if (l.cle === 'validations') {
-                    @if (r.retard) { <span class="lst-tag t-ro">En retard</span> }
-                    <span class="btn btn-sm btn-primary text-nowrap">À valider</span>
-                  } @else if (l.cle !== 'paiements' && l.cle !== 'a_payer') {
-                    <span class="lst-tag" [ngClass]="classes[r.statut]">{{ r.statut_libelle }}</span>
-                  }
-                </a>
-              } @empty {
-                <div class="small text-muted py-2">{{ l.vide }}</div>
-              }
-            </div>
-          }
-        </div>
-
-        <div class="col-xl-4">
-          <!-- Notifications récentes -->
-          <div class="acc-carte mb-3">
-            <div class="d-flex align-items-center mb-1"><h6>Notifications récentes</h6>
-              <a routerLink="/notifications/preferences" class="small ms-auto" title="Préférences"><i class="ri-settings-4-line"></i></a></div>
-            @for (n of donnees.notifications; track n.id) {
-              <div class="acc-notif" [class.non-lue]="!n.lue" style="cursor: pointer" (click)="ouvrir(n.lien)">
-                <b class="d-block">{{ n.titre }}</b><span class="text-muted small">{{ depuis(n.creee_le) }}</span>
-              </div>
-            } @empty { <div class="small text-muted py-2">Aucune notification.</div> }
-          </div>
-          <!-- Dernières activités -->
-          <div class="acc-carte mb-3">
-            <h6 class="mb-1">Dernières activités</h6>
-            @for (a of donnees.activites; track $index) {
-              <a class="acc-notif d-block text-decoration-none text-reset" [routerLink]="['/demandes', a.demande]">
-                <b class="d-block">{{ a.type }} · {{ a.reference }}</b>
-                <span class="small text-muted">{{ a.auteur }} · {{ depuis(a.le) }}</span>
-              </a>
-            } @empty { <div class="small text-muted py-2">Aucune activité récente.</div> }
-          </div>
-          <!-- Raccourcis -->
-          <div class="acc-carte">
-            <h6 class="mb-2">Raccourcis</h6>
-            <div class="d-flex flex-wrap gap-2">
-              @for (r of donnees.raccourcis; track r.lien) {
-                <a class="btn btn-light btn-sm" [routerLink]="r.lien"><i [class]="r.icone + ' me-1'"></i>{{ r.libelle }}</a>
-              }
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-  }
-</div>
+
+    <aside class="col-xl-4">
+      <section class="acc-carte">
+        <h2>Notifications <a routerLink="/notifications/preferences" class="ms-auto me-2 text-muted" title="Préférences de notification" aria-label="Préférences de notification"><i class="ri-settings-4-line"></i></a></h2>
+        @for (n of donnees.notifications; track n.id) {
+          <a class="acc-notif" (click)="ouvrir(n.lien)">
+            <span class="pt" [class.lu]="n.lue"></span>
+            <div><div [class.fw-semibold]="!n.lue">{{ n.titre }}</div><div class="q">{{ depuis(n.creee_le) }}</div></div>
+          </a>
+        } @empty { <div class="acc-vide">Aucune notification.</div> }
+      </section>
+
+      <section class="acc-carte">
+        <h2>Activité récente</h2>
+        @for (a of donnees.activites; track a.demande) {
+          <a class="acc-act" [routerLink]="['/demandes', a.demande]">
+            <div class="r">{{ a.reference }} · {{ a.objet }}</div>
+            <div class="q">{{ a.derniere.type }} par {{ a.derniere.auteur }} · {{ depuis(a.derniere.le) }}</div>
+            <div class="acc-pile">@for (c of resumeActivite(a); track c) { <span>{{ c }}</span> }</div>
+          </a>
+        } @empty { <div class="acc-vide">Aucune activité récente.</div> }
+      </section>
+    </aside>
+  </div>
+}

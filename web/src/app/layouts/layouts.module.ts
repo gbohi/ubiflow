@@ -27,6 +27,7 @@ import { FooterComponent } from './footer/footer.component';
 import { RightsidebarComponent } from './rightsidebar/rightsidebar.component';
 
 import { ClocheNotificationsComponent } from './cloche-notifications/cloche-notifications.component';
+import { RechercheGlobaleComponent } from './recherche-globale/recherche-globale.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import { ClocheNotificationsComponent } from './cloche-notifications/cloche-noti
     FooterComponent,
     RightsidebarComponent,
     ClocheNotificationsComponent,
+    RechercheGlobaleComponent,
   ],
   imports: [
     CommonModule,

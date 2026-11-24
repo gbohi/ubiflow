@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ubiflow/core/services/accueil_service.dart';
+import 'package:ubiflow/core/widgets/remix.dart';
+import 'package:ubiflow/features/accueil/accueil_screen.dart' show ilYA;
 import 'package:ubiflow/features/demandes/demande_form_screen.dart';
 import 'package:ubiflow/features/demandes/fichiers.dart';
 import 'package:ubiflow/features/demandes/mission_saisie.dart';
@@ -16,6 +18,19 @@ void main() {
     expect(demandeDuLien('/demandes/12/cloture'), 12);
     expect(demandeDuLien('/demandes?statut=a_corriger'), isNull);
     expect(demandeDuLien(null), isNull);
+  });
+
+  test('icônes Remix : mêmes classes que le web', () {
+    expect(Remix.deClasse('ri-road-map-line'), Remix.roadMap);
+    expect(Remix.roadMap.fontFamily, 'Remixicon');
+    expect(Remix.deClasse('ri-inconnue'), isNull);
+  });
+
+  test('ancienneté lisible', () {
+    expect(ilYA(DateTime.now().subtract(const Duration(minutes: 20)).toIso8601String()), 'il y a 20 min');
+    expect(ilYA(DateTime.now().subtract(const Duration(hours: 3)).toIso8601String()), 'il y a 3 h');
+    expect(ilYA(DateTime.now().subtract(const Duration(days: 1, hours: 2)).toIso8601String()), 'hier');
+    expect(ilYA(null), '');
   });
 
   test('taille lisible des pièces jointes', () {

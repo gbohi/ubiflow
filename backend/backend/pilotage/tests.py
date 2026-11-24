@@ -102,15 +102,19 @@ class AccueilTests(JeuDeDonnees):
         d = self.accueil(self.agent)
         self.assertEqual(d['profil'], 'collaborateur')
         self.assertEqual((self.kpi(d, 'toutes'), self.kpi(d, 'en_cours'), self.kpi(d, 'approuvees'), self.kpi(d, 'actions')), (3, 1, 2, 1))
-        self.assertTrue(any('clôturer' in a['texte'] for a in d['alertes']))
+        # « À faire » : la mission à clôturer, avec son action
+        self.assertEqual([(e['motif'], e['action']) for e in d['a_faire']], [('a_cloturer', 'Déclarer mes dépenses')])
+        self.assertEqual(d['resume'], '1 demande attend une action de votre part')
         v = self.accueil(self.chef)
         self.assertEqual(v['profil'], 'valideur')
         self.assertEqual(self.kpi(v, 'a_valider'), 1)
-        self.assertEqual(len(v['listes'][0]['lignes']), 1)
+        self.assertEqual([e['motif'] for e in v['a_faire']], ['a_valider'])
         f = self.accueil(self.caisse)
         self.assertEqual(f['profil'], 'finances')
         self.assertEqual(Decimal(self.kpi(f, 'attente')), Decimal('500000'))
-        self.assertEqual(f['listes'][0]['lignes'][0]['type_code'], 'FRC')
+        a_payer = [e for e in f['a_faire'] if e['motif'] == 'a_payer']
+        self.assertEqual((len(a_payer), a_payer[0]['type_code'], a_payer[0]['action']), (1, 'FRC', 'Payer'))
+        self.assertTrue(f['activites'] is not None)
         admin = self.user('adm', groupes=('admin',))
         g = self.accueil(admin)
         self.assertEqual(g['profil'], 'direction')
@@ -128,3 +132,24 @@ class AnnuaireTests(JeuDeDonnees):
         r = self.client.get('/api/api/annuaire/', {'q': 'ann1'})
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.data and set(r.data[0]) == {'id', 'matricule', 'nom', 'prenom', 'libelle'})
+
+
+class RechercheTests(JeuDeDonnees):
+    def chercher(self, user, q):
+        self.en(user)
+        r = self.client.get('/api/api/recherche/', {'q': q})
+        self.assertEqual(r.status_code, 200)
+        return r.data
+
+    def test_recherche_limitee_aux_demandes_visibles(self):
+        self.jeu_de_donnees()
+        mes = self.chercher(self.agent, self.agent.nom)
+        self.assertGreaterEqual(mes['total'], 1)
+        self.assertTrue(all(d['demandeur'].startswith(self.agent.nom) for d in mes['demandes']))
+        # un autre employé, sans rôle ni validation, ne voit pas les demandes de l'agent
+        intrus = self.user('intrus')
+        self.assertEqual(self.chercher(intrus, self.agent.nom)['total'], 0)
+        # recherche par référence, et requête trop courte
+        ref = mes['demandes'][0]['reference']
+        self.assertEqual(self.chercher(self.agent, ref)['demandes'][0]['reference'], ref)
+        self.assertEqual(self.chercher(self.agent, 'a')['total'], 0)

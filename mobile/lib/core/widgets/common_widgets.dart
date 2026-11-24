@@ -391,6 +391,9 @@ class EnTeteMarine extends StatelessWidget {
   final List<Widget> actions;
   final Widget? bas;
 
+  /// Élément affiché avant le titre (logo de l'accueil), sans flèche de retour
+  final Widget? debut;
+
   /// null : flèche affichée si l'écran peut être fermé (écran poussé)
   final bool? retour;
   final VoidCallback? onRetour;
@@ -402,6 +405,7 @@ class EnTeteMarine extends StatelessWidget {
     this.sousTitre,
     this.actions = const [],
     this.bas,
+    this.debut,
     this.retour,
     this.onRetour,
     this.margeBas = 14,
@@ -430,6 +434,7 @@ class EnTeteMarine extends StatelessWidget {
                     onPressed:
                         onRetour ?? () => Navigator.of(context).maybePop(),
                   ),
+                if (debut != null && !avecRetour) ...[debut!, const SizedBox(width: 10)],
                 Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,14 +939,7 @@ class BoutonVert extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: AppColors.accentGradient,
             borderRadius: rayon,
-            boxShadow: compact || !actif
-                ? null
-                : [
-                    BoxShadow(
-                        color: AppColors.accentDark.withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6)),
-                  ],
+            // Aplat sans ombre : un seul bouton principal par écran
           ),
           child: Material(
             type: MaterialType.transparency,

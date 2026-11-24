@@ -82,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF061728),
+      backgroundColor: const Color(0xFF031A2C),
       body: Stack(children: [
 
         // ── Fond gradient ──────────────────────────────────────
@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF061728), Color(0xFF092440), Color(0xFF0d3360)],
+              colors: [Color(0xFF031A2C), Color(0xFF05253E), Color(0xFF0C3556)],
               stops: [0.0, 0.45, 1.0],
             ),
           ),
@@ -268,7 +268,7 @@ class _AppIcon extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFF5BD988), Color(0xFF3ec970)]),
+          colors: [Color(0xFF51D78E), Color(0xFF3ec970)]),
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(color: AppColors.accent.withOpacity(0.45),

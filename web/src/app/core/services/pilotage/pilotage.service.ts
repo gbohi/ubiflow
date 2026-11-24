@@ -16,10 +16,20 @@ export interface TableauDeBord {
 }
 export interface Profil { code: string; libelle: string; icone: string; }
 
+export interface ResultatRecherche {
+  id: number; reference: string; objet: string; type: string; type_code: string; type_icone: string; statut: string;
+  statut_libelle: string; demandeur: string; montant: string | null; devise: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PilotageService {
   private readonly api = `${environment.apiUrl}/api/api/tableaux-de-bord`;
   constructor(private http: HttpClient) {}
+
+  /** Recherche globale de la barre du haut (demandes visibles par l'utilisateur) */
+  rechercher(q: string): Observable<{ q: string; total: number; demandes: ResultatRecherche[] }> {
+    return this.http.get<any>(`${environment.apiUrl}/api/api/recherche/`, { params: new HttpParams().set('q', q) });
+  }
 
   accueil(profil?: string): Observable<any> {
     let p = new HttpParams();

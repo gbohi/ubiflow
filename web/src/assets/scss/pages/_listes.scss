@@ -5,10 +5,10 @@
 // Styles globaux : le budget des styles de composant (4 ko) est trop petit.
 
 :root {
-  --ubi-navy: #092440;
+  --ubi-navy: #05253E;
   --ubi-navy2: #0F3A6E;
-  --ubi-vert: #5BD988;
-  --ubi-vert2: #3EC970;
+  --ubi-vert: #51D78E;
+  --ubi-vert2: #3FC67D;
   --ubi-gris: #5A7090;
   --ubi-bord: #E2EAF4;
   --ubi-fond: #F3F5F9;
@@ -92,19 +92,21 @@ app-page-entete { display: block; }
   color: var(--ubi-navy);
   white-space: nowrap;
   cursor: pointer;
-  transition: box-shadow .15s ease, transform .15s ease, filter .15s ease;
+  transition: background-color .15s ease, border-color .15s ease;
   i { font-size: 16px; line-height: 1; }
-  &:hover:not(:disabled) { color: var(--ubi-navy); box-shadow: 0 6px 16px rgba(9, 36, 64, .1); }
+  &:hover:not(:disabled) { color: var(--ubi-navy); background-color: #F4F6F9; border-color: #C9D3DE; }
   &:focus-visible { outline: 2px solid var(--ubi-navy2); outline-offset: 2px; }
   &:disabled { opacity: .55; cursor: not-allowed; }
 
+  // Bouton principal : vert plein, sans dégradé ni ombre
   &.vert {
-    background: linear-gradient(90deg, var(--ubi-vert), var(--ubi-vert2));
-    border-color: transparent;
-    &:hover:not(:disabled) { box-shadow: 0 6px 16px rgba(62, 201, 112, .3); filter: brightness(1.03); }
+    background: var(--ubi-vert);
+    border-color: var(--ubi-vert);
+    &:hover:not(:disabled) { background: var(--ubi-vert2); border-color: var(--ubi-vert2); }
   }
   &.navy { background: var(--ubi-navy); border-color: var(--ubi-navy); color: #fff; &:hover:not(:disabled) { color: #fff; } }
-  &.rouge { background: #FDE8E4; border-color: #F9CFC6; color: #C4381F; &:hover:not(:disabled) { color: #C4381F; } }
+  // Action destructrice : texte rouge, sans fond
+  &.rouge { background: transparent; border-color: transparent; color: #C4381F; &:hover:not(:disabled) { color: #C4381F; background: #FDECEC; border-color: transparent; } }
   &.orange { background: #FEF4E4; border-color: #F7DFA6; color: #9A6510; &:hover:not(:disabled) { color: #9A6510; } }
   &.vert-doux { background: #EAFBF1; border-color: #BFECCF; color: #1C7F45; &:hover:not(:disabled) { color: #1C7F45; } }
   &.actif { background: var(--ubi-navy); border-color: var(--ubi-navy); color: #fff; &:hover { color: #fff; } }
@@ -304,7 +306,7 @@ app-page-entete { display: block; }
   &.t-ro { background: #FDE8E4; color: #C4381F; }
   &.t-gr { background: #EEF1F6; color: #4A5E7C; }
   &.t-bl { background: #E8F0FD; color: var(--ubi-navy2); }
-  &.t-na { background: var(--ubi-navy); color: #fff; }
+  &.t-na { background: #E6EBF2; color: var(--ubi-navy); }
 }
 
 .lst-tags { display: flex; gap: 4px; flex-wrap: wrap; }

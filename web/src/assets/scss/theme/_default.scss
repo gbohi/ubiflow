@@ -113,17 +113,17 @@
     --#{$prefix}boxed-body-bg:                                  #f5f5f5;
 
     &[data-sidebar="dark"] {
-        --#{$prefix}vertical-menu-bg:                           #0b253e;
-        --#{$prefix}vertical-menu-border:                       #0b253e;
-        --#{$prefix}vertical-menu-item-color:                   #ffffff;
-        --#{$prefix}vertical-menu-item-hover-color:             #{$gray-200};
-        --#{$prefix}vertical-menu-item-hover-bg:                #222328;
-        --#{$prefix}vertical-menu-item-active-color:            #{$gray-200};
-        --#{$prefix}vertical-menu-item-active-bg:               #222328;
-        --#{$prefix}vertical-menu-sub-item-color:               #ffffff;
-        --#{$prefix}vertical-menu-sub-item-hover-color:         #{$gray-200};
-        --#{$prefix}vertical-menu-sub-item-active-color:        #{$gray-200};
-        --#{$prefix}vertical-menu-title-color:                  #97979a;
+        --#{$prefix}vertical-menu-bg:                           #05253e;
+        --#{$prefix}vertical-menu-border:                       #05253e;
+        --#{$prefix}vertical-menu-item-color:                   #c5d2df;
+        --#{$prefix}vertical-menu-item-hover-color:             #ffffff;
+        --#{$prefix}vertical-menu-item-hover-bg:                rgba(255, 255, 255, .05);
+        --#{$prefix}vertical-menu-item-active-color:            #ffffff;
+        --#{$prefix}vertical-menu-item-active-bg:               rgba(81, 215, 142, .12);
+        --#{$prefix}vertical-menu-sub-item-color:               #c5d2df;
+        --#{$prefix}vertical-menu-sub-item-hover-color:         #ffffff;
+        --#{$prefix}vertical-menu-sub-item-active-color:        #51d78e;
+        --#{$prefix}vertical-menu-title-color:                  #6f86a0;
         --#{$prefix}twocolumn-menu-iconview-bg:                 #161515;
     }
 
