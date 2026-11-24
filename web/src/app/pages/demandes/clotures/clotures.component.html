@@ -1,5 +1,5 @@
 <div class="lst">
-  <app-page-entete titre="Clôtures à contrôler" icone="ri-file-check-line" [compte]="lignes.length" unite="clôture|clôtures"
+  <app-page-entete titre="Clôtures à contrôler" icone="ri-task-line" [compte]="lignes.length" unite="clôture|clôtures"
                    [fil]="[{label: 'Trésorerie'}]">
     <app-export-liste titre="Clôtures à contrôler" [lignes]="lignes" [colonnes]="colonnesExport"></app-export-liste>
   </app-page-entete>
@@ -21,7 +21,7 @@
             </tr>
           }
           @if (!lignes.length && !chargement) {
-            <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein"><div class="lst-vide"><i class="ri-file-check-line"></i><h5>Aucune clôture à contrôler</h5></div></td></tr>
+            <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein"><div class="lst-vide"><i class="ri-task-line"></i><h5>Aucune clôture à contrôler</h5></div></td></tr>
           }
         </tbody>
       </table>

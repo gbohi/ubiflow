@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'baremes',        # per diem, tarifs, taux de change (lot 3)
     'missions',       # lieux, distances, calcul des missions (lot 3)
     'tresorerie',     # règlements et reversements (lot 4)
+    'pilotage',       # tableaux de bord (lot 6)
 ]
 
 AUTH_USER_MODEL = 'api.User'

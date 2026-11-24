@@ -1,0 +1,128 @@
+<div class="lst">
+  <app-page-entete titre="Tableaux de bord" icone="ri-dashboard-3-line" [sousTitre]="tdb ? libelleFiltres + ' · montants en ' + tdb.devise : ''">
+    <div class="btn-group" dropdown placement="bottom right">
+      <button type="button" class="btn-ubi" dropdownToggle [disabled]="!tdb || exportEnCours" data-test="exporter-tdb">
+        @if (exportEnCours) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="ri-download-2-line"></i> }
+        <span class="pe-lib">Exporter</span></button>
+      <ul *dropdownMenu class="dropdown-menu dropdown-menu-end" role="menu">
+        <li><button type="button" class="dropdown-item" (click)="exporterExcel()"><i class="ri-file-excel-2-line me-2 text-success"></i>Excel</button></li>
+        <li><button type="button" class="dropdown-item" (click)="exporterPdf()"><i class="ri-file-pdf-2-line me-2 text-danger"></i>PDF</button></li>
+      </ul>
+    </div>
+  </app-page-entete>
+
+  <ul class="nav nav-pills gap-1 mb-3 flex-wrap">
+    @for (p of profils; track p.code) {
+      <li class="nav-item"><button type="button" class="nav-link" [class.active]="p.code === profil" (click)="choisir(p.code)">
+        <i [class]="p.icone + ' me-1'"></i>{{ p.libelle }}</button></li>
+    }
+  </ul>
+
+  <!-- Filtres : une seule ligne au-dessus des graphiques -->
+  <div class="lst-carte mb-3">
+    <div class="lst-barre flex-wrap gap-2">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Période">
+        @for (x of [['mois', 'Ce mois'], ['trimestre', 'Ce trimestre'], ['annee', 'Cette année'], ['douze', '12 mois']]; track x[0]) {
+          <button type="button" class="btn" [class.btn-primary]="preset === x[0]" [class.btn-light]="preset !== x[0]" (click)="appliquerPeriode(x[0])">{{ x[1] }}</button>
+        }
+      </div>
+      <div class="d-flex align-items-center gap-1">
+        <label class="small text-muted mb-0" for="tdb-du">Du</label>
+        <input id="tdb-du" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="filtres['du']" (ngModelChange)="preset = ''; charger()">
+        <label class="small text-muted mb-0" for="tdb-au">au</label>
+        <input id="tdb-au" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="filtres['au']" [min]="filtres['du']" (ngModelChange)="preset = ''; charger()">
+      </div>
+      <select class="form-select form-select-sm w-auto" aria-label="Type de demande" [(ngModel)]="filtres['type_demande']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Tous les types</option>
+        @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
+      </select>
+      @if (filtresOrganisation) {
+        <select class="form-select form-select-sm w-auto" aria-label="Statut" [(ngModel)]="filtres['statut']" (ngModelChange)="charger()">
+          <option [ngValue]="undefined">Tous les statuts</option>
+          @for (s of statuts; track s[0]) { <option [ngValue]="s[0]">{{ s[1] }}</option> }
+        </select>
+        <select class="form-select form-select-sm w-auto" aria-label="Département" [(ngModel)]="filtres['departement']" (ngModelChange)="charger()">
+          <option [ngValue]="undefined">Tous les départements</option>
+          @for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.libelle_service }}</option> }
+        </select>
+        <select class="form-select form-select-sm w-auto" aria-label="Agence" [(ngModel)]="filtres['agence']" (ngModelChange)="charger()">
+          <option [ngValue]="undefined">Toutes les agences</option>
+          @for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }
+        </select>
+        <select class="form-select form-select-sm w-auto" aria-label="Catégorie" [(ngModel)]="filtres['categorie']" (ngModelChange)="charger()">
+          <option [ngValue]="undefined">Toutes les catégories</option>
+          @for (c of categories; track c.id) { <option [ngValue]="c.id">{{ c.libelle }}</option> }
+        </select>
+        <ng-select class="tdb-demandeur" style="min-width: 220px" [items]="collaborateurs" bindValue="id" bindLabel="libelle" placeholder="Tous les demandeurs"
+                   [(ngModel)]="filtres['demandeur']" (ngModelChange)="charger()" aria-label="Demandeur"></ng-select>
+      }
+      <button type="button" class="btn btn-sm btn-light ms-auto" (click)="reinitialiser()"><i class="ri-refresh-line me-1"></i>Réinitialiser</button>
+    </div>
+  </div>
+
+  @if (chargement && !tdb) {
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+  }
+  @if (tdb) {
+    <div [style.opacity]="chargement ? 0.5 : 1">
+      <!-- Indicateurs -->
+      <div class="tdb-tuiles mb-3" data-test="indicateurs">
+        @for (i of tdb.indicateurs; track i.cle) {
+          @if (i.lien) {
+            <a class="tdb-tuile" [ngClass]="i.ton" [routerLink]="i.lien.split('?')[0]" [queryParams]="i.lien.includes('?') ? { statut: i.lien.split('=')[1] } : {}" [title]="i.aide">
+              <small>{{ i.libelle }}</small><b>{{ valeur(i) }}<span class="tdb-u">{{ unite(i) }}</span></b></a>
+          } @else {
+            <div class="tdb-tuile" [ngClass]="i.ton" [title]="i.aide"><small>{{ i.libelle }}</small><b>{{ valeur(i) }}<span class="tdb-u">{{ unite(i) }}</span></b></div>
+          }
+        }
+      </div>
+
+      <!-- Graphiques et tableaux -->
+      <div class="tdb-grille">
+        @for (s of tdb.sections; track s.cle) {
+          <section class="tdb-carte" [class.large]="s.type !== 'barres'" [attr.aria-label]="s.titre">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <h6>{{ s.titre }}</h6>
+              @if (s.type !== 'tableau' && !vide(s)) {
+                <button type="button" class="btn btn-link btn-sm p-0 ms-auto small" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
+                  {{ vueTableau[s.cle] ? 'Graphique' : 'Tableau' }}</button>
+              }
+            </div>
+            @if (vide(s)) {
+              <div class="tdb-vide">Aucune donnée sur la période.</div>
+            } @else if (s.type === 'barres' && !vueTableau[s.cle]) {
+              <app-graphe-barres [donnees]="s.donnees!" [unite]="s.unite!" [devise]="tdb.devise" [titre]="s.titre"></app-graphe-barres>
+            } @else if (s.type === 'colonnes' && !vueTableau[s.cle]) {
+              <app-graphe-colonnes [donnees]="s.donnees!" [series]="s.series!" [unite]="s.unite!" [devise]="tdb.devise" [titre]="s.titre"></app-graphe-colonnes>
+            } @else if (s.type === 'barres') {
+              <table class="table table-sm mb-0"><tbody>
+                @for (d of s.donnees; track $index) { <tr><td>{{ d.libelle }}</td><td class="text-end">{{ cellule({ format: s.unite === 'montant' ? 'montant' : 'nombre' }, d.valeur) }}</td></tr> }
+              </tbody></table>
+            } @else if (s.type === 'colonnes') {
+              <div class="table-responsive"><table class="table table-sm mb-0">
+                <thead><tr><th>Mois</th>@for (x of s.series; track x.cle) { <th class="text-end">{{ x.libelle }}</th> }</tr></thead>
+                <tbody>@for (d of s.donnees; track $index) { <tr><td>{{ d.libelle }}</td>
+                  @for (x of s.series; track x.cle) { <td class="text-end">{{ cellule({ format: s.unite === 'montant' ? 'montant' : 'nombre' }, d.valeurs[x.cle]) }}</td> }</tr> }</tbody>
+              </table></div>
+            } @else {
+              <div class="lst-table-wrap" style="max-height: 420px; overflow: auto">
+                <table class="lst-table">
+                  <thead><tr>@for (c of s.colonnes; track c.cle) { <th [class.text-end]="c.format === 'montant' || c.format === 'nombre'">{{ c.libelle }}</th> }</tr></thead>
+                  <tbody>
+                    @for (l of s.lignes; track $index) {
+                      <tr [style.cursor]="l.id ? 'pointer' : 'default'" (click)="ouvrir(l)">
+                        @for (c of s.colonnes; track c.cle) {
+                          <td [class.text-end]="c.format === 'montant' || c.format === 'nombre'" [class.text-nowrap]="c.format !== 'texte'">{{ cellule(c, l[c.cle]) }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>
