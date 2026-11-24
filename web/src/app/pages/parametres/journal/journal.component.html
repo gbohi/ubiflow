@@ -13,7 +13,7 @@
       <button type="button" class="btn btn-sm btn-primary" (click)="charger()">Filtrer</button>
     </div>
     <div class="lst-table-wrap">
-      <table class="lst-table">
+      <table class="lst-table" [numeroDebut]="(page - 1) * 10 + 1">
         <thead><tr><th>Date</th><th>Auteur</th><th>Opération</th><th>Objet</th><th>Motif</th><th></th></tr></thead>
         <tbody>
           @for (l of lignes; track l.id) {

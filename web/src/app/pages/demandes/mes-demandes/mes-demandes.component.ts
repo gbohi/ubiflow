@@ -32,6 +32,9 @@ export class MesDemandesComponent implements OnInit {
   readonly teinte = teinteType;
   types: TypeDemande[] = [];
   typeDemande: number | null = null;
+  /** Date de la demande (soumission, ou création pour un brouillon) */
+  du = '';
+  au = '';
   readonly filtres = [
     { cle: '', libelle: 'Toutes' }, { cle: 'brouillon', libelle: 'Brouillons' },
     { cle: 'en_validation', libelle: 'En validation' }, { cle: 'a_corriger', libelle: 'À corriger' },
@@ -55,6 +58,8 @@ export class MesDemandesComponent implements OnInit {
     this.statut = p.get('statut') ?? '';
     this.vue = p.get('vue') === 'toutes' && this.gestion ? 'toutes' : 'mes';
     this.typeDemande = Number(p.get('type')) || null;
+    this.du = p.get('du') ?? '';
+    this.au = p.get('au') ?? '';
     this.service.types(true).subscribe(t => this.types = t);
     this.recherche$.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => { this.page = 1; this.charger(); });
@@ -64,7 +69,7 @@ export class MesDemandesComponent implements OnInit {
 
   charger(): void {
     this.chargement = true;
-    this.service.demandes({ vue: this.vue, statut: this.statut, type_demande: this.typeDemande ?? '',
+    this.service.demandes({ vue: this.vue, statut: this.statut, type_demande: this.typeDemande ?? '', du: this.du, au: this.au,
                             search: this.recherche.trim(), page: this.page })
       .subscribe({
         next: r => { this.demandes = r.results; this.total = r.count; this.chargement = false; },
@@ -76,7 +81,7 @@ export class MesDemandesComponent implements OnInit {
     this.statut = cle;
     this.page = 1;
     this.router.navigate([], { queryParams: { statut: cle || null, vue: this.vue === 'toutes' ? 'toutes' : null,
-                                              type: this.typeDemande || null } });
+                                              type: this.typeDemande || null, du: this.du || null, au: this.au || null } });
     this.charger();
   }
 

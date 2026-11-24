@@ -23,6 +23,9 @@ export class AValiderComponent implements OnInit {
   readonly teinte = teinteType;
   types: TypeDemande[] = [];
   typeDemande: number | null = null;
+  /** Date de soumission de la demande */
+  du = '';
+  au = '';
   taches: Tache[] = [];
   total = 0;
   page = 1;
@@ -42,7 +45,7 @@ export class AValiderComponent implements OnInit {
 
   charger(): void {
     this.chargement = true;
-    this.service.taches(this.onglet, this.page, this.typeDemande).subscribe({
+    this.service.taches(this.onglet, this.page, { type_demande: this.typeDemande, du: this.du, au: this.au }).subscribe({
       next: r => { this.taches = r.results; this.total = r.count; this.chargement = false; },
       error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
     });

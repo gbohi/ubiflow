@@ -20,7 +20,7 @@
       </div>
     }
     <div class="lst-table-wrap lst-cartes-wrap">
-      <table class="lst-table lst-cartes">
+      <table class="lst-table lst-cartes" [numeroDebut]="(currentPage - 1) * 10 + 1">
         <thead>
           <tr>
             <th class="lst-c-sel">

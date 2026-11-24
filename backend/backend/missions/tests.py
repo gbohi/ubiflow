@@ -310,3 +310,20 @@ class FiltreParTypeTests(MissionBase):
         self.assertEqual(self.client.get('/api/api/taches/').data['count'], 2)
         r = self.client.get(f'/api/api/taches/?type_demande={self.frc.pk}').data['results']
         self.assertEqual([t['demande']['type_code'] for t in r], ['FRC'])
+
+    def test_filtre_par_dates(self):
+        brouillon = self.creer_mission()
+        self.soumettre(self.creer())
+        jour = timezone.localdate()
+        self.en(self.agent)
+        r = self.client.get(f'/api/api/demandes/?du={jour}&au={jour}').data
+        self.assertEqual(r['count'], 2)  # le brouillon compte à sa date de création
+        r = self.client.get(f'/api/api/demandes/?du={jour + timedelta(days=1)}').data
+        self.assertEqual(r['count'], 0)
+        self.assertEqual(self.client.get('/api/api/demandes/?du=31-12-2026').status_code, 400)
+        Demande.objects.filter(pk=brouillon).update(created_at=timezone.now() - timedelta(days=10))
+        r = self.client.get(f'/api/api/demandes/?au={jour - timedelta(days=5)}').data
+        self.assertEqual([d['id'] for d in r['results']], [brouillon])
+        self.en(self.chef)
+        self.assertEqual(self.client.get(f'/api/api/taches/?du={jour}').data['count'], 1)
+        self.assertEqual(self.client.get(f'/api/api/taches/?au={jour - timedelta(days=1)}').data['count'], 0)

@@ -21,6 +21,31 @@ from .serializers import (
 )
 
 
+def filtrer_par_dates(qs, params, champ, repli=None):
+    """
+    Filtre « du / au » (dates incluses, AAAA-MM-JJ) sur la date de la demande :
+    `champ`, ou `repli` quand il est vide (brouillon jamais soumis : date de création).
+    """
+    from datetime import date
+    from django.db.models.functions import Coalesce, TruncDate
+    bornes = {}
+    for cle in ('du', 'au'):
+        if params.get(cle):
+            try:
+                bornes[cle] = date.fromisoformat(params[cle][:10])
+            except ValueError:
+                raise ErreurMetier({cle: 'Date invalide (AAAA-MM-JJ).'})
+    if not bornes:
+        return qs
+    expression = Coalesce(champ, repli) if repli else champ
+    qs = qs.annotate(_date_demande=TruncDate(expression))
+    if 'du' in bornes:
+        qs = qs.filter(_date_demande__gte=bornes['du'])
+    if 'au' in bornes:
+        qs = qs.filter(_date_demande__lte=bornes['au'])
+    return qs
+
+
 class _JournalMixin:
     """Journalise les créations, modifications et suppressions du paramétrage."""
 
@@ -87,7 +112,7 @@ class TypePieceViewSet(_JournalMixin, viewsets.ModelViewSet):
 
 class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
-    GET    /demandes/?vue=mes|toutes&statut=&type_demande=&search=
+    GET    /demandes/?vue=mes|toutes&statut=&type_demande=&du=AAAA-MM-JJ&au=AAAA-MM-JJ&search=
     POST   /demandes/                       brouillon
     PATCH  /demandes/{id}/                  brouillon / correction
     DELETE /demandes/{id}/                  brouillon jamais soumis
@@ -121,6 +146,7 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             qs = qs.filter(statut__in=p['statut'].split(','))
         if p.get('type_demande'):
             qs = qs.filter(type_demande_id=p['type_demande'])
+        qs = filtrer_par_dates(qs, p, 'soumise_le', 'created_at')
         etapes = EtapeInstance.objects.select_related('etape').prefetch_related(
             Prefetch('taches', queryset=Tache.objects.select_related('valideur')))
         return qs.select_related('type_demande', 'demandeur').prefetch_related(

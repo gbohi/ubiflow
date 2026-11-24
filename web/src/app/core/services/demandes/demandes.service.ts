@@ -167,7 +167,7 @@ export class DemandesService {
   typesPieces(): Observable<TypePiece[]> { return this.http.get<TypePiece[]>(`${this.api}/types-pieces/`); }
 
   // ── Demandes ──────────────────────────────────────────────
-  demandes(f: { vue?: string; statut?: string; type_demande?: number | string; search?: string; page?: number }) {
+  demandes(f: { vue?: string; statut?: string; type_demande?: number | string; du?: string; au?: string; search?: string; page?: number }) {
     return this.http.get<{ count: number; results: Demande[] }>(`${this.api}/demandes/`, { params: this.params(f) });
   }
   demande(id: number): Observable<Demande> { return this.http.get<Demande>(`${this.api}/demandes/${id}/`); }
@@ -202,8 +202,8 @@ export class DemandesService {
   }
 
   // ── Validations ───────────────────────────────────────────
-  taches(etat = 'en_attente', page = 1, type_demande?: number | null) {
-    return this.http.get<{ count: number; results: Tache[] }>(`${this.api}/taches/`, { params: this.params({ etat, page, type_demande }) });
+  taches(etat = 'en_attente', page = 1, f: { type_demande?: number | null; du?: string; au?: string } = {}) {
+    return this.http.get<{ count: number; results: Tache[] }>(`${this.api}/taches/`, { params: this.params({ etat, page, ...f }) });
   }
   agir(tache: number, action: 'approuver' | 'rejeter' | 'retourner', motif: string, modifications?: any) {
     return this.http.post<{ demande: number; statut: string; statut_libelle: string }>(

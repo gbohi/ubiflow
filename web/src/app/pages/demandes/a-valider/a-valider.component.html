@@ -8,16 +8,25 @@
   </app-page-entete>
 
   <div class="lst-carte">
-    <div class="lst-barre">
+    <div class="lst-barre flex-wrap gap-2">
       <select class="form-select form-select-sm w-auto" aria-label="Type de demande" data-test="filtre-type"
               [(ngModel)]="typeDemande" (ngModelChange)="filtrer()">
         <option [ngValue]="null">Tous les types</option>
         @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
       </select>
+      <div class="d-flex align-items-center gap-1" data-test="filtre-dates">
+        <label class="small text-muted mb-0" for="av-du">Du</label>
+        <input id="av-du" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="du" (ngModelChange)="filtrer()">
+        <label class="small text-muted mb-0" for="av-au">au</label>
+        <input id="av-au" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="au" [min]="du" (ngModelChange)="filtrer()">
+        @if (du || au) {
+          <button type="button" class="btn btn-sm btn-light" title="Effacer les dates" aria-label="Effacer les dates" (click)="du = ''; au = ''; filtrer()"><i class="ri-close-line"></i></button>
+        }
+      </div>
     </div>
     <div class="lst-table-wrap lst-cartes-wrap">
-      <table class="lst-table lst-cartes">
-        <thead><tr><th>Demande</th><th>Demandeur</th><th>Objet</th><th>Montant</th><th>Étape</th>
+      <table class="lst-table lst-cartes" [numeroDebut]="(page - 1) * 10 + 1">
+        <thead><tr><th>Demande</th><th>Demandeur</th><th>Objet</th><th>Montant</th><th>Soumise le</th><th>Étape</th>
           <th>{{ onglet === 'en_attente' ? 'En attente depuis' : 'Décision' }}</th></tr></thead>
         <tbody>
           @for (t of taches; track t.id) {
@@ -29,6 +38,7 @@
               <td data-label="Demandeur">{{ t.demande.demandeur }}</td>
               <td data-label="Objet">{{ t.demande.objet }}</td>
               <td data-label="Montant" class="text-nowrap">{{ t.demande.montant_demande ? (t.demande.montant_demande | montant:t.demande.devise) : '—' }}</td>
+              <td data-label="Soumise le" class="small text-nowrap">{{ t.demande.soumise_le | date:'dd/MM/yyyy HH:mm' }}</td>
               <td data-label="Étape">{{ t.etape }}
                 @if (t.pour_compte_de) { <small class="d-block text-warning"><i class="ri-user-shared-line"></i> pour {{ t.pour_compte_de }}</small> }
                 @if (t.auto_validation) { <small class="d-block text-muted">vous êtes le demandeur</small> }</td>
@@ -40,7 +50,7 @@
             </tr>
           }
           @if (!taches.length && !chargement) {
-            <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein"><div class="lst-vide">
+            <tr class="lst-l-vide"><td colspan="7" class="lst-c-plein"><div class="lst-vide">
               <i class="ri-checkbox-circle-line"></i><h5>{{ onglet === 'en_attente' ? 'Aucune validation en attente' : 'Aucune validation effectuée' }}</h5></div></td></tr>
           }
         </tbody>

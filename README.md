@@ -113,6 +113,12 @@ Règles principales :
 - une demande simple peut être saisie dans une autre devise : elle est
   convertie dans la devise de référence au taux de la première soumission.
 
+Listes : chaque `<table class="lst-table">` reçoit automatiquement une
+colonne « N° » (directive `shared/numerotation`, `[numeroDebut]` pour les
+listes paginées). « Mes demandes » et « À valider » se filtrent par type et
+par date de la demande (`?du=&au=` : date de soumission, ou de création pour
+un brouillon).
+
 Chaque enregistrement garde ses dates et auteurs de création / modification
 (`BaseModel`). Un élément de paramètre encore utilisé ne peut pas être
 supprimé. Les affectations d'un agent sont historisées (date de début, date

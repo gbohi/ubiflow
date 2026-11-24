@@ -21,6 +21,15 @@
         <option [ngValue]="null">Tous les types</option>
         @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
       </select>
+      <div class="d-flex align-items-center gap-1" data-test="filtre-dates">
+        <label class="small text-muted mb-0" for="md-du">Du</label>
+        <input id="md-du" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="du" (ngModelChange)="choisirStatut(statut)">
+        <label class="small text-muted mb-0" for="md-au">au</label>
+        <input id="md-au" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="au" [min]="du" (ngModelChange)="choisirStatut(statut)">
+        @if (du || au) {
+          <button type="button" class="btn btn-sm btn-light" title="Effacer les dates" aria-label="Effacer les dates" (click)="du = ''; au = ''; choisirStatut(statut)"><i class="ri-close-line"></i></button>
+        }
+      </div>
       <div class="d-flex flex-wrap gap-1">
         @for (f of filtres; track f.cle) {
           <button type="button" class="btn btn-sm rounded-pill" [class.btn-primary]="statut === f.cle" [class.btn-light]="statut !== f.cle"
@@ -31,9 +40,9 @@
       </div>
     </div>
     <div class="lst-table-wrap lst-cartes-wrap">
-      <table class="lst-table lst-cartes">
+      <table class="lst-table lst-cartes" [numeroDebut]="(page - 1) * 10 + 1">
         <thead><tr>
-          <th>Référence</th><th>Objet</th>@if (vue === 'toutes') { <th>Demandeur</th> }<th>Montant</th><th>Statut</th><th>Étape en cours</th><th>Mise à jour</th>
+          <th>Référence</th><th>Objet</th>@if (vue === 'toutes') { <th>Demandeur</th> }<th>Montant</th><th>Statut</th><th>Étape en cours</th><th>Date de la demande</th>
         </tr></thead>
         <tbody>
           @for (d of demandes; track d.id) {
@@ -50,7 +59,8 @@
                 @if (d.etape_en_cours) { {{ d.etape_en_cours.libelle }}<span class="text-muted d-block">{{ d.etape_en_cours.valideurs.join(', ') }}</span> }
                 @else { <span class="muted">—</span> }
               </td>
-              <td data-label="Mise à jour" class="small text-nowrap">{{ d.updated_at | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td data-label="Date de la demande" class="small text-nowrap">{{ (d.soumise_le || d.created_at) | date:'dd/MM/yyyy HH:mm' }}
+                @if (!d.soumise_le) { <span class="text-muted d-block">créée, non soumise</span> }</td>
             </tr>
           }
           @if (!demandes.length && !chargement) {

@@ -124,7 +124,7 @@ class ChampsConditionView(APIView):
 
 class TacheViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
-    GET  /taches/?etat=en_attente|faite&type_demande=   mes validations (et celles reçues par délégation)
+    GET  /taches/?etat=en_attente|faite&type_demande=&du=&au=   mes validations (et celles reçues par délégation)
     POST /taches/{id}/approuver/               { motif, modifications }
     POST /taches/{id}/rejeter/                 { motif }
     POST /taches/{id}/retourner/               { motif }
@@ -145,7 +145,8 @@ class TacheViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
         type_demande = self.request.query_params.get('type_demande')
         if type_demande:
             qs = qs.filter(etape_instance__instance__demande__type_demande_id=type_demande)
-        return qs
+        from demandes.views import filtrer_par_dates
+        return filtrer_par_dates(qs, self.request.query_params, 'etape_instance__instance__demande__soumise_le')
 
     def _tache(self, pk):
         return get_object_or_404(Tache.objects.select_related('etape_instance__instance__demande'), pk=pk)
