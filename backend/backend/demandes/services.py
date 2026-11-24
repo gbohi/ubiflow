@@ -176,10 +176,63 @@ def _exiger_demandeur(demande, user, statuts, action):
 
 
 # ═══════════════════════════════════════════════════════════════
+# DEMANDE RATTACHÉE (frais complémentaires, annulation)
+# ═══════════════════════════════════════════════════════════════
+
+EN_COURS = (StatutDemande.BROUILLON, StatutDemande.EN_VALIDATION, StatutDemande.A_CORRIGER)
+
+
+def regle_parent(type_demande):
+    """{types: [...] | '*', statuts: [...], unique_en_cours: bool} ou None (type sans rattachement)."""
+    return (type_demande.parametres or {}).get('parent')
+
+
+def parents_possibles(type_demande, user):
+    regle = regle_parent(type_demande)
+    if not regle:
+        return Demande.objects.none()
+    qs = Demande.objects.filter(demandeur=user, statut__in=regle.get('statuts', [StatutDemande.APPROUVEE])) \
+        .exclude(type_demande__famille='annulation').select_related('type_demande')
+    if regle.get('types', '*') != '*':
+        qs = qs.filter(type_demande__code__in=regle['types'])
+    if regle.get('unique_en_cours'):
+        en_cours = Demande.objects.filter(type_demande=type_demande, statut__in=EN_COURS, demande_parent__isnull=False)
+        qs = qs.exclude(pk__in=en_cours.values('demande_parent'))
+    return qs.order_by('-approuvee_le', '-id')
+
+
+def controler_parent(type_demande, parent, user, demande=None):
+    regle = regle_parent(type_demande)
+    if not regle:
+        return None
+    if parent is None:
+        raise ErreurMetier({'demande_parent': 'Choisissez la demande concernée.'})
+    if parent.demandeur_id != user.pk:
+        raise Interdit("La demande concernée doit être l'une de vos demandes.")
+    nom_parent = parent.reference or 'ce brouillon'
+    if parent.type_demande.famille == 'annulation' or (
+            regle.get('types', '*') != '*' and parent.type_demande.code not in regle['types']):
+        raise ErreurMetier({'demande_parent': f"{nom_parent} ne peut pas être rattachée à ce type de demande."})
+    statuts = regle.get('statuts', [StatutDemande.APPROUVEE])
+    if parent.statut not in statuts:
+        raise ErreurMetier({'demande_parent': f"{nom_parent} est « {parent.get_statut_display()} » : elle doit être "
+                                              f"{' ou '.join(StatutDemande(s).label.lower() for s in statuts)}."})
+    if regle.get('unique_en_cours'):
+        autres = Demande.objects.filter(demande_parent=parent, type_demande=type_demande, statut__in=EN_COURS)
+        if demande is not None:
+            autres = autres.exclude(pk=demande.pk)
+        if autres.exists():
+            raise ErreurMetier({'demande_parent': f"Une demande « {type_demande.libelle} » est déjà en cours pour "
+                                                  f"{nom_parent}."})
+    return parent
+
+
+# ═══════════════════════════════════════════════════════════════
 # BROUILLONS
 # ═══════════════════════════════════════════════════════════════
 
-def creer_brouillon(user, type_demande, objet='', montant_demande=None, devise='', donnees=None, infos=None):
+def creer_brouillon(user, type_demande, objet='', montant_demande=None, devise='', donnees=None, infos=None,
+                    demande_parent=None):
     if not type_demande.actif:
         raise ErreurMetier("Ce type de demande n'est pas disponible.")
     if moteur.version_publiee(type_demande) is None:
@@ -187,12 +240,13 @@ def creer_brouillon(user, type_demande, objet='', montant_demande=None, devise='
     saisi = type_demande.avec_montant and not extensions.pour(type_demande).montant_calcule
     if not saisi:
         devise = ''
+    parent = controler_parent(type_demande, demande_parent, user)
     with transaction.atomic():
         demande = Demande.objects.create(
             type_demande=type_demande, demandeur=user, cree_par=user, objet=(objet or '').strip()[:255],
             montant_demande=_montant(montant_demande) if saisi else None,
             devise=(devise or ParametreSysteme.charger().devise_reference).upper()[:3],
-            donnees=valider_contenu(type_demande, donnees, complet=False))
+            donnees=valider_contenu(type_demande, donnees, complet=False), demande_parent=parent)
         moteur.tracer(demande, 'creation', auteur=user, infos=infos)
     return demande
 
@@ -319,6 +373,8 @@ def preparer_soumission(demande, user):
     else:
         version = demande.version_workflow
     _controler_contenu(demande)
+    if regle_parent(demande.type_demande):
+        controler_parent(demande.type_demande, demande.demande_parent, user, demande)
     ext = extensions.pour(demande.type_demande)
     demande._calcul, demande._note_calcul = ext.avant_soumission(demande, d, premiere)
     if not ext.montant_calcule:
@@ -429,10 +485,9 @@ def dupliquer(demande, user, infos=None):
         raise ErreurMetier("Un brouillon n'a pas besoin d'être dupliqué.")
     with transaction.atomic():
         copie = creer_brouillon(user, demande.type_demande, demande.objet, demande.montant_demande,
-                                demande.devise, demande.donnees, infos)
+                                demande.devise, demande.donnees, infos, demande_parent=demande.demande_parent)
         copie.origine_copie = demande
-        copie.demande_parent = demande.demande_parent
-        copie.save(update_fields=['origine_copie', 'demande_parent'])
+        copie.save(update_fields=['origine_copie'])
         moteur.tracer(copie, 'duplication', auteur=user, infos=infos,
                       motif=f"Copie de {demande.reference or 'brouillon'}")
     return copie
@@ -470,9 +525,8 @@ def peut_ajouter_document(demande, user):
     return demande.statut == StatutDemande.EN_VALIDATION and _a_une_tache_en_attente(demande, user)
 
 
-def ajouter_document(demande, user, fichier, type_piece=None, remplace=None, infos=None):
-    if not peut_ajouter_document(demande, user):
-        raise Interdit("Vous ne pouvez pas ajouter de pièce à cette demande à ce stade.")
+def creer_document(demande, user, fichier, type_piece=None, remplace=None):
+    """Contrôle (format, taille) et enregistrement d'une pièce ; les droits sont vérifiés par l'appelant."""
     extension = fichier.name.rsplit('.', 1)[-1].lower() if '.' in fichier.name else ''
     if extension not in EXTENSIONS_AUTORISEES:
         raise ErreurMetier("Format non accepté (PDF, images, documents Office).")
@@ -483,12 +537,18 @@ def ajouter_document(demande, user, fichier, type_piece=None, remplace=None, inf
     for morceau in fichier.chunks():
         empreinte.update(morceau)
     fichier.seek(0)
+    en_cours = demande.statut in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER)
+    return Document.objects.create(
+        demande=demande, type_piece=type_piece, fichier=fichier, nom_origine=fichier.name[:255],
+        taille=fichier.size, empreinte=empreinte.hexdigest(), ajoute_par=user, remplace=remplace,
+        version_contenu=None if en_cours else demande.version_courante)
+
+
+def ajouter_document(demande, user, fichier, type_piece=None, remplace=None, infos=None):
+    if not peut_ajouter_document(demande, user):
+        raise Interdit("Vous ne pouvez pas ajouter de pièce à cette demande à ce stade.")
     with transaction.atomic():
-        en_cours = demande.statut in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER)
-        doc = Document.objects.create(
-            demande=demande, type_piece=type_piece, fichier=fichier, nom_origine=fichier.name[:255],
-            taille=fichier.size, empreinte=empreinte.hexdigest(), ajoute_par=user, remplace=remplace,
-            version_contenu=None if en_cours else demande.version_courante)
+        doc = creer_document(demande, user, fichier, type_piece, remplace)
         if remplace is not None:
             retirer_document(remplace, user, f"Remplacé par « {doc.nom_origine} »", infos, _depuis_remplacement=True)
         if demande.reference:
@@ -530,9 +590,15 @@ def peut_telecharger(doc, user):
 # ═══════════════════════════════════════════════════════════════
 
 def actions_possibles(demande, user):
+    from tresorerie.services import annulation_en_cours, peut_payer
     s = demande.statut
     demandeur = demande.demandeur_id == user.pk
+    approuvee = s in (StatutDemande.APPROUVEE, StatutDemande.EN_ATTENTE_CLOTURE)
     return {
+        'payer': peut_payer(demande, user) and annulation_en_cours(demande) is None,
+        'demander_annulation': demandeur and approuvee and demande.type_demande.famille != 'annulation'
+                               and annulation_en_cours(demande) is None,
+        'frais_complementaires': demandeur and approuvee and demande.type_demande.famille == 'mission',
         'modifier': demandeur and s in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER),
         'soumettre': demandeur and s in (StatutDemande.BROUILLON, StatutDemande.A_CORRIGER),
         'supprimer': demandeur and s == StatutDemande.BROUILLON and not demande.reference,

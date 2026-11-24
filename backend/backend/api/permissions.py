@@ -81,6 +81,11 @@ def is_admin_finances(user):
     return bool(is_admin(user) or ROLE_ADMIN_FINANCES in get_roles(user))
 
 
+def is_comptable(user):
+    """Paiements et reversements : comptables et administrateurs."""
+    return bool(is_admin(user) or ROLE_COMPTABLE in get_roles(user))
+
+
 def voit_toutes_les_demandes(user):
     return bool(user and user.is_authenticated and
                 (user.is_superuser or get_roles(user) & ROLES_GESTION_DEMANDES))

@@ -277,13 +277,19 @@ def finaliser(instance, infos=None):
     if demande.montant_approuve is None:
         demande.montant_approuve = demande.montant_demande
     demande.statut, demande.approuvee_le = StatutDemande.APPROUVEE, timezone.now()
-    demande.statut_financier = (StatutFinancier.A_PAYER if (demande.montant_approuve or 0) > 0
-                                else StatutFinancier.SANS_OBJET)
     demande.save()
     tracer(demande, 'approbation_finale', instance=instance, infos=infos,
            motif='Toutes les étapes du circuit sont validées.')
     notifier([demande.demandeur], 'demande_approuvee', f"{demande.reference} approuvée",
              f"Votre demande « {demande.objet} » est approuvée.", demande)
+    from demandes import extensions
+    from tresorerie.services import comptables, mettre_a_jour
+    extensions.pour(demande.type_demande).apres_approbation(demande, infos)
+    mettre_a_jour(demande, infos=infos)  # à payer, ou clôture immédiate d'une demande sans montant (mode A)
+    if demande.statut_financier == StatutFinancier.A_PAYER:
+        notifier(comptables(), 'a_payer', f"{demande.reference} à payer",
+                 f"{demande.type_demande.libelle} de {nom(demande.demandeur)} : {demande.montant_approuve} "
+                 f"{demande.devise}.", demande)
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -37,7 +37,8 @@ class StatutFinancier(models.TextChoices):
 # ── Paramétrage ────────────────────────────────────────────────
 
 class TypeDemande(models.Model):
-    FAMILLES = [('simple', 'Simple (formulaire paramétrable)'), ('mission', 'Mission')]
+    FAMILLES = [('simple', 'Simple (formulaire paramétrable)'), ('mission', 'Mission'),
+                ('annulation', "Demande d'annulation")]
     MODES_CLOTURE = [('automatique', 'Automatique'), ('demandeur', 'Par le demandeur')]
 
     code = models.CharField(max_length=10, unique=True)

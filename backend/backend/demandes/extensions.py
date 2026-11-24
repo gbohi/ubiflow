@@ -31,6 +31,9 @@ class Extension:
     def apres_version(self, demande, version):
         """Après création de la version soumise (lignes de calcul…)."""
 
+    def apres_approbation(self, demande, infos=None):
+        """Après la dernière validation (ex. annulation de la demande d'origine)."""
+
     def contexte(self, demande):
         """Valeurs supplémentaires pour les conditions du workflow."""
         return {}

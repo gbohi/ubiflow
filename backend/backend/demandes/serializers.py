@@ -124,6 +124,7 @@ class DemandeEcritureSerializer(serializers.Serializer):
     devise = serializers.CharField(max_length=3, allow_blank=True, required=False)
     donnees = serializers.DictField(required=False)
     mission = serializers.DictField(required=False)
+    demande_parent = serializers.PrimaryKeyRelatedField(queryset=Demande.objects.all(), required=False, allow_null=True)
 
     def validate(self, attrs):
         if 'mission' in attrs:
@@ -233,6 +234,12 @@ class DemandeDetailSerializer(DemandeListeSerializer):
     type_parametres = serializers.ReadOnlyField(source='type_demande.parametres')
     mission = serializers.SerializerMethodField()
     calcul = serializers.SerializerMethodField()
+    demande_parent_reference = serializers.ReadOnlyField(source='demande_parent.reference')
+    demande_parent_type = serializers.ReadOnlyField(source='demande_parent.type_demande.libelle')
+    reglements = serializers.SerializerMethodField()
+    reversements = serializers.SerializerMethodField()
+    rattachees = serializers.SerializerMethodField()
+    synthese = serializers.SerializerMethodField()
 
     class Meta:
         model = Demande
@@ -242,7 +249,37 @@ class DemandeDetailSerializer(DemandeListeSerializer):
             'departement', 'departement_libelle', 'agence', 'agence_libelle', 'categorie', 'categorie_libelle',
             'version_numero', 'version_workflow_numero', 'documents', 'commentaires', 'circuit', 'actions',
             'mes_taches', 'origine_copie', 'origine_copie_reference', 'demande_parent', 'motif_annulation',
-            'annulee_le', 'type_famille', 'type_parametres', 'mission', 'calcul']
+            'annulee_le', 'type_famille', 'type_parametres', 'mission', 'calcul', 'demande_parent_reference',
+            'demande_parent_type', 'cloturee_le', 'reglements', 'reversements', 'rattachees', 'synthese',
+            'paiement_fractionne']
+
+    paiement_fractionne = serializers.ReadOnlyField(source='type_demande.paiement_fractionne_autorise')
+
+    def get_reglements(self, obj):
+        from tresorerie.serializers import ReglementSerializer
+        return ReglementSerializer(obj.reglements.select_related('enregistre_par', 'annule_par', 'justificatif'),
+                                   many=True).data
+
+    def get_reversements(self, obj):
+        from tresorerie.serializers import ReversementSerializer
+        return ReversementSerializer(obj.reversements.select_related('demande__type_demande', 'demande__demandeur',
+                                                                     'traite_par', 'justificatif'), many=True).data
+
+    def get_rattachees(self, obj):
+        """Demandes rattachées (frais complémentaires, annulation), hors brouillons d'autrui."""
+        user = self.context['request'].user
+        return [{'id': d.pk, 'reference': d.reference, 'type_libelle': d.type_demande.libelle,
+                 'type_code': d.type_demande.code, 'objet': d.objet, 'statut': d.statut,
+                 'statut_libelle': d.get_statut_display(), 'montant_approuve': d.montant_approuve,
+                 'montant_demande': d.montant_demande, 'devise': d.devise}
+                for d in obj.demandes_rattachees.select_related('type_demande').order_by('created_at')
+                if d.statut != 'brouillon' or d.demandeur_id == user.pk]
+
+    def get_synthese(self, obj):
+        if obj.type_demande.famille != 'mission':
+            return None
+        from tresorerie.services import synthese
+        return synthese(obj)
 
     def get_mission(self, obj):
         return (obj.donnees or {}).get('mission') if obj.type_demande.famille == 'mission' else None

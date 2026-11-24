@@ -176,7 +176,7 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
             raise ErreurMetier({'type_demande': 'Choisissez le type de demande.'})
         demande = services.creer_brouillon(request.user, d['type_demande'], d.get('objet', ''),
                                            d.get('montant_demande'), d.get('devise', ''), d.get('donnees'),
-                                           infos_requete(request))
+                                           infos_requete(request), demande_parent=d.get('demande_parent'))
         return self._detail(demande, status.HTTP_201_CREATED)
 
     def partial_update(self, request, pk=None):
@@ -184,7 +184,7 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         s = DemandeEcritureSerializer(data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         services.modifier(demande, request.user, champs=set(s.validated_data), **{
-            k: v for k, v in s.validated_data.items() if k != 'type_demande'})
+            k: v for k, v in s.validated_data.items() if k not in ('type_demande', 'demande_parent')})
         return self._detail(demande)
 
     def destroy(self, request, pk=None):
@@ -257,6 +257,16 @@ class DemandeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         demande = self.get_object()
         document = get_object_or_404(Document, pk=doc, demande=demande)
         return FileResponse(document.fichier.open('rb'), as_attachment=True, filename=document.nom_origine)
+
+    @action(detail=False, methods=['get'], url_path='parents-possibles')
+    def parents_possibles(self, request):
+        """Demandes auxquelles rattacher une nouvelle demande du type donné (?type_demande=)."""
+        type_demande = get_object_or_404(TypeDemande, pk=request.query_params.get('type_demande'))
+        qs = services.parents_possibles(type_demande, request.user)
+        return Response([{'id': d.pk, 'reference': d.reference, 'objet': d.objet, 'type_libelle': d.type_demande.libelle,
+                          'type_code': d.type_demande.code, 'statut': d.statut, 'statut_libelle': d.get_statut_display(),
+                          'montant_approuve': d.montant_approuve, 'montant_paye': d.montant_paye, 'devise': d.devise}
+                         for d in qs[:200]])
 
     @action(detail=False, methods=['get'])
     def compteurs(self, request):

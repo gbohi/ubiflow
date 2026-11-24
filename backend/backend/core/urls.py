@@ -14,6 +14,8 @@ urlpatterns = [
     # Lot 3 : barèmes, lieux, calcul des missions
     path('api/api/', include('baremes.urls')),
     path('api/api/', include('missions.urls')),
+    # Lot 4 : trésorerie
+    path('api/api/', include('tresorerie.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

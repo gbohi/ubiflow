@@ -174,7 +174,8 @@ class Action(models.Model):
         ('annulation', 'Annulation'), ('saut', 'Étape sautée'), ('reresolution', 'Valideurs mis à jour'),
         ('reaffectation', 'Réaffectation'), ('correction', 'Correction par un valideur'),
         ('approbation_finale', 'Demande approuvée'), ('duplication', 'Duplication'),
-        ('document', 'Pièce jointe'),
+        ('document', 'Pièce jointe'), ('paiement', 'Paiement'), ('paiement_annule', 'Paiement annulé'),
+        ('reversement', 'Reversement'), ('cloture', 'Clôture'),
     ]
     demande = models.ForeignKey('demandes.Demande', on_delete=models.CASCADE, related_name='actions')
     instance = models.ForeignKey(InstanceWorkflow, on_delete=models.SET_NULL, null=True, blank=True,
