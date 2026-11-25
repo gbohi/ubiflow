@@ -1,5 +1,6 @@
 // src/app/pages/role/role.component.ts
 
+import { LIBELLES_ROLES } from 'src/app/core/helpers/roles';
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe, DatePipe } from '@angular/common';
@@ -177,7 +178,7 @@ export class RoleComponent implements OnInit, AfterViewInit {
   }
 
   roleLabel(name: string | null | undefined): string {
-    return (name && ROLES_SYSTEME[name]) || '';
+    return (name && (ROLES_SYSTEME[name] || LIBELLES_ROLES[name])) || '';
   }
 
   private resetSelection(): void {

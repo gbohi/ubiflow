@@ -58,3 +58,54 @@ class IconeTypeDemande extends StatelessWidget {
     );
   }
 }
+
+/// Carte d'une demande dans une liste, lisible d'un coup d'œil :
+/// référence et montant sur la première ligne, objet sur la deuxième,
+/// puis une ligne discrète (type, demandeur, étape) et le statut.
+class CarteListeDemande extends StatelessWidget {
+  final String? typeCode;
+  final String reference;
+  final String montant;
+  final String objet;
+  final String details;
+  final Widget? statut;
+  final List<Widget> alertes;
+  final VoidCallback onTap;
+  const CarteListeDemande({super.key, required this.typeCode, required this.reference, required this.montant,
+      required this.objet, required this.details, this.statut, this.alertes = const [], required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final secondaire = Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            IconeTypeDemande(typeCode),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(reference, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5))),
+                const SizedBox(width: 8),
+                Text(montant, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: cs.onSurface)),
+              ]),
+              const SizedBox(height: 3),
+              Text(objet.isEmpty ? '—' : objet, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: cs.onSurface, height: 1.3)),
+              const SizedBox(height: 3),
+              Text(details, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: secondaire)),
+              ...alertes,
+              if (statut != null) ...[const SizedBox(height: 8), statut!],
+            ])),
+          ]),
+        ),
+      ),
+    );
+  }
+}

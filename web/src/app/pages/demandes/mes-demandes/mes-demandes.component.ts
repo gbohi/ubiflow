@@ -114,6 +114,12 @@ export class MesDemandesComponent implements OnInit {
 
   rechercher(): void { this.recherche$.next(this.recherche); }
 
+  effacerFiltres(): void {
+    this.recherche = ''; this.typeDemande = null; this.du = ''; this.au = '';
+    this.recherche$.next('');
+    this.choisirStatut(this.statut);
+  }
+
   pageChangee(e: { page: number }): void { this.page = e.page; this.charger(); }
 
   ouvrir(d: Demande): void { this.router.navigate(['/demandes', d.id]); }

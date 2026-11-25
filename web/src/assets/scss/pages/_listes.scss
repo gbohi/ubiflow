@@ -127,13 +127,32 @@ app-page-entete { display: block; }
 
 .lst-barre {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
   padding: 16px 18px 14px;
   &.bord { border-bottom: 1px solid var(--ubi-bord); }
+  // Même gabarit pour tous les champs de filtre : hauteur, arrondi, taille de texte
+  > .form-select, > .form-control, .lst-periode .form-control, .lst-montants .form-control {
+    border-radius: 10px; border-color: var(--ubi-bord); min-height: 38px; font-size: 13px; color: var(--ubi-navy);
+  }
+  > .form-select { width: auto; min-width: 170px; max-width: 240px; }
+  // Onglets de statut : sur leur propre ligne, au-dessus des filtres
+  > .lst-statuts { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; margin-bottom: 2px; border-bottom: 1px dashed var(--ubi-bord); }
+  // Bouton « Effacer les filtres » et textes d'aide, poussés à droite
+  > .lst-raz { margin-left: auto; }
+  > .lst-aide { margin-left: auto; font-size: 12.5px; color: var(--ubi-gris); }
 }
+
+// Période « Du … au … » : un seul bloc, libellé visible
+.lst-periode {
+  display: flex; align-items: center; gap: 6px;
+  > span { font-size: 12.5px; color: var(--ubi-gris); white-space: nowrap; }
+  .form-control { width: 150px; }
+  .btn { min-height: 38px; border-radius: 10px; }
+}
+.lst-montants { display: flex; align-items: center; gap: 6px; .form-control { width: 120px; } }
 
 .lst-filtres {
   display: flex;
@@ -432,6 +451,9 @@ app-page-entete { display: block; }
 
   .lst-barre { padding: 12px; }
   .lst-recherche { min-width: 0; flex: 1 1 100%; }
+  .lst-barre > .form-select { flex: 1 1 140px; max-width: none; }
+  .lst-periode, .lst-montants { flex: 1 1 100%; .form-control { flex: 1 1 0; width: auto; min-width: 0; } }
+  .lst-barre > .lst-raz { margin-left: 0; }
   .lst-filtres { margin-left: 0; width: 100%; .form-select, input[type=date].form-control { flex: 1 1 120px; min-width: 0; } }
   .lst-chips { flex-wrap: nowrap; overflow-x: auto; width: 100%; padding-bottom: 2px; scrollbar-width: none; }
 
@@ -494,3 +516,6 @@ app-page-entete { display: block; }
   --tb-btn-focus-shadow-rgb: 81, 215, 142;
   font-weight: 600;
 }
+
+// Codes techniques dans les tableaux : discrets (le rose de Bootstrap évoque une erreur)
+.lst-table code { color: var(--ubi-gris); background: #F1F4F8; padding: 2px 6px; border-radius: 6px; font-size: 12px; }

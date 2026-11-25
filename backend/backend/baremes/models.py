@@ -30,6 +30,9 @@ class PerDiem(LigneBareme):
 
     CLE = ('type_mission', 'categorie')
 
+    def __str__(self):
+        return f"Per diem {self.get_type_mission_display().lower()} · {self.categorie} : {self.montant:,.0f} {self.devise}".replace(',', ' ')
+
 
 class TarifKilometrique(LigneBareme):
     """Tarif par km (véhicule personnel). Catégorie vide = toutes les catégories."""
@@ -41,6 +44,9 @@ class TarifKilometrique(LigneBareme):
 
     CLE = ('type_mission', 'categorie')
 
+    def __str__(self):
+        return f"Tarif kilométrique {self.get_type_mission_display().lower()} · {self.categorie or 'toutes catégories'} : {self.montant} {self.devise}/km"
+
 
 class TarifTransportVille(LigneBareme):
     """Transport sans véhicule personnel, aller-retour inclus, même tarif pour toutes les catégories."""
@@ -50,6 +56,9 @@ class TarifTransportVille(LigneBareme):
 
     CLE = ('ville',)
 
+    def __str__(self):
+        return f"Transport {self.ville} : {self.montant:,.0f} {self.devise}".replace(',', ' ')
+
 
 class ForfaitTransportHorsPays(LigneBareme):
     """Trajet vers l'aéroport des missions hors pays."""
@@ -58,6 +67,9 @@ class ForfaitTransportHorsPays(LigneBareme):
 
     CLE = ()
 
+    def __str__(self):
+        return f"Forfait transport hors pays : {self.montant:,.0f} {self.devise}".replace(',', ' ')
+
 
 class TauxChange(LigneBareme):
     """1 unité de `devise` = `taux` unités de la devise de référence."""
@@ -65,3 +77,7 @@ class TauxChange(LigneBareme):
     taux = models.DecimalField(max_digits=18, decimal_places=6)
 
     CLE = ('devise',)
+
+    def __str__(self):
+        return f"Taux de change 1 {self.devise} = {self.taux.normalize()}"
+

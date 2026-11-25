@@ -93,11 +93,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             color: lue ? Colors.grey : AppColors.accentDark),
                         title: Text('${n['titre']}',
                             style: TextStyle(fontWeight: lue ? FontWeight.w500 : FontWeight.w700)),
-                        subtitle: Text([
-                          if ((n['message'] as String? ?? '').isNotEmpty) n['message'],
-                          dateCourte(n['creee_le']),
-                        ].join('\n')),
-                        isThreeLine: (n['message'] as String? ?? '').isNotEmpty,
+                        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          if ((n['message'] as String? ?? '').isNotEmpty)
+                            Padding(padding: const EdgeInsets.only(top: 2),
+                                child: Text(n['message'] as String, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                          Padding(padding: const EdgeInsets.only(top: 4),
+                              child: Text(dateCourte(n['creee_le']), style: const TextStyle(fontSize: 11.5, color: Colors.grey))),
+                        ]),
                       ),
                     ]);
                   },

@@ -6,16 +6,9 @@
                    [complement]="comptesRoles['desactive'] ? comptesRoles['desactive'] + ' désactivé' + (comptesRoles['desactive'] > 1 ? 's' : '') : ''">
     <app-export-liste [titre]="'Utilisateurs'" url="users/" [params]="paramsExport" [colonnes]="colonnesExport"></app-export-liste>
     <button type="button" class="btn-ubi" [class.actif]="showSearchPanel" (click)="toggleSearchPanel()" [attr.aria-expanded]="showSearchPanel">
-      <i class="ri-filter-3-line"></i><span class="pe-lib">Filtres</span>
+      <i class="ri-filter-3-line"></i><span class="pe-lib">Recherche avancée</span>
       @if (hasActiveSearch()) { <span class="badge rounded-pill bg-danger ms-1" style="font-size:.6rem;">●</span> }
     </button>
-    <div class="btn-group" dropdown placement="bottom end">
-      <button type="button" dropdownToggle class="btn-ubi" aria-label="Exporter"><i class="ri-download-2-line"></i><span class="pe-lib">Exporter</span><i class="ri-arrow-down-s-line"></i></button>
-      <ul *dropdownMenu class="dropdown-menu dropdown-menu-end lst-menu" role="menu">
-        <li role="menuitem"><a class="dropdown-item" href="javascript:void(0);" (click)="exportExcel()"><i class="ri-file-excel-2-line"></i>Excel (page affichée)</a></li>
-        <li role="menuitem"><a class="dropdown-item" href="javascript:void(0);" (click)="exportPdf()"><i class="ri-file-pdf-line"></i>PDF (page affichée)</a></li>
-      </ul>
-    </div>
     <button type="button" class="btn-ubi vert" (click)="openAddModal()"><i class="ri-user-add-line"></i><span class="pe-lib">Nouvel utilisateur</span></button>
   </app-page-entete>
 
@@ -155,9 +148,7 @@
             </th>
             <th class="lst-c-num">N°</th>
             <th>
-              <span class="tri" [class.actif]="tri.estActif('nom')" (click)="onSort('nom')" role="button">Agent<i class="ms-1" [ngClass]="tri.icone('nom')"></i></span>
-              <span class="text-lowercase fw-normal"> · </span>
-              <span class="tri text-lowercase fw-normal" [class.actif]="tri.estActif('username')" (click)="onSort('username')" role="button">identifiant<i class="ms-1" [ngClass]="tri.icone('username')"></i></span>
+              <span class="tri" [class.actif]="tri.estActif('nom')" (click)="onSort('nom')" role="button">Collaborateur<i class="ms-1" [ngClass]="tri.icone('nom')"></i></span>
             </th>
             <th>Agence</th>
             <th>Catégorie</th>
@@ -202,7 +193,8 @@
                   @for (gid of data.groups || []; track gid) {
                     <span class="lst-tag" [ngClass]="styleRole(gid).classe"><i [class]="styleRole(gid).icone"></i>{{ getGroupeName(gid) }}</span>
                   } @empty {
-                    <span class="muted">—</span>
+                    @if (data.is_superuser) { <span class="lst-tag t-na"><i class="ri-shield-star-line"></i>Super administrateur</span> }
+                    @else { <span class="muted">—</span> }
                   }
                 </div>
               </td>

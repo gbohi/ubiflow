@@ -9,6 +9,20 @@ import { DemandesService } from 'src/app/core/services/demandes/demandes.service
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
 import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
+const TYPES_OBJETS: Record<string, string> = {
+  'api.ParametreSysteme': 'Société', 'api.Agence': 'Agence', 'api.Service': 'Département', 'api.Poste': 'Poste',
+  'api.Fonction': 'Fonction', 'api.Categoriesalarie': 'Catégorie de salarié', 'api.Statut': 'Statut', 'api.User': 'Utilisateur',
+  'api.Responsabilite': 'Responsabilité', 'api.AffectationResponsabilite': 'Responsabilité attribuée',
+  'api.PerimetreConsultation': 'Périmètre de consultation', 'api.JourFerie': 'Jour férié',
+  'baremes.PerDiem': 'Barème · per diem', 'baremes.TarifKilometrique': 'Barème · tarif kilométrique',
+  'baremes.TarifTransportVille': 'Barème · transport par ville', 'baremes.ForfaitTransportHorsPays': 'Barème · forfait hors pays',
+  'baremes.TauxChange': 'Barème · taux de change', 'missions.Ville': 'Ville', 'missions.Pays': 'Pays', 'missions.Distance': 'Distance',
+  'workflow.VersionWorkflow': 'Circuit de validation', 'workflow.Workflow': 'Circuit de validation', 'workflow.Tache': 'Validation',
+  'workflow.Delegation': 'Délégation', 'demandes.TypeDemande': 'Type de demande', 'demandes.ChampType': 'Champ de formulaire',
+  'demandes.ExigencePiece': 'Pièce exigée', 'demandes.TypePiece': 'Type de pièce', 'demandes.Document': 'Pièce jointe',
+  'demandes.Demande': 'Demande',
+};
+
 @Component({
   selector: 'app-journal',
   templateUrl: './journal.component.html',
@@ -19,7 +33,7 @@ export class JournalComponent implements OnInit {
     { libelle: 'Date', champ: 'horodatage', format: 'dateheure' }, { libelle: 'Auteur', champ: l => l.auteur_nom || 'Système' },
     { libelle: 'Pour le compte de', champ: 'pour_compte_de_nom' },
     { libelle: 'Opération', champ: l => this.libelles[l.action] || l.action }, { libelle: 'Objet', champ: 'objet_libelle' },
-    { libelle: "Type d'objet", champ: 'objet_type' }, { libelle: 'Identifiant', champ: 'objet_id' }, { libelle: 'Motif', champ: 'motif' },
+    { libelle: "Type d'objet", champ: l => this.typeObjet(l.objet_type) || l.objet_type }, { libelle: 'Identifiant', champ: 'objet_id' }, { libelle: 'Motif', champ: 'motif' },
   ];
   get paramsExport(): Record<string, any> { return { ...this.filtres }; }
 
@@ -52,6 +66,13 @@ export class JournalComponent implements OnInit {
       error: e => { this.chargement = false; this.toast.error(messageErreur(e)); },
     });
   }
+
+  private minuterie: any;
+  rechercher(): void { clearTimeout(this.minuterie); this.minuterie = setTimeout(() => this.charger(), 300); }
+  effacerFiltres(): void { this.filtres = { du: '', au: '', action: '', search: '' }; this.charger(); }
+
+  /** Nature de l'objet en clair (le nom technique du modèle n'aide pas le lecteur) */
+  typeObjet(t: string): string { return TYPES_OBJETS[t] ?? ''; }
 
   json(v: any): string { return v ? JSON.stringify(v, null, 2) : '—'; }
 }

@@ -5,39 +5,39 @@
   </app-page-entete>
 
   <div class="lst-carte">
-    <div class="lst-barre flex-wrap gap-2">
+    <div class="lst-barre">
       <div class="lst-recherche"><i class="ri-search-line"></i>
         <input type="search" placeholder="Référence, objet, demandeur…" aria-label="Rechercher" [(ngModel)]="filtres.search" (ngModelChange)="rechercher()"></div>
-      <select class="form-select form-select-sm w-auto" aria-label="Type de demande" [(ngModel)]="filtres.type_demande" (ngModelChange)="charger(1)">
+      <select class="form-select" aria-label="Type de demande" [(ngModel)]="filtres.type_demande" (ngModelChange)="charger(1)">
         <option [ngValue]="null">Tous les types</option>
         @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
       </select>
       @if (departements.length) {
-        <select class="form-select form-select-sm w-auto" aria-label="Département" [(ngModel)]="filtres.departement" (ngModelChange)="charger(1)">
+        <select class="form-select" aria-label="Département" [(ngModel)]="filtres.departement" (ngModelChange)="charger(1)">
           <option [ngValue]="null">Tous les départements</option>
           @for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.libelle_service }}</option> }
         </select>
       }
       @if (agences.length) {
-        <select class="form-select form-select-sm w-auto" aria-label="Agence" [(ngModel)]="filtres.agence" (ngModelChange)="charger(1)">
+        <select class="form-select" aria-label="Agence" [(ngModel)]="filtres.agence" (ngModelChange)="charger(1)">
           <option [ngValue]="null">Toutes les agences</option>
           @for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }
         </select>
       }
-      <div class="d-flex align-items-center gap-1">
-        <label class="small text-muted mb-0" for="ap-du">Approuvée du</label>
-        <input id="ap-du" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="filtres.du" (ngModelChange)="charger(1)">
-        <label class="small text-muted mb-0" for="ap-au">au</label>
-        <input id="ap-au" type="date" class="form-control form-control-sm w-auto" [min]="filtres.du" [(ngModel)]="filtres.au" (ngModelChange)="charger(1)">
+      <div class="lst-periode">
+        <span>Approuvée du</span>
+        <input id="ap-du" type="date" class="form-control" aria-label="Approuvée du" [(ngModel)]="filtres.du" (ngModelChange)="charger(1)">
+        <span>au</span>
+        <input id="ap-au" type="date" class="form-control" aria-label="au" [min]="filtres.du" [(ngModel)]="filtres.au" (ngModelChange)="charger(1)">
       </div>
-      <div class="d-flex align-items-center gap-1">
-        <input type="number" min="0" class="form-control form-control-sm" style="width: 120px" placeholder="Montant min" aria-label="Montant minimum"
+      <div class="lst-montants">
+        <input type="number" min="0" class="form-control" placeholder="Montant min" aria-label="Montant minimum"
                [(ngModel)]="filtres.montant_min" (ngModelChange)="rechercher()">
-        <input type="number" min="0" class="form-control form-control-sm" style="width: 120px" placeholder="Montant max" aria-label="Montant maximum"
+        <input type="number" min="0" class="form-control" placeholder="Montant max" aria-label="Montant maximum"
                [(ngModel)]="filtres.montant_max" (ngModelChange)="rechercher()">
       </div>
       @if (filtresActifs) {
-        <button type="button" class="btn btn-sm btn-light" (click)="reinitialiser()"><i class="ri-close-line me-1"></i>Effacer les filtres</button>
+        <button type="button" class="btn btn-sm btn-light lst-raz" (click)="reinitialiser()"><i class="ri-close-line me-1"></i>Effacer les filtres</button>
       }
     </div>
     <div class="lst-table-wrap lst-cartes-wrap">
@@ -49,8 +49,9 @@
             <tr (click)="ouvrir(d)" style="cursor: pointer">
               <td class="lst-c-principal"><div class="lst-qui">
                 <span class="lst-av carre" [ngClass]="teinte(d.type_code)" [title]="d.type_libelle"><i [class]="icone(d.type_icone)"></i></span>
-                <span><b>{{ d.reference }}</b>@if (d.alertes?.length) { <i class="ri-alarm-warning-line text-warning ms-1" [title]="alertesTexte(d)"></i> }
-                  <small class="d-block">{{ d.type_libelle }}</small></span></div></td>
+                <span><b class="text-nowrap">{{ d.reference }}</b>
+                  <small class="d-block">{{ d.type_libelle }}</small>
+                  @if (d.alertes?.length) { <span class="lst-tag t-or mt-1" [title]="alertesTexte(d)"><i class="ri-alarm-warning-line me-1"></i>À vérifier</span> }</span></div></td>
               <td data-label="Demandeur">{{ d.demandeur_nom }}</td>
               <td data-label="Objet">{{ d.objet }}</td>
               <td data-label="Approuvée le" class="small text-nowrap">{{ d.approuvee_le | date:'dd/MM/yyyy' }}</td>

@@ -440,135 +440,6 @@ getDerniereCategorie(user: any): any | null {
       v.service || v.agence || v.poste || v.categoriesalarie);
   }
 
-  // ══════════════════════════════════════════════════════════
-  // ✅ EXPORT EXCEL — colonnes étendues avec dernière ligne
-  // ══════════════════════════════════════════════════════════
-
-  exportExcel(): void {
-    const data = this.users.map(u => {
-      const svc  = this.getDernierService(u);
-      const agc  = this.getDerniereAgence(u);
-      const pst  = this.getDernierPoste(u);
-      const cat  = this.getDerniereCategorie(u);
-
-      return {
-        'ID':                    u.id,
-        'Nom':                   u.nom || '',
-        'Prénom':                u.prenom || '',
-        'Username':              u.username || '',
-        'Email':                 u.email || '',
-        'Contact':               u.contact || '',
-        'Poste tél.':            u.poste_telephone || '',
-        'Rôle(s)':               this.getGroupesLibelle(u.groups || []),
-        'Statut':                this.getStatutLibelle(u.statut),
-        'État':                  u.is_active ? 'Actif' : 'Inactif',
-        // ✅ Dernière ligne sous-store
-        'Département (dernier)':     svc  ? this.getServiceLibelle(svc.service)        : '—',
-        'Svc Date début':        svc  ? this.formatDate(svc.date_debut)            : '—',
-        'Agence (dernière)':     agc  ? this.getAgenceLibelle(agc.agence)          : '—',
-        'Agc Date début':        agc  ? this.formatDate(agc.date_debut)            : '—',
-        'Poste (dernier)':       pst  ? this.getPosteLibelle(pst.poste)            : '—',
-        'Pst Date début':        pst  ? this.formatDate(pst.date_debut)            : '—',
-        'Catégorie (dernière)':  cat  ? this.getCategorieLibelle(cat.categoriesalarie) : '—',
-        'Cat Date début':        cat  ? this.formatDate(cat.date_debut)            : '—',
-      };
-    });
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [
-      { wch: 6  }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 28 },
-      { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 16 }, { wch: 10 },
-      { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 12 },
-      { wch: 22 }, { wch: 12 }, { wch: 24 }, { wch: 12 },
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Utilisateurs');
-    XLSX.writeFile(wb, `utilisateurs_${this._dateStr()}.xlsx`);
-    this.toastService.success('Export Excel généré avec succès !', 'Succès');
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // ✅ EXPORT PDF — colonnes étendues (deux tableaux par page)
-  // ══════════════════════════════════════════════════════════
-
-  exportPdf(): void {
-    const doc = new jsPDF({ orientation: 'landscape', format: 'a3' });
-
-    doc.setFontSize(14);
-    doc.text('Liste des utilisateurs', 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')} — ${this.users.length} utilisateur(s)`, 14, 21);
-
-    // ── Tableau 1 : Informations personnelles ────────────
-    const head1 = [['#', 'Nom', 'Prénom', 'Username', 'Email', 'Rôle(s)', 'Statut', 'État']];
-    const body1 = this.users.map(u => [
-      u.id, u.nom || '', u.prenom || '', u.username || '', u.email || '',
-      this.getGroupesLibelle(u.groups || []),
-      this.getStatutLibelle(u.statut),
-      u.is_active ? 'Actif' : 'Inactif',
-    ]);
-
-    autoTable(doc, {
-      head: head1, body: body1, startY: 26,
-      styles:     { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [245, 248, 252] },
-      columnStyles: { 0: { cellWidth: 10 }, 4: { cellWidth: 45 }, 5: { cellWidth: 30 } },
-      margin: { left: 14, right: 14 },
-    });
-
-    // ── Tableau 2 : Affectations RH ──────────────────────
-    const finalY1 = (doc as any).lastAutoTable.finalY + 10;
-
-    doc.setFontSize(11);
-    doc.text('Affectations RH (dernière ligne par employé)', 14, finalY1);
-
-    const head2 = [[
-      'Nom & Prénom',
-      'Département', 'Dpt Début',
-      'Agence', 'Agc Début',
-      'Poste', 'Pst Début',
-      'Catégorie', 'Cat Début',
-    ]];
-
-    const body2 = this.users.map(u => {
-      const svc = this.getDernierService(u);
-      const agc = this.getDerniereAgence(u);
-      const pst = this.getDernierPoste(u);
-      const cat = this.getDerniereCategorie(u);
-      return [
-        `${u.nom || ''} ${u.prenom || ''}`.trim(),
-        svc ? this.getServiceLibelle(svc.service)              : '—',
-        svc ? this.formatDate(svc.date_debut)                  : '—',
-        agc ? this.getAgenceLibelle(agc.agence)                : '—',
-        agc ? this.formatDate(agc.date_debut)                  : '—',
-        pst ? this.getPosteLibelle(pst.poste)                  : '—',
-        pst ? this.formatDate(pst.date_debut)                  : '—',
-        cat ? this.getCategorieLibelle(cat.categoriesalarie)   : '—',
-        cat ? this.formatDate(cat.date_debut)                  : '—',
-      ];
-    });
-
-    autoTable(doc, {
-      head: head2, body: body2, startY: finalY1 + 5,
-      styles:     { fontSize: 7, cellPadding: 1.5 },
-      headStyles: { fillColor: [39, 174, 96], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [240, 255, 245] },
-      columnStyles: {
-        0: { cellWidth: 28 },
-        1: { cellWidth: 25 }, 2: { cellWidth: 18 },
-        3: { cellWidth: 25 }, 4: { cellWidth: 18 },
-        5: { cellWidth: 25 }, 6: { cellWidth: 18 },
-        7: { cellWidth: 25 }, 8: { cellWidth: 18 },
-      },
-      margin: { left: 14, right: 14 },
-    });
-
-    doc.save(`utilisateurs_${this._dateStr()}.pdf`);
-    this.toastService.success('Export PDF généré avec succès !', 'Succès');
-  }
-
   private _dateStr(): string {
     const d = new Date();
     return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
@@ -590,6 +461,9 @@ getDerniereCategorie(user: any): any | null {
       case 'super_admin':  return { classe: 't-na', icone: 'ri-shield-star-line' };
       case 'admin':        return { classe: 't-bl', icone: 'ri-shield-user-line' };
       case 'gestionnaire': return { classe: 't-ve', icone: 'ri-briefcase-line' };
+      case 'admin_finances': case 'comptable': return { classe: 't-ve', icone: 'ri-wallet-3-line' };
+      case 'admin_workflow': return { classe: 't-bl', icone: 'ri-git-merge-line' };
+      case 'direction': case 'controleur': return { classe: 't-or', icone: 'ri-eye-line' };
       default:             return { classe: 't-gr', icone: 'ri-user-line' };
     }
   }

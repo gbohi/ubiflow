@@ -25,6 +25,8 @@ export const MENU: MenuItem[] = [
     { id: 22, label: 'Circuits de validation', icon: 'ri-git-merge-line', link: '/parametres/workflows', actifSur: ['/parametres/workflows'], roles: ADMIN_WORKFLOW },
     { id: 24, label: 'Barèmes', icon: 'ri-scales-3-line', link: '/parametres/baremes', roles: FINANCES },
     { id: 25, label: 'Lieux et distances', icon: 'ri-map-pin-line', link: '/parametres/lieux', roles: FINANCES },
+    // Les administrateurs y accèdent par « Paramètres » ; l'administrateur finances n'a que cette page
+    { id: 26, label: 'Société', icon: 'ri-building-line', link: '/parametres/societe', roles: ['admin_finances'], sansRoles: GESTIONNAIRES },
     { id: 23, label: "Journal d'activité", icon: 'ri-history-line', link: '/parametres/journal', roles: JOURNAL },
     {
         // Accueil des paramètres : cartes par thème, filtrées selon le rôle

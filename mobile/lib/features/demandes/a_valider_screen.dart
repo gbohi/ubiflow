@@ -59,30 +59,26 @@ class _AValiderScreenState extends State<AValiderScreen> {
                   itemBuilder: (_, i) {
                     final t = taches[i];
                     final d = Map<String, dynamic>.from(t['demande'] as Map);
-                    return Card(
-                      margin: EdgeInsets.zero,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        leading: IconeTypeDemande(d['type_code'] as String?),
-                        title: Text('${d['reference']} — ${d['demandeur']}',
-                            style: const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('${d['type_libelle']} — ${d['objet']}', maxLines: 2, overflow: TextOverflow.ellipsis),
-                          Text('Étape : ${t['etape']}', style: const TextStyle(fontSize: 12)),
-                          if (t['en_retard'] == true)
-                            const Text('En retard', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
-                          if (t['pour_compte_de'] != null)
-                            Text('Pour le compte de ${t['pour_compte_de']}',
-                                style: const TextStyle(fontSize: 12, color: Colors.orange)),
-                        ]),
-                        trailing: Text(montant(d['montant_demande'], d['devise'] as String? ?? ''),
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        onTap: () async {
-                          await Navigator.push(context, MaterialPageRoute(
-                              builder: (_) => DemandeDetailScreen(id: d['id'] as int)));
-                          _recharger();
-                        },
-                      ),
+                    return CarteListeDemande(
+                      typeCode: d['type_code'] as String?,
+                      reference: d['reference'] as String? ?? '',
+                      montant: d['montant_demande'] == null ? '' : montant(d['montant_demande'], d['devise'] as String? ?? ''),
+                      objet: d['objet'] as String? ?? '',
+                      details: '${d['demandeur']} · ${d['type_libelle']} · ${t['etape']}',
+                      alertes: [
+                        if (t['en_retard'] == true)
+                          const Padding(padding: EdgeInsets.only(top: 6),
+                              child: PastilleStatut(label: 'En retard', ton: TonPastille.rouge, icone: Icons.schedule_rounded)),
+                        if (t['pour_compte_de'] != null)
+                          Padding(padding: const EdgeInsets.only(top: 6),
+                              child: PastilleStatut(label: 'Pour le compte de ${t['pour_compte_de']}', ton: TonPastille.or,
+                                  icone: Icons.swap_horiz_rounded)),
+                      ],
+                      onTap: () async {
+                        await Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => DemandeDetailScreen(id: d['id'] as int)));
+                        _recharger();
+                      },
                     );
                   },
                 );

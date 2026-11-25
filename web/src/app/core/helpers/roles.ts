@@ -16,7 +16,20 @@ export const LIBELLES_ROLES: Record<string, string> = {
   admin:        'Administrateur',
   gestionnaire: 'Gestionnaire',
   employe:      'Employé',
+  admin_workflow: 'Administrateur des circuits',
+  admin_finances: 'Administrateur finances',
+  comptable:    'Comptable',
+  direction:    'Direction',
+  controleur:   'Contrôleur',
 };
+
+/** Rôle à afficher sous le nom de l'utilisateur : le plus élevé qu'il détient */
+const ORDRE_ROLES = ['super_admin', 'admin', 'admin_finances', 'admin_workflow', 'direction', 'controleur', 'comptable', 'gestionnaire', 'employe'];
+export function rolePrincipal(user: any): string {
+  const roles = rolesUtilisateur(user);
+  const r = ORDRE_ROLES.find(x => roles.includes(x)) ?? roles[0];
+  return r ? (LIBELLES_ROLES[r] ?? r) : '';
+}
 
 /** Page d'arrivée de l'utilisateur après connexion */
 export function accueilUtilisateur(_user: any): string {

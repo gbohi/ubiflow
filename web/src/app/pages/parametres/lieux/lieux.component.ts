@@ -13,6 +13,9 @@ import { TokenStorageService } from 'src/app/core/services/token-storage.service
 import { aUnRole } from 'src/app/core/helpers/roles';
 import { ColonneExport } from 'src/app/shared/export-liste/export-liste.component';
 
+/** Recherche insensible aux accents et à la casse (« seguela » trouve « Séguéla ») */
+const sansAccents = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 type Onglet = 'villes' | 'distances' | 'pays';
 
 @Component({
@@ -54,17 +57,17 @@ export class LieuxComponent implements OnInit {
 
   chargerPays(): void { this.service.pays(true).subscribe(p => this.pays = p); }
   chargerVilles(): void {
-    this.service.villes({ pays: this.paysFiltre ?? undefined, tous: 1 }).subscribe(v => this.villes = v);
+    this.service.villes({ pays: this.paysFiltre ?? undefined, tous: 1 }).subscribe(v => this.villes = [...v].sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr')));
   }
   chargerDistances(): void { this.service.distances().subscribe(d => this.distances = d); }
 
   get villesAffichees(): Ville[] {
-    const t = this.recherche.trim().toLowerCase();
-    return t ? this.villes.filter(v => v.libelle.toLowerCase().includes(t)) : this.villes;
+    const t = sansAccents(this.recherche.trim());
+    return t ? this.villes.filter(v => sansAccents(v.libelle).includes(t)) : this.villes;
   }
   get distancesAffichees(): Distance[] {
-    const t = this.recherche.trim().toLowerCase();
-    return t ? this.distances.filter(d => `${d.ville_a_libelle} ${d.ville_b_libelle}`.toLowerCase().includes(t)) : this.distances;
+    const t = sansAccents(this.recherche.trim());
+    return t ? this.distances.filter(d => sansAccents(`${d.ville_a_libelle} ${d.ville_b_libelle}`).includes(t)) : this.distances;
   }
   get villesActives(): Ville[] { return this.villes.filter(v => v.actif); }
 

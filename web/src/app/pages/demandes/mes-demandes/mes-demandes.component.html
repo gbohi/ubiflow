@@ -12,33 +12,32 @@
   </app-page-entete>
 
   <div class="lst-carte">
-    <div class="lst-barre flex-wrap gap-2">
+    <div class="lst-barre">
+      <div class="lst-statuts" role="group" aria-label="Statut">
+        @for (f of filtres; track f.cle) {
+          <button type="button" class="lst-chip" [class.on]="statut === f.cle" (click)="choisirStatut(f.cle)">
+            {{ f.libelle }}@if (compte(f.cle) !== null) { <em>{{ compte(f.cle) }}</em> }
+          </button>
+        }
+      </div>
       <div class="lst-recherche">
         <i class="ri-search-line"></i>
         <input type="search" placeholder="Référence, objet, demandeur…" aria-label="Rechercher" [(ngModel)]="recherche" (ngModelChange)="rechercher()">
       </div>
-      <select class="form-select form-select-sm w-auto" aria-label="Type de demande" data-test="filtre-type"
+      <select class="form-select" aria-label="Type de demande" data-test="filtre-type"
               [(ngModel)]="typeDemande" (ngModelChange)="choisirStatut(statut)">
         <option [ngValue]="null">Tous les types</option>
         @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
       </select>
-      <div class="d-flex align-items-center gap-1" data-test="filtre-dates">
-        <label class="small text-muted mb-0" for="md-du">Du</label>
-        <input id="md-du" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="du" (ngModelChange)="choisirStatut(statut)">
-        <label class="small text-muted mb-0" for="md-au">au</label>
-        <input id="md-au" type="date" class="form-control form-control-sm w-auto" [(ngModel)]="au" [min]="du" (ngModelChange)="choisirStatut(statut)">
-        @if (du || au) {
-          <button type="button" class="btn btn-sm btn-light" title="Effacer les dates" aria-label="Effacer les dates" (click)="du = ''; au = ''; choisirStatut(statut)"><i class="ri-close-line"></i></button>
-        }
+      <div class="lst-periode" data-test="filtre-dates">
+        <span>Période du</span>
+        <input id="md-du" type="date" class="form-control" aria-label="Du" [(ngModel)]="du" (ngModelChange)="choisirStatut(statut)">
+        <span>au</span>
+        <input id="md-au" type="date" class="form-control" aria-label="Au" [(ngModel)]="au" [min]="du" (ngModelChange)="choisirStatut(statut)">
       </div>
-      <div class="d-flex flex-wrap gap-1">
-        @for (f of filtres; track f.cle) {
-          <button type="button" class="btn btn-sm rounded-pill" [class.btn-primary]="statut === f.cle" [class.btn-light]="statut !== f.cle"
-                  (click)="choisirStatut(f.cle)">
-            {{ f.libelle }}@if (compte(f.cle) !== null) { <span class="ms-1 opacity-75">{{ compte(f.cle) }}</span> }
-          </button>
-        }
-      </div>
+      @if (recherche || typeDemande || du || au) {
+        <button type="button" class="btn btn-sm btn-light lst-raz" (click)="effacerFiltres()"><i class="ri-close-line me-1"></i>Effacer les filtres</button>
+      }
     </div>
     <div class="lst-table-wrap lst-cartes-wrap">
       <table class="lst-table lst-cartes" [numeroDebut]="(page - 1) * 10 + 1">

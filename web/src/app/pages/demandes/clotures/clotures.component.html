@@ -1,14 +1,19 @@
 <div class="lst">
-  <app-page-entete titre="Clôtures à contrôler" icone="ri-task-line" [compte]="lignes.length" unite="clôture|clôtures"
+  <app-page-entete titre="Clôtures à contrôler" icone="ri-task-line" [compte]="affichees.length" unite="clôture|clôtures"
                    [fil]="[{label: 'Trésorerie'}]">
-    <app-export-liste titre="Clôtures à contrôler" [lignes]="lignes" [colonnes]="colonnesExport"></app-export-liste>
+    <app-export-liste titre="Clôtures à contrôler" [lignes]="affichees" [colonnes]="colonnesExport"></app-export-liste>
   </app-page-entete>
   <div class="lst-carte">
+    <div class="lst-barre">
+      <div class="lst-recherche"><i class="ri-search-line"></i>
+        <input type="search" placeholder="Référence, objet, demandeur…" aria-label="Rechercher" [(ngModel)]="recherche"></div>
+      <span class="lst-aide d-none d-md-inline">Missions clôturées par le demandeur, en attente de contrôle.</span>
+    </div>
     <div class="lst-table-wrap lst-cartes-wrap">
       <table class="lst-table lst-cartes">
         <thead><tr><th>Mission</th><th>Demandeur</th><th>Objet</th><th class="text-end">Approuvé</th><th class="text-end">Payé</th><th>Soumise le</th></tr></thead>
         <tbody>
-          @for (l of lignes; track l.id) {
+          @for (l of affichees; track l.id) {
             <tr (click)="ouvrir(l)" style="cursor: pointer">
               <td class="lst-c-principal"><div class="lst-qui">
                 <span class="lst-av carre" [ngClass]="teinte(l.type_code)"><i [class]="icone(l.type_icone)"></i></span>
@@ -20,7 +25,7 @@
               <td data-label="Soumise le" class="small text-nowrap">{{ l.soumise_le | date:'dd/MM/yyyy HH:mm' }}</td>
             </tr>
           }
-          @if (!lignes.length && !chargement) {
+          @if (!affichees.length && !chargement) {
             <tr class="lst-l-vide"><td colspan="6" class="lst-c-plein"><div class="lst-vide"><i class="ri-task-line"></i><h5>Aucune clôture à contrôler</h5></div></td></tr>
           }
         </tbody>

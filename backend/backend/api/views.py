@@ -263,13 +263,20 @@ class UserFilter(django_filters.FilterSet):
     prenom    = django_filters.CharFilter(lookup_expr='icontains')
     username  = django_filters.CharFilter(lookup_expr='icontains')
     email     = django_filters.CharFilter(lookup_expr='icontains')
-    groupe    = django_filters.NumberFilter(field_name='groups')
+    groupe    = django_filters.NumberFilter(method='filtre_groupe')
     agence           = django_filters.NumberFilter(method='filtrer_affectation')
     service          = django_filters.NumberFilter(method='filtrer_affectation')
     poste            = django_filters.NumberFilter(method='filtrer_affectation')
     categoriesalarie = django_filters.NumberFilter(method='filtrer_affectation')
     sans_agence      = django_filters.BooleanFilter(method='filtrer_sans_agence')
 
+
+    def filtre_groupe(self, queryset, name, value):
+        # Un super-utilisateur Django est super administrateur sans être dans le groupe
+        q = Q(groups=value)
+        if Group.objects.filter(pk=value, name='super_admin').exists():
+            q |= Q(is_superuser=True)
+        return queryset.filter(q).distinct()
     class Meta:
         model  = User
         fields = ['statut', 'is_active']

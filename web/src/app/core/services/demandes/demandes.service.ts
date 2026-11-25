@@ -235,7 +235,7 @@ export class DemandesService {
   }
 
   // ── Validations ───────────────────────────────────────────
-  taches(etat = 'en_attente', page = 1, f: { type_demande?: number | null; du?: string; au?: string } = {}) {
+  taches(etat = 'en_attente', page = 1, f: { type_demande?: number | null; du?: string; au?: string; search?: string } = {}) {
     return this.http.get<{ count: number; results: Tache[] }>(`${this.api}/taches/`, { params: this.params({ etat, page, ...f }) });
   }
   agir(tache: number, action: 'approuver' | 'rejeter' | 'retourner', motif: string, modifications?: any) {

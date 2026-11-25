@@ -22,6 +22,15 @@ export class CloturesComponent implements OnInit {
   readonly teinte = teinteType;
   lignes: any[] = [];
   chargement = true;
+  recherche = '';
+
+  /** Recherche locale (la liste des clôtures à contrôler est courte et chargée en entier) */
+  get affichees(): any[] {
+    const t = this.recherche.trim().toLowerCase();
+    if (!t) return this.lignes;
+    return this.lignes.filter(l => [l.reference, l.objet, l.demandeur_nom, l.type_libelle]
+      .some(v => (v ?? '').toString().toLowerCase().includes(t)));
+  }
   readonly colonnesExport: ColonneExport[] = [
     { libelle: 'Référence', champ: 'reference' }, { libelle: 'Type', champ: 'type_libelle' },
     { libelle: 'Demandeur', champ: 'demandeur_nom' }, { libelle: 'Objet', champ: 'objet' },

@@ -4,7 +4,7 @@ import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
 import { DOCUMENT } from '@angular/common';
 import { LanguageService } from 'src/app/core/services/language.service';
-import { GESTIONNAIRES, LIBELLES_ROLES, aUnRole, rolesUtilisateur } from 'src/app/core/helpers/roles';
+import { GESTIONNAIRES, aUnRole, rolePrincipal } from 'src/app/core/helpers/roles';
 
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { RootReducerState } from 'src/app/store';
@@ -44,9 +44,7 @@ export class TopbarComponent {
 
   /** Rôle le plus élevé de l'utilisateur */
   get roleAffiche(): string {
-    const roles = rolesUtilisateur(this.userData);
-    const role = ['super_admin', 'admin', 'gestionnaire', 'employe'].find(r => roles.includes(r));
-    return role ? LIBELLES_ROLES[role] : 'Utilisateur';
+    return rolePrincipal(this.userData) || 'Utilisateur';
   }
 
   /** Poste actuel du collaborateur (à défaut, son rôle) */

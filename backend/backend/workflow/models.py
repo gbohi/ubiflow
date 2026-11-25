@@ -238,3 +238,7 @@ class Delegation(models.Model):
         if aujourdhui > self.date_fin:
             return 'terminee'
         return 'active'
+
+    def __str__(self):
+        return f"Délégation de {self.delegant.get_full_name() or self.delegant.username} à {self.delegataire.get_full_name() or self.delegataire.username}"
+

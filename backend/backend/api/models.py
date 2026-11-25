@@ -69,10 +69,16 @@ class Statut(BaseModel):
     """Statut d'un compte ou d'une affectation (actif, suspendu…)."""
     libelle_statut = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.libelle_statut
+
 
 class Agence(BaseModel):
     nom_agence = models.CharField(max_length=255)
     code = models.CharField(max_length=30, blank=True)
+
+    def __str__(self):
+        return self.nom_agence
 
 
 class Service(BaseModel):
@@ -94,19 +100,31 @@ class Service(BaseModel):
             yield courant
             courant = courant.parent
 
+    def __str__(self):
+        return self.libelle_service
+
 
 class Fonction(BaseModel):
     libelle = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.libelle
+
 
 class Categoriesalarie(BaseModel):
     libelle = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.libelle
 
 
 class Poste(BaseModel):
     libelle = models.CharField(max_length=100)
     service = models.ForeignKey(Service, on_delete=models.PROTECT)
     fonction = models.ForeignKey(Fonction, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.libelle
 
 
 # ============================================================
@@ -207,6 +225,9 @@ class AffectationResponsabilite(BaseModel):
     class Meta:
         ordering = ['-date_debut']
 
+    def __str__(self):
+        return f"{self.responsabilite} : {self.user.get_full_name() or self.user.username}"
+
 
 class AffectationHierarchique(BaseModel):
     """
@@ -274,6 +295,9 @@ class PerimetreConsultation(models.Model):
     class Meta:
         ordering = ['user', 'type']
 
+    def __str__(self):
+        return f"Périmètre de {self.user.get_full_name() or self.user.username}"
+
 
 class JourFerie(models.Model):
     """Jour non ouvré (délais de validation, rappels)."""
@@ -315,3 +339,7 @@ class ParametreSysteme(models.Model):
     def charger(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+    def __str__(self):
+        return 'Paramètres de la société'
+

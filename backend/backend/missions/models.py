@@ -58,6 +58,9 @@ class Distance(models.Model):
         a_id, b_id = sorted([getattr(a, 'pk', a), getattr(b, 'pk', b)])
         return cls.objects.filter(ville_a_id=a_id, ville_b_id=b_id).first()
 
+    def __str__(self):
+        return f"{self.ville_a} – {self.ville_b} : {self.km} km"
+
 
 class LigneCalcul(models.Model):
     """Récapitulatif financier figé d'une version soumise (une ligne par rubrique)."""

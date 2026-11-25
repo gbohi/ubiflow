@@ -23,8 +23,8 @@ class MesDemandesScreen extends StatefulWidget {
 class _MesDemandesScreenState extends State<MesDemandesScreen> {
   static const _filtres = [
     ('', 'Toutes'), ('en_validation', 'En validation'), ('a_corriger', 'À corriger'),
-    ('approuvee', 'Approuvées'), ('en_attente_cloture', 'À clôturer'), ('rejetee', 'Rejetées'),
-    ('brouillon', 'Brouillons'),
+    ('en_attente_cloture', 'À clôturer'), ('approuvee', 'Approuvées'), ('rejetee', 'Rejetées'),
+    ('annulee', 'Annulées'), ('brouillon', 'Brouillons'),
   ];
   late String _statut = widget.statutInitial;
   late Future<List<Map<String, dynamic>>> _demandes = _liste();
@@ -127,24 +127,15 @@ class _CarteDemande extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final etape = demande['etape_en_cours'] as Map?;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: IconeTypeDemande(demande['type_code'] as String?),
-        title: Text(demande['reference'] as String? ?? 'Brouillon',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${demande['type_libelle']} — ${demande['objet']}', maxLines: 2, overflow: TextOverflow.ellipsis),
-          if (etape != null)
-            Text('Étape : ${etape['libelle']}', style: const TextStyle(fontSize: 12)),
-          const SizedBox(height: 4),
-          PastilleDemande(demande['statut'] as String),
-        ]),
-        trailing: Text(montant(demande['montant_demande'], demande['devise'] as String? ?? ''),
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-      ),
+    final m = demande['montant_demande'];
+    return CarteListeDemande(
+      typeCode: demande['type_code'] as String?,
+      reference: demande['reference'] as String? ?? 'Brouillon',
+      montant: m == null ? '' : montant(m, demande['devise'] as String? ?? ''),
+      objet: demande['objet'] as String? ?? '',
+      details: [demande['type_libelle'] ?? '', if (etape != null) 'Étape : ${etape['libelle']}'].join(' · '),
+      statut: PastilleDemande(demande['statut'] as String),
+      onTap: onTap,
     );
   }
 }

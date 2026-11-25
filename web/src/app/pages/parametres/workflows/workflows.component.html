@@ -20,8 +20,8 @@
           <h6>Version publiée</h6>
           @if (publiee) {
             <div class="d-flex align-items-center flex-wrap gap-2">
-              <div><b>Version {{ publiee.numero }}</b> — {{ publiee.etapes.length }} étape(s), publiée le {{ publiee.publiee_le | date:'dd/MM/yyyy' }}
-                par {{ publiee.publiee_par_nom || '—' }} · {{ publiee.nb_demandes }} demande(s)
+              <div><b>Version {{ publiee.numero }}</b> · {{ publiee.etapes.length }} étape{{ publiee.etapes.length > 1 ? 's' : '' }} · publiée le {{ publiee.publiee_le | date:'dd/MM/yyyy' }}@if (publiee.publiee_par_nom) { par {{ publiee.publiee_par_nom }} }
+                · utilisée par {{ publiee.nb_demandes }} demande{{ publiee.nb_demandes > 1 ? 's' : '' }}
                 @if (publiee.commentaire_version) { <div class="small text-muted">{{ publiee.commentaire_version }}</div> }</div>
               <div class="ms-auto d-flex gap-2">
                 <a class="btn btn-sm btn-light" [routerLink]="['/parametres/workflows', publiee.id]"><i class="ri-eye-line me-1"></i>Voir / simuler</a>
@@ -45,7 +45,7 @@
         @if (archivees.length) {
           <div class="lst-carte p-3"><h6>Versions archivées</h6>
             <ul class="list-unstyled small mb-0">@for (v of archivees; track v.id) {
-              <li class="mb-1"><a [routerLink]="['/parametres/workflows', v.id]">Version {{ v.numero }}</a> — publiée le {{ v.publiee_le | date:'dd/MM/yyyy' }} · {{ v.nb_demandes }} demande(s)</li> }</ul>
+              <li class="mb-1"><a [routerLink]="['/parametres/workflows', v.id]">Version {{ v.numero }}</a> · publiée le {{ v.publiee_le | date:'dd/MM/yyyy' }} · {{ v.nb_demandes }} demande{{ v.nb_demandes > 1 ? 's' : '' }}</li> }</ul>
           </div>
         }
       }

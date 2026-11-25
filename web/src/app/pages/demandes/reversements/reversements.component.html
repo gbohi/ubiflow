@@ -13,7 +13,7 @@
     <div class="lst-barre">
       <div class="lst-recherche"><i class="ri-search-line"></i>
         <input type="search" placeholder="Référence, objet, demandeur…" aria-label="Rechercher" [(ngModel)]="recherche" (ngModelChange)="rechercher()"></div>
-      <p class="text-muted small mb-0 ms-auto d-none d-md-block">Sommes à rendre par le demandeur : annulation après paiement, clôture.</p>
+      <span class="lst-aide d-none d-md-inline">Sommes à rendre par le demandeur : annulation après paiement, clôture.</span>
     </div>
     <div class="lst-table-wrap lst-cartes-wrap">
       <table class="lst-table lst-cartes" [numeroDebut]="(page - 1) * 10 + 1">
