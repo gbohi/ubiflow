@@ -23,7 +23,7 @@ from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Space
 
 from workflow import moteur
 
-NAVY = colors.HexColor('#092440')
+NAVY = colors.HexColor('#05253E')
 NAVY2 = colors.HexColor('#0F3A6E')
 VERT = colors.HexColor('#2FB46C')
 GRIS = colors.HexColor('#5A7090')
@@ -203,27 +203,41 @@ class _Canevas(canvas_module.Canvas):
 
 
 def _dessiner_cadre(demande, edite_par):
+    from api.models import ParametreSysteme
+    param = ParametreSysteme.charger()
+    chemin_logo = None
+    if param.logo:
+        try:
+            chemin_logo = param.logo.path if Path(param.logo.path).exists() else None
+        except (ValueError, NotImplementedError):
+            chemin_logo = None
+
     def dessiner(c, total):
         l, h = A4
         page = c.getPageNumber()
-        # Bandeau
+        # En-tête : logo de la société (Paramètres → Société), sinon sa raison sociale ; filet vert
+        haut = h - 8 * mm
+        if chemin_logo:
+            try:
+                c.drawImage(chemin_logo, 15 * mm, h - 17 * mm, width=48 * mm, height=10 * mm,
+                            preserveAspectRatio=True, anchor='w', mask='auto')
+            except Exception:  # image illisible : la raison sociale prend le relais
+                c.setFillColor(NAVY)
+                c.setFont(GRAS, 12.5)
+                c.drawString(15 * mm, h - 13.5 * mm, (param.raison_sociale or 'Société').upper())
+        if not chemin_logo:
+            c.setFillColor(NAVY)
+            c.setFont(GRAS, 12.5)
+            c.drawString(15 * mm, h - 13.5 * mm, (param.raison_sociale or 'Société').upper())
         c.setFillColor(NAVY)
-        c.rect(0, h - 19 * mm, l, 19 * mm, stroke=0, fill=1)
-        c.setFillColor(VERT)
-        c.roundRect(15 * mm, h - 14 * mm, 9 * mm, 9 * mm, 2.2 * mm, stroke=0, fill=1)
-        c.setFillColor(colors.white)
-        c.setFont(GRAS, 11)
-        c.drawCentredString(19.5 * mm, h - 11.7 * mm, 'U')
-        c.setFont(GRAS, 15)
-        c.drawString(27 * mm, h - 11.8 * mm, 'Ubi')
-        c.setFillColor(VERT)
-        c.drawString(27 * mm + c.stringWidth('Ubi', GRAS, 15), h - 11.8 * mm, 'Flow')
-        c.setFillColor(colors.white)
-        c.setFont(GRAS, 10)
-        c.drawRightString(l - 15 * mm, h - 9.5 * mm, demande.reference or f'Brouillon n° {demande.pk}')
+        c.setFont(GRAS, 10.5)
+        c.drawRightString(l - 15 * mm, haut - 3 * mm, demande.reference or f'Brouillon n° {demande.pk}')
         c.setFont(POLICE, 7.5)
-        c.setFillColor(colors.HexColor('#B9C7DA'))
-        c.drawRightString(l - 15 * mm, h - 13.5 * mm, demande.type_demande.libelle)
+        c.setFillColor(GRIS)
+        c.drawRightString(l - 15 * mm, haut - 7.5 * mm, demande.type_demande.libelle)
+        c.setStrokeColor(VERT)
+        c.setLineWidth(1.2)
+        c.line(15 * mm, h - 20 * mm, l - 15 * mm, h - 20 * mm)
         # Pied
         c.setStrokeColor(BORD)
         c.setLineWidth(0.5)

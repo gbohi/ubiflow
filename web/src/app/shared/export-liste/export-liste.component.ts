@@ -4,7 +4,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { Cellule, enregistrerPdf, exporterExcel, nomFichier, nouveauPdf, tableauPdf } from 'src/app/core/helpers/exports';
+import { Cellule, chargerLogoPdf, enregistrerPdf, exporterExcel, nomFichier, nouveauPdf, tableauPdf } from 'src/app/core/helpers/exports';
+import { BaremesService } from 'src/app/core/services/baremes/baremes.service';
 import { TokenStorageService } from 'src/app/core/services/token-storage.service';
 
 /** Colonne exportée : champ (chemin « a.b ») ou fonction, format facultatif */
@@ -44,6 +45,7 @@ export class ExportListeComponent {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastrService);
   private readonly tokens = inject(TokenStorageService);
+  private readonly baremes = inject(BaremesService);
 
   @Input({ required: true }) titre = '';
   /** Chemin de l'API sous /api/api/ (ex. « agences/ ») */
@@ -114,6 +116,7 @@ export class ExportListeComponent {
         const sous = [`${donnees.length} ligne${donnees.length > 1 ? 's' : ''}`, this.filtres,
                       `édité le ${new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}`,
                       auteur ? `par ${auteur}` : ''].filter(Boolean).join(' · ');
+        await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
         const p = nouveauPdf(this.titre, sous, true);
         const droite = this.colonnes.map((c, i) => c.format === 'montant' ? i + 1 : -1).filter(i => i > 0);
         tableauPdf(p, entete, corps, false, [0, ...droite]);

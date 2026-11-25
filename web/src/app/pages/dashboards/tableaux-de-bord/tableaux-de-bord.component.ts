@@ -6,9 +6,10 @@
 import { Component, OnInit, QueryList, ViewChildren, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { forkJoin } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
+import { BaremesService } from 'src/app/core/services/baremes/baremes.service';
 import {
-  Cellule, enregistrerPdf, exporterExcel, imagePdf, nomFichier, nouveauPdf, placePdf, tableauPdf, titrePdf,
+  Cellule, chargerLogoPdf, enregistrerPdf, exporterExcel, imagePdf, nomFichier, nouveauPdf, placePdf, tableauPdf, titrePdf,
 } from 'src/app/core/helpers/exports';
 import { DemandesService, TypeDemande } from 'src/app/core/services/demandes/demandes.service';
 import { OrganisationService, messageErreur } from 'src/app/core/services/organisation/organisation.service';
@@ -47,6 +48,7 @@ export class TableauxDeBordComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastrService);
+  private readonly baremes = inject(BaremesService);
 
   @ViewChildren(GrapheBarresComponent) barres!: QueryList<GrapheBarresComponent>;
   @ViewChildren(GrapheColonnesComponent) colonnes!: QueryList<GrapheColonnesComponent>;
@@ -87,7 +89,7 @@ export class TableauxDeBordComponent implements OnInit {
     this.organisation.departementsTous().subscribe(d => this.departements = d ?? []);
     this.organisation.agencesToutes().subscribe(a => this.agences = a ?? []);
     this.organisation.categoriesToutes().subscribe(c => this.categories = c ?? []);
-    this.organisation.collaborateursTous().subscribe(u => this.collaborateurs = (u ?? []).map((x: any) => ({ id: x.id, libelle: `${x.nom} ${x.prenom} (${x.username})` })));
+    this.organisation.annuaire().subscribe(u => this.collaborateurs = (u ?? []).map(x => ({ id: x.id, libelle: x.libelle })));
   }
 
   get filtresOrganisation(): boolean { return this.profil === 'direction'; }
@@ -196,6 +198,7 @@ export class TableauxDeBordComponent implements OnInit {
     this.exportEnCours = true;
     try {
       const t = this.tdb;
+      await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
       const p = nouveauPdf(`Tableau de bord — ${t.titre}`, `${this.libelleFiltres} · montants en ${t.devise} · édité le ${new Date().toLocaleString('fr-FR')}`, false);
       tableauPdf(p, ['Indicateur', 'Valeur'], t.indicateurs.map(i => [i.libelle, `${this.valeur(i)} ${this.unite(i)}`.trim()]), false, [1]);
       const svgs = new Map<string, SVGSVGElement>();

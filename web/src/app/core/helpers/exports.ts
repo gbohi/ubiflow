@@ -7,12 +7,13 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
+import { environment } from 'src/environments/environment';
 import autoTable from 'jspdf-autotable';
 
 export type Cellule = string | number | null | undefined;
 export interface Feuille { nom: string; lignes: Cellule[][]; largeurs?: number[]; }
 
-const NAVY: [number, number, number] = [9, 36, 64];
+const NAVY: [number, number, number] = [5, 37, 62];
 
 /** Nom de feuille Excel valide (31 caractères, sans : \ / ? * [ ]) et unique */
 function nomFeuille(nom: string, pris: Set<string>): string {
@@ -62,9 +63,43 @@ export function textePdf(v: Cellule): string {
 
 export interface DocPdf { doc: jsPDF; y: number; }
 
+/** Logo de la société (Paramètres → Société) pour l'en-tête des PDF ; null : pas de logo */
+let logoPdf: { uri: string; ratio: number } | null = null;
+
+/**
+ * Charge le logo des paramètres avant un export PDF (adresse relative « /media/… »).
+ * Sans logo, ou s'il est illisible, les PDF n'en affichent pas.
+ */
+export async function chargerLogoPdf(urlLogo: string | null | undefined): Promise<void> {
+  logoPdf = null;
+  if (!urlLogo) return;
+  try {
+    const url = /^https?:/.test(urlLogo) ? urlLogo : `${environment.apiUrl}${urlLogo}`;
+    const blob = await (await fetch(url)).blob();
+    const uri = await new Promise<string>((ok, ko) => {
+      const lecteur = new FileReader();
+      lecteur.onload = () => ok(lecteur.result as string);
+      lecteur.onerror = ko;
+      lecteur.readAsDataURL(blob);
+    });
+    const img = new Image();
+    await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; img.src = uri; });
+    logoPdf = { uri, ratio: img.width / img.height };
+  } catch {
+    logoPdf = null;
+  }
+}
+
 /** Nouveau document : titre + sous-titre (filtres, date d'édition) */
 export function nouveauPdf(titre: string, sousTitre: string, paysage = true): DocPdf {
   const doc = new jsPDF({ orientation: paysage ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+  if (logoPdf) {
+    // Logo en haut à droite : 10 mm de haut, 45 mm de large au plus
+    let h = 10, w = h * logoPdf.ratio;
+    if (w > 45) { w = 45; h = w / logoPdf.ratio; }
+    const format = logoPdf.uri.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG';
+    doc.addImage(logoPdf.uri, format, doc.internal.pageSize.getWidth() - 14 - w, 8, w, h);
+  }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(...NAVY);
