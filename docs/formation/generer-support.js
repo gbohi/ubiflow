@@ -164,7 +164,7 @@ const contenu = [
   h1('10. Tableaux de bord'),
   puce('Menu « Tableaux de bord » : Mes demandes, Mes validations, Direction, Comptabilité, Administration, selon les droits.'),
   puce('Filtres : période, et pour la direction : statut, département, agence, catégorie, demandeur. Chaque graphique a une vue « Tableau ».'),
-  puce('Chaque tableau de bord s\'exporte en Excel (une feuille par bloc) et en PDF.'),
+  puce('Chaque tableau de bord s\'exporte en entier en Excel (une feuille par bloc) et en PDF ; chaque graphique et chaque liste s\'exporte aussi seul, avec son lien « Exporter ».'),
   puce([b('Périmètres de consultation : '), 'un contrôleur ou un profil de consultation ne voit que les départements ou agences qui lui sont attribués (Paramètres → Périmètres de consultation).']),
 
   h1('11. Statistiques'),
@@ -184,7 +184,7 @@ const contenu = [
   puce([b('Lecture : '), 'le survol d\'un graphique affiche les valeurs exactes ; le lien « Valeurs » remplace le graphique par son tableau de chiffres. Chaque statut garde toujours la même couleur (En validation bleu, À corriger jaune, Rejetées rouge, Approuvées vert d\'eau, Clôturées violet, Annulées rose).']),
   puce([b('Montants : '), 'en devise de référence, au taux figé de chaque demande. Les dépenses retiennent le montant approuvé, ou le montant demandé tant que la demande n\'est pas approuvée.']),
   puce([b('Carte des destinations : '), 'l\'onglet « Côte d\'Ivoire » place un cercle par ville (sa taille suit le nombre de missions) ; l\'onglet « International » colore les pays selon le nombre de missions. Une nouvelle ville apparaît sur la carte une fois sa latitude et sa longitude saisies dans Paramètres → Lieux et distances.']),
-  puce([b('Exports : '), 'Excel (une feuille par bloc) et PDF (indicateurs, graphiques et tableaux, avec le logo de la société).']),
+  puce([b('Exports : '), 'le bouton « Exporter » du haut produit tout le tableau en Excel (une feuille par bloc) ou en PDF (indicateurs, graphiques et tableaux, avec le logo de la société). Chaque graphique et chaque liste a aussi son propre lien « Exporter » (Excel ou PDF) pour n\'extraire que ce bloc, avec la période et les filtres appliqués.']),
   puce([b('Périmètres : '), 'comme les tableaux de bord, les statistiques d\'un profil limité à certains départements ou agences ne portent que sur ceux-ci.']),
 
   h1('12. Documents et exports'),

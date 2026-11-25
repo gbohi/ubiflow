@@ -421,17 +421,21 @@ def circuits(periode, f, devise):
         nombre[m] += 1
     moyennes = defaultdict(dict, {m: {'delai': (v['somme'] / nombre[m]).quantize(Decimal('0.1'))} for m, v in mensuel.items()})
     actives = [d for d in periode if d.statut != StatutDemande.ANNULEE]
+    # Entonnoir emboîté : chaque étape ne retient que les demandes de l'étape précédente
+    chiffrees = [d for d in actives if (d.montant_demande or 0) > 0]
+    approuvees_ch = [d for d in chiffrees if d.statut in APPROUVEES]
+    payees = [d for d in approuvees_ch if (d.montant_paye or 0) > 0]
     sections = [
         barres('etapes', 'Délai moyen de validation par étape (heures ouvrées)',
                {k: round(sum(v) / len(v), 1) for k, v in par_etape.items()}, 'heures'),
         courbe('evolution', "Délai moyen d'approbation par mois (jours)", mois_periode(f), [('delai', 'Délai moyen')],
                moyennes, 'jours', aide="Mois de l'approbation finale"),
         entonnoir('progression', 'Progression des demandes', [
-            ('Soumises', len(actives)),
-            ('Approuvées', sum(1 for d in actives if d.statut in APPROUVEES)),
-            ('Payées', sum(1 for d in actives if d.statut in APPROUVEES and (d.montant_paye or 0) > 0)),
-            ('Clôturées', sum(1 for d in actives if d.statut == StatutDemande.CLOTUREE)),
-        ], aide='Demandes soumises sur la période, hors annulées'),
+            ('Soumises', len(chiffrees)),
+            ('Approuvées', len(approuvees_ch)),
+            ('Payées', len(payees)),
+            ('Clôturées', sum(1 for d in payees if d.statut == StatutDemande.CLOTUREE)),
+        ], aide='Demandes avec un montant, soumises sur la période, hors annulées ; chaque étape compte les demandes de la précédente'),
         tableau('en_attente', 'Validations en attente',
                 [('reference', 'Demande', 'texte'), ('demandeur', 'Demandeur', 'texte'), ('etape', 'Étape', 'texte'),
                  ('valideur', 'Valideur', 'texte'), ('ouverte', 'Ouverte le', 'dateheure'), ('retard', 'En retard', 'oui_non')],

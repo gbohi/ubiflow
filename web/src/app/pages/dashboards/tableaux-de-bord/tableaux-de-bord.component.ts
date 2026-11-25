@@ -194,38 +194,84 @@ export class TableauxDeBordComponent implements OnInit {
       [{ nom: 'Indicateurs', lignes: indicateurs, largeurs: [44, 18, 8] }, ...t.sections.map(s => ({ nom: s.titre, lignes: this.lignesSection(s) }))]);
   }
 
+  /** Graphiques affichés, par titre ; les blocs basculés en « Tableau » sont réaffichés le temps de l'export */
+  private async svgsAffiches(): Promise<{ svgs: Map<string, SVGSVGElement>; restaurer: () => void }> {
+    const avant = { ...this.vueTableau };
+    if (Object.values(avant).some(Boolean)) {
+      this.vueTableau = {};
+      await new Promise(r => setTimeout(r, 50));
+    }
+    const svgs = new Map<string, SVGSVGElement>();
+    this.barres.forEach(b => svgs.set(b.titre, b.svg.nativeElement));
+    this.colonnes.forEach(c => svgs.set(c.titre, c.svg.nativeElement));
+    return { svgs, restaurer: () => this.vueTableau = avant };
+  }
+
+  /** Un bloc dans le PDF : graphique (légende comprise) puis ses valeurs */
+  private async blocPdf(p: any, s: Section, svgs: Map<string, SVGSVGElement>, titre = true): Promise<void> {
+    if (titre) titrePdf(p, s.titre);
+    if (this.vide(s)) { tableauPdf(p, ['Aucune donnée sur la période'], []); return; }
+    const svg = svgs.get(s.titre);
+    if (svg && s.type !== 'tableau') {
+      if (s.type === 'colonnes' && (s.series?.length ?? 0) > 1) {
+        p.doc.setFontSize(8); p.doc.setTextColor(82, 81, 78);
+        p.doc.text('Légende : ' + (s.series ?? []).map((x, i) => `${['bleu', 'orange', 'vert d\'eau'][i]} = ${x.libelle}`).join(' · '), 14, p.y + 2);
+        p.y += 4;
+      }
+      await imagePdf(p, await svgVersPng(svg));
+    }
+    const lignes = this.lignesSection(s);
+    placePdf(p, 20);
+    tableauPdf(p, lignes[0], lignes.slice(1).map(l => l.map(c => typeof c === 'number' ? complet(c) : c)), false,
+               lignes[0].map((_, i) => i).filter(i => lignes.slice(1).some(l => typeof l[i] === 'number') && i > 0));
+  }
+
+  private get sousTitreExport(): string {
+    return `${this.libelleFiltres} · montants en ${this.tdb?.devise ?? ''} · édité le ${new Date().toLocaleString('fr-FR')}`;
+  }
+
   async exporterPdf(): Promise<void> {
     if (!this.tdb || this.exportEnCours) return;
     this.exportEnCours = true;
+    const { svgs, restaurer } = await this.svgsAffiches();
     try {
       const t = this.tdb;
       await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
-      const p = nouveauPdf(`Tableau de bord — ${t.titre}`, `${this.libelleFiltres} · montants en ${t.devise} · édité le ${new Date().toLocaleString('fr-FR')}`, false);
+      const p = nouveauPdf(`Tableau de bord — ${t.titre}`, this.sousTitreExport, false);
       tableauPdf(p, ['Indicateur', 'Valeur'], t.indicateurs.map(i => [i.libelle, `${this.valeur(i)} ${this.unite(i)}`.trim()]), false, [1]);
-      const svgs = new Map<string, SVGSVGElement>();
-      this.barres.forEach(b => svgs.set(b.titre, b.svg.nativeElement));
-      this.colonnes.forEach(c => svgs.set(c.titre, c.svg.nativeElement));
-      for (const s of t.sections) {
-        titrePdf(p, s.titre);
-        if (this.vide(s)) { tableauPdf(p, ['Aucune donnée sur la période'], []); continue; }
-        const svg = svgs.get(s.titre);
-        if (svg && s.type !== 'tableau') {
-          if (s.type === 'colonnes' && (s.series?.length ?? 0) > 1) {
-            p.doc.setFontSize(8); p.doc.setTextColor(82, 81, 78);
-            p.doc.text('Légende : ' + (s.series ?? []).map((x, i) => `${['bleu', 'orange', 'vert d\'eau'][i]} = ${x.libelle}`).join(' · '), 14, p.y + 2);
-            p.y += 4;
-          }
-          await imagePdf(p, await svgVersPng(svg));
-        }
-        const lignes = this.lignesSection(s);
-        placePdf(p, 20);
-        tableauPdf(p, lignes[0], lignes.slice(1).map(l => l.map(c => typeof c === 'number' ? complet(c) : c)), false,
-                   lignes[0].map((_, i) => i).filter(i => lignes.slice(1).some(l => typeof l[i] === 'number') && i > 0));
-      }
+      for (const s of t.sections) await this.blocPdf(p, s, svgs);
       enregistrerPdf(p, nomFichier('tableau-de-bord', t.titre, t.du, t.au));
     } catch (e: any) {
       this.toast.error(e?.message || "L'export a échoué.");
     } finally {
+      restaurer();
+      this.exportEnCours = false;
+    }
+  }
+
+  // ── Export d'un seul graphique ou d'une seule liste ──
+  exporterSectionExcel(s: Section): void {
+    if (!this.tdb) return;
+    const t = this.tdb;
+    const entete: Cellule[][] = [[s.titre], [`Tableau de bord — ${t.titre}`], [this.libelleFiltres],
+      [`Montants en ${t.devise} · édité le ${new Date().toLocaleString('fr-FR')}`], []];
+    exporterExcel(nomFichier('tableau-de-bord', s.titre, t.du, t.au), [{ nom: s.titre, lignes: [...entete, ...this.lignesSection(s)] }]);
+  }
+
+  async exporterSectionPdf(s: Section): Promise<void> {
+    if (!this.tdb || this.exportEnCours) return;
+    this.exportEnCours = true;
+    const { svgs, restaurer } = await this.svgsAffiches();
+    try {
+      const t = this.tdb;
+      await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
+      const p = nouveauPdf(s.titre, `Tableau de bord — ${t.titre} · ${this.sousTitreExport}`, false);
+      await this.blocPdf(p, s, svgs, false);
+      enregistrerPdf(p, nomFichier('tableau-de-bord', s.titre, t.du, t.au));
+    } catch (e: any) {
+      this.toast.error(e?.message || "L'export a échoué.");
+    } finally {
+      restaurer();
       this.exportEnCours = false;
     }
   }

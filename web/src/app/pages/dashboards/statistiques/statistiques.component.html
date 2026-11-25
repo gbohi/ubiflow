@@ -88,10 +88,13 @@
           <section class="st-carte" [class.pleine]="pleineLargeur(i)" [attr.aria-label]="s.titre">
             <div class="st-tete">
               <div><h6>{{ s.titre }}</h6>@if (s.aide) { <div class="st-aide">{{ s.aide }}</div> }</div>
-              @if (s.type !== 'tableau' && !vide(s)) {
-                <button type="button" class="btn btn-link btn-sm p-0 st-bascule" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
-                  <i [class]="vueTableau[s.cle] ? 'ri-bar-chart-2-line me-1' : 'ri-table-line me-1'"></i>{{ vueTableau[s.cle] ? 'Graphique' : 'Valeurs' }}</button>
-              }
+              <div class="st-actions">
+                @if (s.type !== 'tableau' && !vide(s)) {
+                  <button type="button" class="btn btn-link btn-sm p-0" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
+                    <i [class]="vueTableau[s.cle] ? 'ri-bar-chart-2-line me-1' : 'ri-table-line me-1'"></i>{{ vueTableau[s.cle] ? 'Graphique' : 'Valeurs' }}</button>
+                }
+                <app-export-bloc [desactive]="exportEnCours || vide(s)" (excel)="exporterSectionExcel(s)" (pdf)="exporterSectionPdf(s)"></app-export-bloc>
+              </div>
             </div>
             @if (vide(s)) {
               <div class="st-vide">Aucune donnée sur la période.</div>

@@ -83,10 +83,13 @@
           <section class="tdb-carte" [class.large]="s.type !== 'barres'" [attr.aria-label]="s.titre">
             <div class="d-flex align-items-center gap-2 mb-2">
               <h6>{{ s.titre }}</h6>
-              @if (s.type !== 'tableau' && !vide(s)) {
-                <button type="button" class="btn btn-link btn-sm p-0 ms-auto small" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
-                  {{ vueTableau[s.cle] ? 'Graphique' : 'Tableau' }}</button>
-              }
+              <div class="ms-auto d-flex align-items-center gap-3 small">
+                @if (s.type !== 'tableau' && !vide(s)) {
+                  <button type="button" class="btn btn-link btn-sm p-0 small" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
+                    <i [class]="vueTableau[s.cle] ? 'ri-bar-chart-2-line me-1' : 'ri-table-line me-1'"></i>{{ vueTableau[s.cle] ? 'Graphique' : 'Tableau' }}</button>
+                }
+                <app-export-bloc [desactive]="exportEnCours || vide(s)" (excel)="exporterSectionExcel(s)" (pdf)="exporterSectionPdf(s)"></app-export-bloc>
+              </div>
             </div>
             @if (vide(s)) {
               <div class="tdb-vide">Aucune donnée sur la période.</div>

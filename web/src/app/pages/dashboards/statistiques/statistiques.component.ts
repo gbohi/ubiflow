@@ -216,32 +216,78 @@ export class StatistiquesComponent implements OnInit {
       [{ nom: 'Indicateurs', lignes: indicateurs, largeurs: [44, 18, 8] }, ...t.sections.map(s => ({ nom: s.titre, lignes: this.lignesSection(s) }))]);
   }
 
+  /** Graphiques affichés, par titre ; les blocs basculés en « Valeurs » sont réaffichés le temps de l'export */
+  private async svgsAffiches(): Promise<{ svgs: Map<string, SVGSVGElement>; restaurer: () => void }> {
+    const avant = { ...this.vueTableau };
+    if (Object.values(avant).some(Boolean)) {
+      this.vueTableau = {};
+      await new Promise(r => setTimeout(r, 50));
+    }
+    const svgs = new Map<string, SVGSVGElement>();
+    for (const liste of [this.gBarres, this.gColonnes, this.gCourbes, this.gAnneaux, this.gEmpiles, this.gEntonnoirs, this.gCartes] as QueryList<any>[]) {
+      liste.forEach(g => { if (g.svg?.nativeElement) svgs.set(g.titre, g.svg.nativeElement); });
+    }
+    return { svgs, restaurer: () => this.vueTableau = avant };
+  }
+
+  /** Un bloc dans le PDF : graphique (s'il y en a un) puis ses valeurs */
+  private async blocPdf(p: any, s: Section, svgs: Map<string, SVGSVGElement>, titre = true): Promise<void> {
+    if (titre) titrePdf(p, s.titre);
+    if (this.vide(s)) { tableauPdf(p, ['Aucune donnée sur la période'], []); return; }
+    const svg = svgs.get(s.titre);
+    if (svg && s.type !== 'tableau') await imagePdf(p, await svgVersPng(svg));
+    const lignes = this.lignesSection(s);
+    placePdf(p, 20);
+    tableauPdf(p, lignes[0], lignes.slice(1).map(l => l.map(c => typeof c === 'number' ? complet(c) : c)), false,
+               lignes[0].map((_, i) => i).filter(i => lignes.slice(1).some(l => typeof l[i] === 'number') && i > 0));
+  }
+
+  private get sousTitreExport(): string {
+    return `${this.libelleFiltres} · montants en ${this.stats?.devise ?? ''} · édité le ${new Date().toLocaleString('fr-FR')}`;
+  }
+
   async exporterPdf(): Promise<void> {
     if (!this.stats || this.exportEnCours) return;
     this.exportEnCours = true;
+    const { svgs, restaurer } = await this.svgsAffiches();
     try {
       const t = this.stats;
       await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
-      const p = nouveauPdf(`Statistiques — ${t.titre}`, `${this.libelleFiltres} · montants en ${t.devise} · édité le ${new Date().toLocaleString('fr-FR')}`, false);
+      const p = nouveauPdf(`Statistiques — ${t.titre}`, this.sousTitreExport, false);
       tableauPdf(p, ['Indicateur', 'Valeur'], t.indicateurs.map(i => [i.libelle, `${this.valeur(i)} ${this.unite(i)}`.trim()]), false, [1]);
-      const svgs = new Map<string, SVGSVGElement>();
-      for (const liste of [this.gBarres, this.gColonnes, this.gCourbes, this.gAnneaux, this.gEmpiles, this.gEntonnoirs, this.gCartes] as QueryList<any>[]) {
-        liste.forEach(g => { if (g.svg?.nativeElement) svgs.set(g.titre, g.svg.nativeElement); });
-      }
-      for (const s of t.sections) {
-        titrePdf(p, s.titre);
-        if (this.vide(s)) { tableauPdf(p, ['Aucune donnée sur la période'], []); continue; }
-        const svg = svgs.get(s.titre);
-        if (svg && s.type !== 'tableau') await imagePdf(p, await svgVersPng(svg));
-        const lignes = this.lignesSection(s);
-        placePdf(p, 20);
-        tableauPdf(p, lignes[0], lignes.slice(1).map(l => l.map(c => typeof c === 'number' ? complet(c) : c)), false,
-                   lignes[0].map((_, i) => i).filter(i => lignes.slice(1).some(l => typeof l[i] === 'number') && i > 0));
-      }
+      for (const s of t.sections) await this.blocPdf(p, s, svgs);
       enregistrerPdf(p, nomFichier('statistiques', t.titre, t.du, t.au));
     } catch (e: any) {
       this.toast.error(e?.message || "L'export a échoué.");
     } finally {
+      restaurer();
+      this.exportEnCours = false;
+    }
+  }
+
+  // ── Export d'un seul graphique ou d'une seule liste ──
+  exporterSectionExcel(s: Section): void {
+    if (!this.stats) return;
+    const t = this.stats;
+    const entete: Cellule[][] = [[s.titre], [`Statistiques — ${t.titre}`], [this.libelleFiltres],
+      [`Montants en ${t.devise} · édité le ${new Date().toLocaleString('fr-FR')}`], []];
+    exporterExcel(nomFichier('statistiques', s.titre, t.du, t.au), [{ nom: s.titre, lignes: [...entete, ...this.lignesSection(s)] }]);
+  }
+
+  async exporterSectionPdf(s: Section): Promise<void> {
+    if (!this.stats || this.exportEnCours) return;
+    this.exportEnCours = true;
+    const { svgs, restaurer } = await this.svgsAffiches();
+    try {
+      const t = this.stats;
+      await chargerLogoPdf((await firstValueFrom(this.baremes.parametres()).catch(() => null))?.logo);
+      const p = nouveauPdf(s.titre, `Statistiques — ${t.titre} · ${this.sousTitreExport}`, false);
+      await this.blocPdf(p, s, svgs, false);
+      enregistrerPdf(p, nomFichier('statistiques', s.titre, t.du, t.au));
+    } catch (e: any) {
+      this.toast.error(e?.message || "L'export a échoué.");
+    } finally {
+      restaurer();
       this.exportEnCours = false;
     }
   }

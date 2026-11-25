@@ -17,13 +17,14 @@ import { GrapheAnneauComponent } from './graphes/graphe-anneau.component';
 import { GrapheEmpileComponent } from './graphes/graphe-empile.component';
 import { GrapheEntonnoirComponent } from './graphes/graphe-entonnoir.component';
 import { GrapheCarteComponent } from './graphes/graphe-carte.component';
+import { ExportBlocComponent } from './graphes/export-bloc.component';
 import { StatistiquesComponent } from './statistiques/statistiques.component';
 
 @NgModule({
   declarations: [
     AccueilComponent, TableauxDeBordComponent, GrapheBarresComponent, GrapheColonnesComponent,
     GrapheCourbeComponent, GrapheAnneauComponent, GrapheEmpileComponent, GrapheEntonnoirComponent, GrapheCarteComponent,
-    StatistiquesComponent,
+    StatistiquesComponent, ExportBlocComponent,
   ],
   imports: [
     CommonModule,

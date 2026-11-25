@@ -37,7 +37,7 @@ import { AXE, ENCRE2, GRILLE, SERIES, STYLES_GRAPHE, complet, compact, graduatio
           }
         }
         @if (series.length === 1 && points.length) {
-          <text [attr.x]="x(points.length - 1) - 8" [attr.y]="yv(points[points.length - 1].v[0]) - 10" text-anchor="end" font-size="11"
+          <text [attr.x]="x(points.length - 1) - 8" [attr.y]="Math.max(yv(points[points.length - 1].v[0]) - 10, 12)" text-anchor="end" font-size="11"
                 font-weight="600" fill="#191919">{{ etiquette(points[points.length - 1].v[0]) }}</text>
         }
       </svg>
@@ -63,6 +63,7 @@ export class GrapheCourbeComponent implements OnChanges {
   @ViewChild('svg', { static: true }) svg!: ElementRef<SVGSVGElement>;
 
   readonly G = 56; readonly B = 24; readonly D = 16;
+  readonly Math = Math;
   readonly couleurs = SERIES; readonly grille = GRILLE; readonly axe = AXE; readonly encre2 = ENCRE2;
   points: { libelle: string; v: number[] }[] = [];
   ticks: number[] = [0, 1];
@@ -70,7 +71,7 @@ export class GrapheCourbeComponent implements OnChanges {
 
   ngOnChanges(): void {
     this.points = (this.donnees ?? []).map(d => ({ libelle: d.libelle, v: this.series.map(s => Number(d.valeurs?.[s.cle]) || 0) }));
-    this.ticks = graduations(Math.max(...this.points.flatMap(p => p.v), 0));
+    this.ticks = graduations(Math.max(...this.points.flatMap(p => p.v), this.unite === 'jours' ? 1 : 0));
   }
 
   private get pas(): number { return (this.L - this.G - this.D - 20) / Math.max(this.points.length - 1, 1); }
@@ -87,7 +88,7 @@ export class GrapheCourbeComponent implements OnChanges {
     this.survol = Math.max(0, Math.min(this.points.length - 1, Math.round((xs - this.G - 10) / this.pas)));
   }
   afficherMois(i: number): boolean { const pas = Math.ceil(this.points.length / 12); return i % pas === 0; }
-  etiquette(v: number): string { return this.unite === 'jours' ? complet(v, 1) : compact(v); }
+  etiquette(v: number): string { return this.unite === 'jours' ? complet(v, 2) : compact(v); }
   detail(v: number): string {
     if (this.unite === 'montant') return `${complet(v)} ${this.devise}`;
     if (this.unite === 'jours') return `${complet(v, 1)} j`;
