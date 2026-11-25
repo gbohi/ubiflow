@@ -29,6 +29,8 @@
   .acc-carte + .acc-carte { margin-top: 16px; }
   .acc-carte h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; padding: 16px 18px 12px; margin: 0; color: var(--navy); }
   .acc-carte h2 .n { background: var(--navy); color: #fff; font-size: 11px; border-radius: 9px; padding: 0 7px; line-height: 18px; }
+  .acc-carte h2 .acc-outils { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; font-size: 12.5px; font-weight: 400;
+    a { margin-left: 0; } .btn-link { font-size: 12.5px; color: var(--navy); text-decoration: none; } }
   .acc-carte h2 a { margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--vert-t); text-decoration: none; white-space: nowrap; cursor: pointer; }
   .acc-afaire { border-color: #CFE9DA; }
   .acc-intro { padding: 0 18px 10px; color: var(--gris); font-size: 12.5px; margin-top: -6px; }

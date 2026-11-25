@@ -49,7 +49,8 @@
   <div class="row g-3">
     <div class="col-xl-8">
       <section class="acc-carte acc-afaire" data-test="a-faire">
-        <h2>À faire maintenant @if (donnees.a_faire_total) { <span class="n">{{ donnees.a_faire_total }}</span> }</h2>
+        <h2>À faire maintenant @if (donnees.a_faire_total) { <span class="n">{{ donnees.a_faire_total }}</span> }
+          <span class="acc-outils"><app-export-bloc [desactive]="exportEnCours || !donnees.a_faire.length" (excel)="exporterBlocExcel('a_faire')" (pdf)="exporterBlocPdf('a_faire')"></app-export-bloc></span></h2>
         @if (donnees.a_faire.length) {
           <div class="acc-intro">Paiements, validations, corrections et clôtures qui vous attendent : les retards d'abord, puis les plus anciens.</div>
           @for (e of donnees.a_faire; track e.motif + e.id) {
@@ -72,7 +73,10 @@
       @for (l of donnees.listes; track l.cle) {
         <section class="acc-carte">
           <h2>{{ l.titre }} @if (l.lignes.length) { <span class="n">{{ l.lignes.length }}</span> }
-            @if (l.lien_tout) { <a [routerLink]="lien(l.lien_tout)?.route" [queryParams]="lien(l.lien_tout)?.params">Tout voir →</a> }</h2>
+            <span class="acc-outils">
+              <app-export-bloc [desactive]="exportEnCours || !l.lignes.length" (excel)="exporterBlocExcel('liste:' + l.cle)" (pdf)="exporterBlocPdf('liste:' + l.cle)"></app-export-bloc>
+              @if (l.lien_tout) { <a [routerLink]="lien(l.lien_tout)?.route" [queryParams]="lien(l.lien_tout)?.params">Tout voir →</a> }
+            </span></h2>
           @for (x of l.lignes; track $index) {
             <a class="acc-ligne sans-action" [routerLink]="['/demandes', x.id]">
               <span class="lst-av carre" [ngClass]="teinte(x.type_code)"><i [class]="icone(x.type_icone)"></i></span>
@@ -94,7 +98,7 @@
           @for (g of donnees.graphes; track g.cle) {
             <div [class]="donnees.graphes.length > 1 ? 'col-lg-6' : 'col-12'">
               <section class="acc-carte h-100">
-                <h2>{{ g.titre }}</h2>
+                <h2>{{ g.titre }} <span class="acc-outils"><app-export-bloc [desactive]="exportEnCours || !g.donnees.length" (excel)="exporterBlocExcel('graphe:' + g.cle)" (pdf)="exporterBlocPdf('graphe:' + g.cle)"></app-export-bloc></span></h2>
                 <div class="acc-graphe">
                   @if (g.type === 'barres') {
                     @if (g.donnees.length) { <app-graphe-barres [donnees]="g.donnees" [unite]="g.unite" [devise]="donnees.devise" [titre]="g.titre" [L]="donnees.graphes.length > 1 ? 420 : 760" [LIB]="150"></app-graphe-barres> }
@@ -112,7 +116,8 @@
 
     <aside class="col-xl-4">
       <section class="acc-carte">
-        <h2>Notifications <a routerLink="/notifications/preferences" class="ms-auto me-2 text-muted" title="Préférences de notification" aria-label="Préférences de notification"><i class="ri-settings-4-line"></i></a></h2>
+        <h2>Notifications <span class="acc-outils"><app-export-bloc [desactive]="exportEnCours || !donnees.notifications.length" (excel)="exporterBlocExcel('notifications')" (pdf)="exporterBlocPdf('notifications')"></app-export-bloc>
+          <a routerLink="/notifications/preferences" class="text-muted" title="Préférences de notification" aria-label="Préférences de notification"><i class="ri-settings-4-line"></i></a></span></h2>
         @for (n of donnees.notifications; track n.id) {
           <a class="acc-notif" (click)="ouvrir(n.lien)">
             <span class="pt" [class.lu]="n.lue"></span>
@@ -122,7 +127,7 @@
       </section>
 
       <section class="acc-carte">
-        <h2>Activité récente</h2>
+        <h2>Activité récente <span class="acc-outils"><app-export-bloc [desactive]="exportEnCours || !donnees.activites.length" (excel)="exporterBlocExcel('activites')" (pdf)="exporterBlocPdf('activites')"></app-export-bloc></span></h2>
         @for (a of donnees.activites; track a.demande) {
           <a class="acc-act" [routerLink]="['/demandes', a.demande]">
             <div class="r">{{ a.reference }} · {{ a.objet }}</div>

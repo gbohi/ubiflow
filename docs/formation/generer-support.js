@@ -59,6 +59,7 @@ const contenu = [
   espace(),
   puce([b('À faire maintenant : '), 'tout ce qui attend une action de l\'utilisateur, quelle que soit la vue choisie : validations, paiements, clôtures à contrôler, demandes à corriger, missions à clôturer, reversements à effectuer. Les retards apparaissent en premier, puis les plus anciens ; chaque ligne a son bouton (Valider, Payer, Contrôler, Corriger, Déclarer mes dépenses).']),
   puce([b('Barre d\'actions : '), '« Nouvelle demande » et les types les plus courants (Mission locale, Mission hors pays, Remboursement), puis les accès propres au rôle (À payer, Reversements, Tableaux de bord).']),
+  puce([b('Exporter : '), 'chaque bloc de l\'accueil (À faire maintenant, listes, graphiques, notifications, activité récente) a un lien « Exporter » qui produit son contenu en Excel ou en PDF.']),
   puce([b('Colonne de droite : '), 'notifications récentes et activité récente, regroupée par demande (par exemple « Clôture ×3, Reversement ×2 »).']),
   puce([b('Recherche : '), 'le champ en haut de chaque écran retrouve une demande par sa référence, son objet ou le nom ou le matricule du demandeur (touche « / » pour y accéder). Seules les demandes que l\'utilisateur a le droit de voir apparaissent : les siennes, celles qu\'il valide ou a validées et, pour les profils de gestion, celles de leur périmètre ; jamais les brouillons des autres.']),
 
