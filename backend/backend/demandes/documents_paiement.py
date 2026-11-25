@@ -11,13 +11,12 @@ from io import BytesIO
 
 from django.utils import timezone
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from api import organisation as org
 from api.models import ParametreSysteme
 from workflow import moteur
 from workflow.erreurs import ErreurMetier
@@ -25,7 +24,7 @@ from workflow.models import Tache
 
 from .documents_mission import NOIR, SERIF, SERIF_GRAS, _nom_complet, entete_formulaire
 from .lettres import montant_en_lettres
-from .pdf import GRAS, POLICE, _txt
+from .pdf import POLICE, _txt
 
 TITRES = {'RMB': 'DEMANDE DE REMBOURSEMENT'}
 FORMULAIRES = {'RMB': 'demande_remboursement'}
@@ -69,8 +68,6 @@ def demande_de_paiement(demande, user):
     # Bénéficiaire : le tiers (demande de paiement) ou le demandeur (remboursement, réception, autres)
     tiers = _valeur(demande, 'beneficiaire')
     beneficiaire = tiers or _nom_complet(u)
-    cni_mle = '' if tiers else u.username
-    entreprise = tiers if tiers else (param.raison_sociale or '')
     motif = ' — '.join(x for x in [demande.objet, _valeur(demande, 'nature_depense'), _valeur(demande, 'motif'),
                                    _valeur(demande, 'justification')] if x)
     if _valeur(demande, 'reference_initiale'):
@@ -125,8 +122,6 @@ def demande_de_paiement(demande, user):
     gauche = []
     for libelle, valeur in lignes:
         gauche += [Paragraph(f"<b>{libelle} :</b> {_txt(valeur)}", n), Spacer(1, 3 * mm)]
-    gauche.append(Paragraph(f"<b>n° CNI/Mle :</b> {_txt(cni_mle) if cni_mle else '…………………………'}&nbsp;&nbsp;&nbsp;&nbsp;"
-                            f"<b>Entreprise :</b> {_txt(entreprise)}", n))
 
     boite_montant = Table([[Paragraph('MONTANT', c)], [Paragraph(f"<b>{_txt(fmt(montant, devise))}</b>",
                                                                 ParagraphStyle('m', parent=nb, alignment=TA_CENTER, fontSize=12.5, leading=16))]],

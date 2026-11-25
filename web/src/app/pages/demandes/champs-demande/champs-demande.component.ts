@@ -22,6 +22,8 @@ export class ChampsDemandeComponent implements OnChanges {
   @Input() lectureSeule = false;
   /** Faux : seulement les champs du type (corrections d'un valideur) */
   @Input() avecObjet = true;
+  /** Exemple affiché dans le champ Objet (selon le type de demande) */
+  @Input() exempleObjet = 'Résumez la demande en quelques mots';
   /** Erreurs renvoyées par l'API : { objet, montant_demande, donnees: { code: message } } */
   @Input() erreurs: any = null;
 

@@ -62,6 +62,13 @@ class _ClotureScreenState extends State<ClotureScreen> {
     super.dispose();
   }
 
+  /// « 40000.00 » → « 40000 » ; zéro ou vide → champ vide (indication « 0 »)
+  String _montantSaisi(dynamic v) {
+    final n = num.tryParse('${v ?? ''}');
+    if (n == null || n == 0) return '';
+    return n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+  }
+
   String? _iso(dynamic v) {
     final d = DateTime.tryParse('${v ?? ''}');
     return d == null ? null : versIsoLocal(d.toLocal());
@@ -197,10 +204,10 @@ class _ClotureScreenState extends State<ClotureScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: TextFormField(
-                  initialValue: '${_depenses[r.cle] ?? ''}' == '0' ? '' : '${_depenses[r.cle] ?? ''}',
+                  initialValue: _montantSaisi(_depenses[r.cle]),
                   enabled: modifiable,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: r.libelle, helperText: r.aide.isEmpty ? null : r.aide,
+                  decoration: InputDecoration(labelText: r.libelle, hintText: '0', helperText: r.aide.isEmpty ? null : r.aide,
                       errorText: _erreur(r.cle), border: const OutlineInputBorder(), isDense: true),
                   onChanged: (v) => _depenses[r.cle] = v,
                 ),

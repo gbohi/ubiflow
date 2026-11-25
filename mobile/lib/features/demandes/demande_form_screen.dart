@@ -69,6 +69,7 @@ class _DemandeFormScreenState extends State<DemandeFormScreen> {
         setState(() {
           _parents = p;
           if (p.length == 1) _parent = p.first['id'] as int;
+          _objetDepuisParent();
         });
       }).catchError((_) {});
     }
@@ -84,6 +85,29 @@ class _DemandeFormScreenState extends State<DemandeFormScreen> {
     _objet.dispose();
     _montant.dispose();
     super.dispose();
+  }
+
+  /// Exemple du champ Objet, selon le type
+  String get _exempleObjet => const {
+        'MLO': "Ex. : Audit de l'agence de Bouaké",
+        'MHP': 'Ex. : Séminaire régional à Dakar',
+        'FRC': 'Ex. : Déjeuner avec la direction de la société X',
+        'PAI': 'Ex. : Facture de maintenance des climatiseurs',
+        'RMB': 'Ex. : Taxi aéroport au retour de mission',
+        'FCM': 'Ex. : Prolongation de la mission de 2 jours',
+        'ANN': 'Ex. : Mission reportée par le client',
+      }[t['code']] ??
+      'Résumez la demande en quelques mots';
+
+  String _objetAuto = '';
+
+  /// Annulation, frais complémentaires : objet proposé d'après la demande choisie (modifiable)
+  void _objetDepuisParent() {
+    final p = _parents.where((x) => x['id'] == _parent).firstOrNull;
+    final prefixe = t['code'] == 'ANN' ? 'Annulation' : t['code'] == 'FCM' ? 'Frais complémentaires' : '';
+    if (p == null || prefixe.isEmpty || (_objet.text.isNotEmpty && _objet.text != _objetAuto)) return;
+    _objetAuto = '$prefixe — ${p['objet']}';
+    _objet.text = _objetAuto;
   }
 
   String? _erreur(String cle, [Map? source]) {
@@ -194,7 +218,7 @@ class _DemandeFormScreenState extends State<DemandeFormScreen> {
             ],
             _champ(TextField(
               controller: _objet,
-              decoration: const InputDecoration(labelText: 'Objet *', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: 'Objet *', hintText: _exempleObjet, border: const OutlineInputBorder()),
             ), _erreur('objet')),
             if (_avecParent && !modification)
               _champ(DropdownButtonFormField<int>(
@@ -208,7 +232,10 @@ class _DemandeFormScreenState extends State<DemandeFormScreen> {
                       child: Text('${p['reference']} · ${p['objet']}', overflow: TextOverflow.ellipsis),
                     ),
                 ],
-                onChanged: (v) => setState(() => _parent = v),
+                onChanged: (v) => setState(() {
+                  _parent = v;
+                  _objetDepuisParent();
+                }),
               ), _erreur('demande_parent') ?? (_parents.isEmpty ? 'Aucune demande ne peut être rattachée pour le moment.' : null)),
             if (_avecMontant)
               _champ(TextField(

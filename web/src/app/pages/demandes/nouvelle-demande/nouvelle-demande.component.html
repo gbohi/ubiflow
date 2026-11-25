@@ -37,7 +37,7 @@
       @if (avecParent) {
         <div class="mb-3">
           <label class="form-label" for="dem-parent">Demande concernée <span class="text-danger">*</span></label>
-          <ng-select labelForId="dem-parent" [items]="parents" bindValue="id" [(ngModel)]="parent" placeholder="Choisir parmi vos demandes approuvées"
+          <ng-select labelForId="dem-parent" [items]="parents" bindValue="id" [(ngModel)]="parent" (change)="objetDepuisParent()" placeholder="Choisir parmi vos demandes approuvées"
                      [class.is-invalid]="erreurs?.demande_parent" notFoundText="Aucune demande éligible">
             <ng-template ng-label-tmp let-item="item">{{ libelleParent(item) }}</ng-template>
             <ng-template ng-option-tmp let-item="item">{{ libelleParent(item) }}</ng-template>
@@ -46,14 +46,20 @@
           @if (!parents.length) { <div class="form-text">Aucune de vos demandes n'est éligible pour ce type pour le moment.</div> }
         </div>
       }
-      <app-champs-demande [contenu]="contenu" [champs]="type.champs || []" [avecMontant]="type.avec_montant && !estMission" [erreurs]="erreurs"></app-champs-demande>
+      <app-champs-demande [contenu]="contenu" [champs]="type.champs || []" [avecMontant]="type.avec_montant && !estMission" [erreurs]="erreurs"
+                          [exempleObjet]="exempleObjet"></app-champs-demande>
       @if (estMission) {
         <hr class="my-3">
         <app-mission-form [mission]="mission" [typeDemande]="type.id!" [typeMission]="typeMission" [erreurs]="erreurs"></app-mission-form>
       }
-      @if (type.exigences?.length) {
-        <p class="small text-muted mt-3 mb-0"><i class="ri-attachment-2 me-1"></i>Pièces à joindre depuis la fiche de la demande, après l'enregistrement :
-          @for (e of type.exigences; track e.id) { {{ e.type_piece_libelle }}{{ e.obligatoire ? ' (obligatoire)' : ' (facultative)' }}@if (!$last) { , } }</p>
+      <!-- Pièces : celles de la soumission d'abord ; les autres sont annoncées avec leur moment -->
+      @if (piecesSoumission.length) {
+        <p class="small text-muted mt-3 mb-0"><i class="ri-attachment-line me-1"></i>À joindre depuis la fiche de la demande, avant la soumission :
+          @for (e of piecesSoumission; track e.id) { {{ e.type_piece_libelle }}{{ e.obligatoire ? ' (obligatoire)' : ' (facultative)' }}@if (!$last) { , } }</p>
+      }
+      @if (piecesPlusTard.length) {
+        <p class="small text-muted mt-1 mb-0"><i class="ri-time-line me-1"></i>Plus tard :
+          @for (e of piecesPlusTard; track e.id) { {{ e.type_piece_libelle }} ({{ momentPiece(e) }})@if (!$last) { , } }</p>
       }
       <div class="d-flex justify-content-end gap-2 mt-4">
         <a routerLink="/demandes" class="btn btn-light">Annuler</a>

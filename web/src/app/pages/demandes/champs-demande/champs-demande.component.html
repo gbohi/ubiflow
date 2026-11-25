@@ -16,7 +16,7 @@
     <div class="col-12">
       <label class="form-label" for="dem-objet">Objet <span class="text-danger">*</span></label>
       <input id="dem-objet" class="form-control" maxlength="255" [(ngModel)]="contenu.objet" [class.is-invalid]="erreurDirecte('objet')"
-             placeholder="Ex. : Déjeuner avec la direction de la société X">
+             [placeholder]="exempleObjet">
       @if (erreurDirecte('objet')) { <div class="invalid-feedback">{{ erreurDirecte('objet') }}</div> }
     </div>
     @if (avecMontant) {

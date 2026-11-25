@@ -230,10 +230,16 @@ def calculer(type_mission, donnees, fig):
     jours = donnees.get('nombre_jours')
     type_libelle = 'mission locale' if type_mission == 'locale' else 'mission hors pays'
 
+    # Tant que la destination n'est pas choisie, pas de « tarif introuvable » prématuré :
+    # le champ obligatoire est signalé par la validation de la saisie
+    destination_choisie = bool(donnees.get('ville_destination'))
+
     # ── Indemnités journalières ──
     pd = fig.get('per_diem')
     if not fig.get('categorie'):
         erreurs.append("Votre catégorie de salarié n'est pas renseignée : demandez à l'administrateur de la compléter.")
+    elif pd is None and type_mission == 'hors_pays' and not destination_choisie:
+        pass  # le per diem hors pays dépend du pays de destination
     elif pd is None:
         erreurs.append(f"Aucun per diem n'est défini pour la catégorie « {fig['categorie_libelle']} » en {type_libelle}.")
     elif jours:
@@ -298,7 +304,7 @@ def calculer(type_mission, donnees, fig):
                 ajouter('transport', f"Transport {depart} → {destination} (montant saisi, ville sans tarif)", montant, ref,
                         signalement=f"Ville sans tarif de transport : montant saisi par le demandeur "
                                     f"({_fmt(montant)} {ref}) — {donnees.get('justification_transport', '')}")
-            else:
+            elif destination_choisie:
                 erreurs.append(f"Aucun tarif de transport n'est défini pour {destination} : "
                                "saisissez le montant avec une justification.")
 

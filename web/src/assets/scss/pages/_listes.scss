@@ -483,3 +483,14 @@ app-page-entete { display: block; }
   .lst-cartes-wrap { overflow: visible; }
   .lst-pied { justify-content: center; text-align: center; }
 }
+
+// ── Bouton principal de l'application : vert UbiPharm plein, texte marine ──
+// (Soumettre, Enregistrer, Enregistrer le paiement… ; le secondaire reste en contour marine)
+.btn-primary {
+  --tb-btn-color: #05253E; --tb-btn-bg: #51D78E; --tb-btn-border-color: #51D78E;
+  --tb-btn-hover-color: #05253E; --tb-btn-hover-bg: #3FC67D; --tb-btn-hover-border-color: #3FC67D;
+  --tb-btn-active-color: #05253E; --tb-btn-active-bg: #3FC67D; --tb-btn-active-border-color: #3FC67D;
+  --tb-btn-disabled-color: #05253E; --tb-btn-disabled-bg: #51D78E; --tb-btn-disabled-border-color: #51D78E;
+  --tb-btn-focus-shadow-rgb: 81, 215, 142;
+  font-weight: 600;
+}

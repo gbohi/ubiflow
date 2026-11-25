@@ -38,7 +38,7 @@
       @for (r of rubriques; track r.cle) {
         <div class="col-md-6 col-xl-4">
           <label class="form-label" [for]="'cl-' + r.cle">{{ r.libelle }} <small class="text-muted">({{ devise }})</small></label>
-          <input [id]="'cl-' + r.cle" type="number" min="0" class="form-control" [(ngModel)]="saisie.depenses[r.cle]" (ngModelChange)="modifier()"
+          <input [id]="'cl-' + r.cle" type="number" min="0" class="form-control" placeholder="0" [(ngModel)]="saisie.depenses[r.cle]" (ngModelChange)="modifier()"
                  [disabled]="!modifiable" placeholder="0">
           @if (r.aide) { <div class="form-text">{{ r.aide }}</div> }
           @if (r.detail && (saisie.depenses[r.cle] > 0 || saisie.depenses[r.detail])) {

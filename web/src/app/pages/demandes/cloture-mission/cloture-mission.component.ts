@@ -56,8 +56,13 @@ export class ClotureMissionComponent implements OnChanges {
     const c = this.demande?.cloture;
     if (!c) return;
     this.cloture = c;
-    this.saisie = { depart_reel: c.depart_reel ?? '', retour_reel: c.retour_reel ?? '', observations: c.observations ?? '',
-                    depenses: { ...(c.depenses ?? {}) } };
+    // Montants : « 40000.00 » affiché « 40000 », zéro laissé vide (le champ montre « 0 » en indication)
+    const depenses: Record<string, any> = { ...(c.depenses ?? {}) };
+    for (const r of this.rubriques) {
+      const v = Number(depenses[r.cle]);
+      depenses[r.cle] = depenses[r.cle] === '' || depenses[r.cle] == null || !v ? null : v;
+    }
+    this.saisie = { depart_reel: c.depart_reel ?? '', retour_reel: c.retour_reel ?? '', observations: c.observations ?? '', depenses };
     if (!this.saisie.depart_reel && this.demande.mission?.depart_le) this.saisie.depart_reel = String(this.demande.mission.depart_le).slice(0, 10);
     if (!this.saisie.retour_reel && this.demande.mission?.retour_le) this.saisie.retour_reel = String(this.demande.mission.retour_le).slice(0, 10);
   }

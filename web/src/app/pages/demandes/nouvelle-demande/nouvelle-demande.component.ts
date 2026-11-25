@@ -64,6 +64,7 @@ export class NouvelleDemandeComponent implements OnInit {
     this.type = t;
     this.erreurs = null;
     this.contenu = { objet: '', montant_demande: null, devise: 'XOF', donnees: {} };
+    this.objetAuto = '';
     this.mission = {};
     this.parents = [];
     this.parent = null;
@@ -71,8 +72,39 @@ export class NouvelleDemandeComponent implements OnInit {
       this.service.parentsPossibles(t.id!).subscribe(p => {
         this.parents = p;
         this.parent = p.find(x => x.id === this.parentDemande)?.id ?? (p.length === 1 ? p[0].id : null);
+        this.objetDepuisParent();
       });
     }
+  }
+
+  /** Exemple du champ Objet, selon le type */
+  get exempleObjet(): string {
+    return ({
+      MLO: "Ex. : Audit de l'agence de Bouaké", MHP: 'Ex. : Séminaire régional à Dakar',
+      FRC: 'Ex. : Déjeuner avec la direction de la société X', PAI: 'Ex. : Facture de maintenance des climatiseurs',
+      RMB: 'Ex. : Taxi aéroport au retour de mission', FCM: 'Ex. : Prolongation de la mission de 2 jours',
+      ANN: 'Ex. : Mission reportée par le client',
+    } as Record<string, string>)[this.type?.code ?? ''] ?? 'Résumez la demande en quelques mots';
+  }
+
+  private objetAuto = '';
+
+  /** Annulation, frais complémentaires : objet proposé d'après la demande choisie (modifiable) */
+  objetDepuisParent(): void {
+    const p = this.parents.find(x => x.id === this.parent);
+    if (!p || (this.contenu.objet && this.contenu.objet !== this.objetAuto)) return;
+    const prefixe = this.type?.code === 'ANN' ? 'Annulation' : this.type?.code === 'FCM' ? 'Frais complémentaires' : '';
+    if (!prefixe) return;
+    this.objetAuto = `${prefixe} — ${p.objet}`.slice(0, 255);
+    this.contenu.objet = this.objetAuto;
+  }
+
+  get piecesSoumission() { return (this.type?.exigences ?? []).filter(e => e.moment === 'soumission'); }
+  get piecesPlusTard() { return (this.type?.exigences ?? []).filter(e => e.moment !== 'soumission'); }
+
+  momentPiece(e: { moment: string; etape_code?: string }): string {
+    return ({ cloture: 'à la clôture de la mission', paiement: 'fournie par la comptabilité au paiement',
+              etape: 'demandée pendant la validation' } as Record<string, string>)[e.moment] ?? e.moment;
   }
 
   get avecParent(): boolean { return !!this.type?.parametres?.['parent']; }
