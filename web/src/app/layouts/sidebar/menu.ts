@@ -1,6 +1,6 @@
 import { MenuItem } from "./menu.model";
 
-import { GESTIONNAIRES } from "../../core/helpers/roles";
+import { GESTIONNAIRES, ROLES_STATISTIQUES } from "../../core/helpers/roles";
 
 const ADMIN_WORKFLOW = ['super_admin', 'admin', 'admin_workflow'];
 const JOURNAL = ['super_admin', 'admin', 'controleur'];
@@ -12,6 +12,7 @@ export const MENU: MenuItem[] = [
     { id: 1, label: 'MENUITEMS.MENU.TEXT', isTitle: true },
     { id: 2, label: 'MENUITEMS.ACCUEIL.TEXT', icon: 'ri-home-4-line', link: '/' },
     { id: 9, label: 'Tableaux de bord', icon: 'ri-dashboard-3-line', link: '/tableaux-de-bord' },
+    { id: 8, label: 'Statistiques', icon: 'ri-pie-chart-2-line', link: '/statistiques', roles: ROLES_STATISTIQUES },
     { id: 10, label: 'Mes demandes', icon: 'ri-file-list-3-line', link: '/demandes', actifSur: ['/demandes'] },
     { id: 11, label: 'Nouvelle demande', icon: 'ri-add-circle-line', link: '/demandes/nouvelle' },
     { id: 12, label: 'À valider', icon: 'ri-checkbox-multiple-line', link: '/validations' },

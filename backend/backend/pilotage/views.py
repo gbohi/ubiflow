@@ -54,6 +54,27 @@ class RechercheView(APIView):
             'devise': d.devise} for d in qs[:8]]})
 
 
+class ThemesStatistiquesView(APIView):
+    """GET /statistiques/ : tableaux de statistiques accessibles (vide si aucun)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .statistiques import themes
+        return Response(themes(request.user))
+
+
+class StatistiquesView(APIView):
+    """
+    GET /statistiques/{theme}/?du=&au=&type_demande=&statut=&departement=&agence=&categorie=&demandeur=
+    theme : global, missions, finances, paiements, departements, circuits, remboursements, receptions.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, theme):
+        from .statistiques import statistiques
+        return Response(statistiques(request.user, theme, request.query_params))
+
+
 class TableauDeBordView(APIView):
     """
     GET /tableaux-de-bord/{profil}/?du=&au=&type_demande=&statut=&departement=&agence=&categorie=&demandeur=

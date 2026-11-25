@@ -26,7 +26,15 @@ import { SERIES, complet, compact, graduations } from './format';
               <path [attr.d]="colonne(i, j, m.v[j])" [attr.fill]="couleurs[j]" />
             }
             @if (afficherMois(i)) {
-              <text [attr.x]="G + i * groupe + groupe / 2" [attr.y]="H - 6" text-anchor="middle" font-size="10" fill="#52514e">{{ m.libelle }}</text>
+              @if (etiquettesLongues) {
+                <text [attr.x]="G + i * groupe + groupe / 2" [attr.y]="H - B + 14" text-anchor="middle" font-size="10" fill="#52514e">
+                  @for (ligne of lignesEtiquette(m.libelle); track $index; let k = $index) {
+                    <tspan [attr.x]="G + i * groupe + groupe / 2" [attr.dy]="k ? 13 : 0">{{ ligne }}</tspan>
+                  }
+                </text>
+              } @else {
+                <text [attr.x]="G + i * groupe + groupe / 2" [attr.y]="H - 6" text-anchor="middle" font-size="10" fill="#52514e">{{ m.libelle }}</text>
+              }
             }
           </g>
         }
@@ -54,9 +62,12 @@ export class GrapheColonnesComponent implements OnChanges {
   @Input() titre = '';
   @Input() L = 1100;
   @Input() H = 280;
+  /** Libellés de catégories (types de demande…) : sur deux lignes, sans saut de libellé */
+  @Input() etiquettesLongues = false;
   @ViewChild('svg', { static: true }) svg!: ElementRef<SVGSVGElement>;
 
-  readonly G = 52; readonly B = 22;
+  readonly G = 52;
+  get B(): number { return this.etiquettesLongues ? 40 : 22; }
   readonly couleurs = SERIES;
   mois: { libelle: string; v: number[] }[] = [];
   ticks: number[] = [0, 1];
@@ -80,7 +91,17 @@ export class GrapheColonnesComponent implements OnChanges {
     const y = this.yv(v), base = this.H - this.B, h = Math.max(base - y, 1), r = Math.min(4, w / 2, h);
     return `M${x},${base} v-${h - r} a${r},${r} 0 0 1 ${r},-${r} h${w - 2 * r} a${r},${r} 0 0 1 ${r},${r} v${h - r} z`;
   }
-  afficherMois(i: number): boolean { const pas = Math.ceil(this.mois.length / 12); return i % pas === 0; }
+  afficherMois(i: number): boolean { return this.etiquettesLongues || i % Math.ceil(this.mois.length / 12) === 0; }
+  /** Coupe un libellé en deux lignes au plus, aux espaces, en abrégeant si besoin */
+  lignesEtiquette(t: string): string[] {
+    const max = Math.max(8, Math.floor(this.groupe / 5.8));
+    if (t.length <= max) return [t];
+    const mots = t.split(' '); let l1 = '';
+    while (mots.length && (l1 + ' ' + mots[0]).trim().length <= max) l1 = (l1 + ' ' + mots.shift()).trim();
+    let l2 = mots.join(' ');
+    if (l2.length > max) l2 = l2.slice(0, max - 1) + '…';
+    return l1 ? [l1, l2] : [t.slice(0, max - 1) + '…'];
+  }
   etiquette(v: number): string { return compact(v); }
   detail(v: number): string { return this.unite === 'montant' ? `${complet(v)} ${this.devise}` : complet(v); }
 }

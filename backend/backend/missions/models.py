@@ -28,6 +28,9 @@ class Ville(models.Model):
     libelle = models.CharField(max_length=100)
     pays = models.ForeignKey(Pays, on_delete=models.PROTECT, related_name='villes')
     actif = models.BooleanField(default=True)
+    # Coordonnées (degrés décimaux) : placent la ville sur la carte des statistiques
+    latitude = models.DecimalField(max_digits=8, decimal_places=5, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=8, decimal_places=5, null=True, blank=True)
 
     class Meta:
         ordering = ['libelle']

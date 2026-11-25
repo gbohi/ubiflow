@@ -4,17 +4,24 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
-export interface Indicateur { cle: string; libelle: string; valeur: any; format: 'nombre' | 'montant' | 'heures' | 'jours'; aide: string; lien: string | null; ton: string; }
+export interface Indicateur { cle: string; libelle: string; valeur: any; format: 'nombre' | 'montant' | 'heures' | 'jours' | 'pourcentage'; aide: string; lien: string | null; ton: string; }
 export interface Section {
-  cle: string; titre: string; type: 'barres' | 'colonnes' | 'tableau'; unite?: string; aide?: string;
+  cle: string; titre: string;
+  type: 'barres' | 'colonnes' | 'tableau' | 'courbe' | 'anneau' | 'colonnes_empilees' | 'barres_empilees' | 'entonnoir' | 'carte';
+  unite?: string; aide?: string; palette?: string; orientation?: 'verticale';
   donnees?: any[]; series?: { cle: string; libelle: string }[];
   colonnes?: { cle: string; libelle: string; format: string }[]; lignes?: any[];
+  points?: any[]; pays?: any[];
+}
+export interface Statistiques {
+  theme: string; titre: string; devise: string; du: string; au: string; genere_le: string;
+  indicateurs: Indicateur[]; sections: Section[];
 }
 export interface TableauDeBord {
   profil: string; titre: string; devise: string; du: string; au: string; genere_le: string;
   indicateurs: Indicateur[]; sections: Section[];
 }
-export interface Profil { code: string; libelle: string; icone: string; }
+export interface Profil { code: string; libelle: string; icone: string; court?: string; }
 
 export interface ResultatRecherche {
   id: number; reference: string; objet: string; type: string; type_code: string; type_icone: string; statut: string;
@@ -35,6 +42,13 @@ export class PilotageService {
     let p = new HttpParams();
     if (profil) p = p.set('profil', profil);
     return this.http.get<any>(`${environment.apiUrl}/api/api/accueil/`, { params: p });
+  }
+  /** Statistiques : thèmes accessibles (liste vide si l'utilisateur n'y a pas droit) et contenu d'un thème */
+  themesStatistiques(): Observable<Profil[]> { return this.http.get<Profil[]>(`${environment.apiUrl}/api/api/statistiques/`); }
+  statistiques(theme: string, filtres: Record<string, any>): Observable<Statistiques> {
+    let p = new HttpParams();
+    for (const [k, v] of Object.entries(filtres)) if (v !== null && v !== undefined && v !== '') p = p.set(k, String(v));
+    return this.http.get<Statistiques>(`${environment.apiUrl}/api/api/statistiques/${theme}/`, { params: p });
   }
   profils(): Observable<Profil[]> { return this.http.get<Profil[]>(`${this.api}/`); }
   tableau(profil: string, filtres: Record<string, any>): Observable<TableauDeBord> {

@@ -167,3 +167,70 @@ class FiltreFamilleTests(JeuDeDonnees):
         prochaines = next(l for l in d['listes'] if l['cle'] == 'prochaines')
         self.assertEqual(prochaines['lien_tout'], '/demandes?famille=mission')
         self.assertIn('Mission locale', [a['libelle'] for a in d['actions_rapides']])
+
+
+class StatistiquesTests(JeuDeDonnees):
+    """Page Statistiques : huit tableaux thématiques, mêmes filtres que les tableaux de bord."""
+    THEMES = ['global', 'missions', 'finances', 'paiements', 'departements', 'circuits', 'remboursements', 'receptions']
+
+    def stats(self, user, theme, attendu=200, **filtres):
+        self.en(user)
+        r = self.client.get(f'/api/api/statistiques/{theme}/', filtres)
+        self.assertEqual(r.status_code, attendu, getattr(r, 'data', None))
+        return r.data
+
+    def valeur(self, data, cle):
+        return next(i['valeur'] for i in data['indicateurs'] if i['cle'] == cle)
+
+    def section(self, data, cle):
+        return next(s for s in data['sections'] if s['cle'] == cle)
+
+    def test_acces(self):
+        self.en(self.agent)
+        self.assertEqual(self.client.get('/api/api/statistiques/').data, [])
+        self.stats(self.agent, 'global', attendu=403)
+        self.en(self.caisse)
+        self.assertEqual([t['code'] for t in self.client.get('/api/api/statistiques/').data], self.THEMES)
+        self.stats(self.caisse, 'inconnu', attendu=403)
+
+    def test_huit_tableaux_au_plus_trois_graphiques(self):
+        self.jeu_de_donnees()
+        admin = self.user('adm', groupes=('admin',))
+        for theme in self.THEMES:
+            d = self.stats(admin, theme)
+            graphiques = [s for s in d['sections'] if s['type'] != 'tableau']
+            self.assertTrue(1 <= len(graphiques) <= 3, theme)
+            self.assertEqual(d['sections'][-1]['type'], 'tableau', theme)
+            self.assertTrue(d['indicateurs'], theme)
+
+    def test_contenus(self):
+        mission, frc, en_cours = self.jeu_de_donnees()
+        admin = self.user('adm', groupes=('admin',))
+        g = self.stats(admin, 'global')
+        self.assertEqual(self.valeur(g, 'soumises'), 3)
+        statuts = {p['cle']: p['valeur'] for p in self.section(g, 'statuts')['donnees']}
+        self.assertEqual(statuts, {'en_validation': 1, 'approuvee': 2})
+        m = self.stats(admin, 'missions')
+        self.assertEqual((self.valeur(m, 'missions'), self.valeur(m, 'locales')), (1, 1))
+        self.assertEqual(sum(p['valeur'] for p in self.section(m, 'carte')['points']), 1)
+        f = self.stats(admin, 'finances')
+        self.assertEqual(Decimal(self.valeur(f, 'engagements')), Decimal('500000'))
+        p = self.stats(admin, 'paiements')
+        self.assertEqual(Decimal(self.valeur(p, 'paye')), Decimal('190000'))
+        self.assertEqual(self.valeur(p, 'a_payer'), 1)
+        c = self.stats(admin, 'circuits')
+        etapes = [e['libelle'] for e in self.section(c, 'progression')['donnees']]
+        self.assertEqual(etapes, ['Soumises', 'Approuvées', 'Payées', 'Clôturées'])
+        self.assertEqual([e['valeur'] for e in self.section(c, 'progression')['donnees']][:3], [3, 2, 1])
+        r = self.stats(admin, 'receptions')
+        self.assertEqual(self.valeur(r, 'receptions'), 2)
+
+    def test_filtres(self):
+        self.jeu_de_donnees()
+        admin = self.user('adm', groupes=('admin',))
+        d = self.stats(admin, 'global', statut='en_validation')
+        self.assertEqual(self.valeur(d, 'soumises'), 1)
+        d = self.stats(admin, 'global', du='2020-01-01', au='2020-12-31')
+        self.assertEqual(self.valeur(d, 'soumises'), 0)
+        d = self.stats(admin, 'global', demandeur=self.agent.pk)
+        self.assertEqual(self.valeur(d, 'soumises'), 3)

@@ -1,0 +1,165 @@
+<div class="lst">
+  <app-page-entete titre="Statistiques" icone="ri-pie-chart-2-line"
+                   [sousTitre]="stats ? (themeCourant?.libelle + ' · ' + libelleFiltres + ' · montants en ' + stats.devise) : ''">
+    <div class="btn-group" dropdown placement="bottom right">
+      <button type="button" class="btn-ubi" dropdownToggle [disabled]="!stats || exportEnCours" data-test="exporter-stats">
+        @if (exportEnCours) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="ri-download-2-line"></i> }
+        <span class="pe-lib">Exporter</span></button>
+      <ul *dropdownMenu class="dropdown-menu dropdown-menu-end" role="menu">
+        <li><button type="button" class="dropdown-item" (click)="exporterExcel()"><i class="ri-file-excel-2-line me-2 text-success"></i>Excel</button></li>
+        <li><button type="button" class="dropdown-item" (click)="exporterPdf()"><i class="ri-file-pdf-2-line me-2 text-danger"></i>PDF</button></li>
+      </ul>
+    </div>
+  </app-page-entete>
+
+  <!-- Thèmes -->
+  <nav class="st-onglets" aria-label="Tableaux de statistiques">
+    @for (t of themes; track t.code) {
+      <button type="button" [class.on]="t.code === theme" (click)="choisir(t.code)" [attr.aria-pressed]="t.code === theme">
+        <i [class]="t.icone"></i>{{ t.court || t.libelle }}</button>
+    }
+  </nav>
+
+  <!-- Filtres : une seule barre au-dessus de tous les graphiques -->
+  <div class="lst-carte mb-3">
+    <div class="lst-barre st-filtres">
+      <div class="st-presets" role="group" aria-label="Période">
+        @for (x of [['mois', 'Ce mois'], ['trimestre', 'Ce trimestre'], ['annee', 'Cette année'], ['douze', '12 mois']]; track x[0]) {
+          <button type="button" [class.on]="preset === x[0]" (click)="appliquerPeriode(x[0])">{{ x[1] }}</button>
+        }
+      </div>
+      <div class="lst-periode">
+        <span>Du</span>
+        <input type="date" class="form-control" aria-label="Du" [(ngModel)]="filtres['du']" (ngModelChange)="preset = ''; charger()">
+        <span>au</span>
+        <input type="date" class="form-control" aria-label="Au" [(ngModel)]="filtres['au']" [min]="filtres['du']" (ngModelChange)="preset = ''; charger()">
+      </div>
+      <select class="form-select" aria-label="Type de demande" [(ngModel)]="filtres['type_demande']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Tous les types</option>
+        @for (t of types; track t.id) { <option [ngValue]="t.id">{{ t.libelle }}</option> }
+      </select>
+      <select class="form-select" aria-label="Statut" [(ngModel)]="filtres['statut']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Tous les statuts</option>
+        @for (s of statuts; track s[0]) { <option [ngValue]="s[0]">{{ s[1] }}</option> }
+      </select>
+      <select class="form-select" aria-label="Département" [(ngModel)]="filtres['departement']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Tous les départements</option>
+        @for (d of departements; track d.id) { <option [ngValue]="d.id">{{ d.libelle_service }}</option> }
+      </select>
+      <select class="form-select" aria-label="Agence" [(ngModel)]="filtres['agence']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Toutes les agences</option>
+        @for (a of agences; track a.id) { <option [ngValue]="a.id">{{ a.nom_agence }}</option> }
+      </select>
+      <select class="form-select" aria-label="Catégorie" [(ngModel)]="filtres['categorie']" (ngModelChange)="charger()">
+        <option [ngValue]="undefined">Toutes les catégories</option>
+        @for (c of categories; track c.id) { <option [ngValue]="c.id">{{ c.libelle }}</option> }
+      </select>
+      <ng-select [items]="collaborateurs" bindValue="id" bindLabel="libelle" placeholder="Demandeur (nom ou matricule)"
+                 [(ngModel)]="filtres['demandeur']" (ngModelChange)="charger()" aria-label="Demandeur"></ng-select>
+      @if (filtresActifs) {
+        <button type="button" class="btn btn-sm btn-light lst-raz" (click)="reinitialiser()"><i class="ri-close-line me-1"></i>Effacer les filtres</button>
+      }
+    </div>
+  </div>
+
+  @if (chargement && !stats) {
+    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+  }
+  @if (!chargement && !themes.length) {
+    <div class="lst-carte"><div class="lst-vide py-5"><i class="ri-lock-line"></i><h5>Statistiques non disponibles pour votre profil</h5></div></div>
+  }
+  @if (stats) {
+    <div [style.opacity]="chargement ? 0.5 : 1" data-test="statistiques">
+      <!-- Indicateurs -->
+      <div class="st-tuiles" data-test="indicateurs">
+        @for (i of stats.indicateurs; track i.cle) {
+          @if (i.lien) {
+            <a class="st-tuile" [ngClass]="i.ton" [routerLink]="i.lien.split('?')[0]" [title]="i.aide">
+              <small>{{ i.libelle }}</small><b>{{ valeur(i) }}<span class="u">{{ unite(i) }}</span></b></a>
+          } @else {
+            <div class="st-tuile" [ngClass]="i.ton" [title]="i.aide"><small>{{ i.libelle }}</small><b>{{ valeur(i) }}<span class="u">{{ unite(i) }}</span></b></div>
+          }
+        }
+      </div>
+
+      <!-- Graphiques puis tableau détaillé -->
+      <div class="st-grille">
+        @for (s of stats.sections; track s.cle; let i = $index) {
+          <section class="st-carte" [class.pleine]="pleineLargeur(i)" [attr.aria-label]="s.titre">
+            <div class="st-tete">
+              <div><h6>{{ s.titre }}</h6>@if (s.aide) { <div class="st-aide">{{ s.aide }}</div> }</div>
+              @if (s.type !== 'tableau' && !vide(s)) {
+                <button type="button" class="btn btn-link btn-sm p-0 st-bascule" (click)="vueTableau[s.cle] = !vueTableau[s.cle]">
+                  <i [class]="vueTableau[s.cle] ? 'ri-bar-chart-2-line me-1' : 'ri-table-line me-1'"></i>{{ vueTableau[s.cle] ? 'Graphique' : 'Valeurs' }}</button>
+              }
+            </div>
+            @if (vide(s)) {
+              <div class="st-vide">Aucune donnée sur la période.</div>
+            } @else if (s.type === 'tableau') {
+              <div class="lst-table-wrap" style="max-height: 440px; overflow: auto">
+                <table class="lst-table">
+                  <thead><tr>@for (c of s.colonnes; track c.cle) { <th [class.text-end]="c.format === 'montant' || c.format === 'nombre'">{{ c.libelle }}</th> }</tr></thead>
+                  <tbody>
+                    @for (l of s.lignes; track $index) {
+                      <tr [class.lst-cliquable]="!!l.id" [style.cursor]="l.id ? 'pointer' : 'default'" (click)="ouvrir(l)">
+                        @for (c of s.colonnes; track c.cle) {
+                          <td [class.text-end]="c.format === 'montant' || c.format === 'nombre'" [class.text-nowrap]="c.format !== 'texte'">{{ cellule(c, l[c.cle]) }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else if (vueTableau[s.cle]) {
+              <div class="st-table-donnees">
+                <table class="table table-sm mb-0">
+                  <thead><tr>@for (h of lignesSection(s)[0]; track $index; let k = $index) { <th [class.text-end]="k > 0">{{ h }}</th> }</tr></thead>
+                  <tbody>@for (l of lignesSection(s).slice(1); track $index) {
+                    <tr>@for (c of l; track $index; let k = $index) { <td [class.text-end]="k > 0">{{ texteValeur(s, c, k) }}</td> }</tr>
+                  }</tbody>
+                </table>
+              </div>
+            } @else {
+              @switch (s.type) {
+                @case ('courbe') {
+                  <app-graphe-courbe [donnees]="s.donnees!" [series]="s.series!" [unite]="s.unite!" [devise]="stats.devise" [titre]="s.titre"
+                                     [L]="pleineLargeur(i) ? 1100 : 620"></app-graphe-courbe>
+                }
+                @case ('colonnes') {
+                  <app-graphe-colonnes [donnees]="s.donnees!" [series]="s.series!" [unite]="s.unite!" [devise]="stats.devise" [titre]="s.titre"
+                                       [L]="pleineLargeur(i) ? 1100 : 620"></app-graphe-colonnes>
+                }
+                @case ('barres') {
+                  @if (s.orientation === 'verticale') {
+                    <app-graphe-colonnes [donnees]="enColonnes(s).donnees" [series]="enColonnes(s).series" [unite]="s.unite!" [devise]="stats.devise"
+                                         [titre]="s.titre" [L]="pleineLargeur(i) ? 1100 : 620" [etiquettesLongues]="true"></app-graphe-colonnes>
+                  } @else {
+                    <app-graphe-barres [donnees]="s.donnees!" [unite]="s.unite!" [devise]="stats.devise" [titre]="s.titre"
+                                       [L]="pleineLargeur(i) ? 1100 : 540" [LIB]="pleineLargeur(i) ? 220 : 150"></app-graphe-barres>
+                  }
+                }
+                @case ('anneau') {
+                  <app-graphe-anneau [donnees]="s.donnees!" [palette]="s.palette!" [unite]="s.unite!" [devise]="stats.devise" [titre]="s.titre"></app-graphe-anneau>
+                }
+                @case ('colonnes_empilees') {
+                  <app-graphe-empile orientation="colonnes" [donnees]="s.donnees!" [series]="s.series!" [palette]="s.palette!" [unite]="s.unite!"
+                                     [devise]="stats.devise" [titre]="s.titre" [L]="pleineLargeur(i) ? 1100 : 620"></app-graphe-empile>
+                }
+                @case ('barres_empilees') {
+                  <app-graphe-empile orientation="barres" [donnees]="s.donnees!" [series]="s.series!" [palette]="s.palette!" [unite]="s.unite!"
+                                     [devise]="stats.devise" [titre]="s.titre" [L]="pleineLargeur(i) ? 1100 : 560"></app-graphe-empile>
+                }
+                @case ('entonnoir') {
+                  <app-graphe-entonnoir [donnees]="s.donnees!" [titre]="s.titre"></app-graphe-entonnoir>
+                }
+                @case ('carte') {
+                  <app-graphe-carte [points]="s.points!" [pays]="s.pays!" [titre]="s.titre"></app-graphe-carte>
+                }
+              }
+            }
+          </section>
+        }
+      </div>
+    </div>
+  }
+</div>

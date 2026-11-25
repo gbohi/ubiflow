@@ -31,7 +31,8 @@
             "assets": [
               "src/favicon.ico",
               "src/assets/images",
-              "src/assets/i18n"
+              "src/assets/i18n",
+              "src/assets/geo"
             ],
             "styles": [
               "node_modules/ngx-toastr/toastr.css",

@@ -28,7 +28,7 @@ export interface ParametreSysteme {
 }
 export interface JourFerie { id?: number; date: string; libelle: string; }
 export interface Pays { id?: number; code_iso: string; libelle: string; devise_usuelle: string; actif: boolean; nb_villes?: number; }
-export interface Ville { id?: number; libelle: string; pays: number; pays_libelle?: string; pays_code?: string; actif: boolean; }
+export interface Ville { id?: number; libelle: string; pays: number; pays_libelle?: string; pays_code?: string; actif: boolean; latitude?: number | string | null; longitude?: number | string | null; }
 export interface Distance { id?: number; ville_a: number; ville_b: number; ville_a_libelle?: string; ville_b_libelle?: string; km: number; }
 
 export interface LigneRecap {

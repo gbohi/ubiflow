@@ -10,4 +10,6 @@ urlpatterns = router.urls + [
     path('recherche/', views.RechercheView.as_view()),
     path('tableaux-de-bord/', views.ProfilsView.as_view()),
     path('tableaux-de-bord/<str:profil>/', views.TableauDeBordView.as_view()),
+    path('statistiques/', views.ThemesStatistiquesView.as_view()),
+    path('statistiques/<str:theme>/', views.StatistiquesView.as_view()),
 ]

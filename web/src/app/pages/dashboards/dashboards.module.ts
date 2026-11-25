@@ -12,10 +12,18 @@ import { AccueilComponent } from './accueil/accueil.component';
 import { TableauxDeBordComponent } from './tableaux-de-bord/tableaux-de-bord.component';
 import { GrapheBarresComponent } from './graphes/graphe-barres.component';
 import { GrapheColonnesComponent } from './graphes/graphe-colonnes.component';
+import { GrapheCourbeComponent } from './graphes/graphe-courbe.component';
+import { GrapheAnneauComponent } from './graphes/graphe-anneau.component';
+import { GrapheEmpileComponent } from './graphes/graphe-empile.component';
+import { GrapheEntonnoirComponent } from './graphes/graphe-entonnoir.component';
+import { GrapheCarteComponent } from './graphes/graphe-carte.component';
+import { StatistiquesComponent } from './statistiques/statistiques.component';
 
 @NgModule({
   declarations: [
     AccueilComponent, TableauxDeBordComponent, GrapheBarresComponent, GrapheColonnesComponent,
+    GrapheCourbeComponent, GrapheAnneauComponent, GrapheEmpileComponent, GrapheEntonnoirComponent, GrapheCarteComponent,
+    StatistiquesComponent,
   ],
   imports: [
     CommonModule,

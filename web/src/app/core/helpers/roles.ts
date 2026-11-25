@@ -23,6 +23,9 @@ export const LIBELLES_ROLES: Record<string, string> = {
   controleur:   'Contrôleur',
 };
 
+/** Statistiques : direction, contrôle, finances, comptabilité et administrateurs (même règle que le serveur) */
+export const ROLES_STATISTIQUES = ['super_admin', 'admin', 'direction', 'controleur', 'admin_finances', 'comptable'];
+
 /** Rôle à afficher sous le nom de l'utilisateur : le plus élevé qu'il détient */
 const ORDRE_ROLES = ['super_admin', 'admin', 'admin_finances', 'admin_workflow', 'direction', 'controleur', 'comptable', 'gestionnaire', 'employe'];
 export function rolePrincipal(user: any): string {
