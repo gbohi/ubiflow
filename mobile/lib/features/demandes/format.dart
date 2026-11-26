@@ -92,10 +92,14 @@ List<(String, String)> resumeCloture(Map cloture, String devise) {
   if (cloture['depart_reel'] != null) {
     lignes.add(('Dates réelles', 'du ${dateCourte(cloture['depart_reel']).split(' ').first} au ${dateCourte(cloture['retour_reel']).split(' ').first}'));
   }
-  if (c['total'] != null) lignes.add(('Dépenses réelles', montant(c['total'], devise)));
+  num f(dynamic v) => num.tryParse('${v ?? 0}') ?? 0;
+  if (f(c['indemnites']) > 0) lignes.add(('Indemnités journalières', montant(c['indemnites'], devise)));
+  if (f(c['transport']) > 0) lignes.add(('Transport (forfait)', montant(c['transport'], devise)));
+  if (f(c['hotel']) > 0) lignes.add(('Hébergement (forfait)', montant(c['hotel'], devise)));
+  if (f(c['divers']) > 0) lignes.add(('Autres frais (forfait)', montant(c['divers'], devise)));
+  if (c['total'] != null) lignes.add(('Dépenses retenues', montant(c['total'], devise)));
   if (c['avance'] != null) lignes.add(('Avance reçue', montant(c['avance'], devise)));
-  if ((num.tryParse('${c['a_rembourser']}') ?? 0) > 0) lignes.add(('À rembourser à la société', montant(c['a_rembourser'], devise)));
-  if ((num.tryParse('${c['a_reverser']}') ?? 0) > 0) lignes.add(('Reste dû au demandeur', montant(c['a_reverser'], devise)));
+  if (f(c['a_rembourser']) > 0) lignes.add(('À rembourser à la société', montant(c['a_rembourser'], devise)));
   if ((cloture['motif_retour'] as String? ?? '').isNotEmpty) lignes.add(('Motif du retour', '${cloture['motif_retour']}'));
   return lignes;
 }

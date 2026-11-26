@@ -1,8 +1,9 @@
 // src/app/pages/demandes/cloture-mission/cloture-mission.component.ts
 //
-// Clôture d'une mission (§9, mode B) : dates réelles, dépenses réelles par
-// rubrique de la note de frais, observations, pièces de clôture ; récapitulatif
-// recalculé par le serveur (brouillon enregistré automatiquement) ; contrôle.
+// Clôture d'une mission (§9, mode B, modèle « forfait acquis ») : le demandeur
+// déclare les dates réelles, les observations et joint les pièces. Les forfaits
+// (transport, hébergement…) sont repris automatiquement de l'avance ; seules les
+// indemnités s'ajustent sur la durée réelle. Récapitulatif recalculé par le serveur.
 
 import { Component, DestroyRef, EventEmitter, Input, OnChanges, Output, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -11,16 +12,6 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, debounceTime, switchMap, catchError, of } from 'rxjs';
 import { Cloture, Demande, DemandesService } from 'src/app/core/services/demandes/demandes.service';
 import { messageErreur } from 'src/app/core/services/organisation/organisation.service';
-
-export const RUBRIQUES_CLOTURE = [
-  { cle: 'hotel', libelle: "Frais d'hôtel", aide: 'Petit déjeuner compris' },
-  { cle: 'transport', libelle: 'Transport', aide: 'Location de véhicule, taxis' },
-  { cle: 'telephone', libelle: 'Frais de téléphone', aide: '' },
-  { cle: 'divers', libelle: 'Divers', aide: 'Précisez ci-dessous', detail: 'divers_detail' },
-  { cle: 'reception', libelle: 'Réception', aide: '' },
-  { cle: 'detaxe', libelle: 'Détaxe (à reverser)', aide: 'Taxes remboursées à l’étranger : déduites' },
-  { cle: 'a_refacturer', libelle: 'Autres frais à refacturer', aide: 'Précisez ci-dessous', detail: 'a_refacturer_detail' },
-];
 
 @Component({
   selector: 'app-cloture-mission',
@@ -35,9 +26,8 @@ export class ClotureMissionComponent implements OnChanges {
   @Output() modifiee = new EventEmitter<void>();
   @ViewChild('retourModal', { static: false }) retourModal?: ModalDirective;
 
-  readonly rubriques = RUBRIQUES_CLOTURE;
   cloture: Cloture | null = null;
-  saisie = { depart_reel: '', retour_reel: '', observations: '', depenses: {} as Record<string, any> };
+  saisie = { depart_reel: '', retour_reel: '', observations: '' };
   erreurs: any = null;
   enCours = false;
   sauvegarde = false;
@@ -56,13 +46,7 @@ export class ClotureMissionComponent implements OnChanges {
     const c = this.demande?.cloture;
     if (!c) return;
     this.cloture = c;
-    // Montants : « 40000.00 » affiché « 40000 », zéro laissé vide (le champ montre « 0 » en indication)
-    const depenses: Record<string, any> = { ...(c.depenses ?? {}) };
-    for (const r of this.rubriques) {
-      const v = Number(depenses[r.cle]);
-      depenses[r.cle] = depenses[r.cle] === '' || depenses[r.cle] == null || !v ? null : v;
-    }
-    this.saisie = { depart_reel: c.depart_reel ?? '', retour_reel: c.retour_reel ?? '', observations: c.observations ?? '', depenses };
+    this.saisie = { depart_reel: c.depart_reel ?? '', retour_reel: c.retour_reel ?? '', observations: c.observations ?? '' };
     if (!this.saisie.depart_reel && this.demande.mission?.depart_le) this.saisie.depart_reel = String(this.demande.mission.depart_le).slice(0, 10);
     if (!this.saisie.retour_reel && this.demande.mission?.retour_le) this.saisie.retour_reel = String(this.demande.mission.retour_le).slice(0, 10);
   }
@@ -72,13 +56,8 @@ export class ClotureMissionComponent implements OnChanges {
   get devise(): string { return this.calcul['devise'] || this.demande.devise; }
 
   private charge() {
-    const depenses: Record<string, any> = {};
-    for (const r of this.rubriques) {
-      depenses[r.cle] = this.saisie.depenses[r.cle] || 0;
-      if (r.detail) depenses[r.detail] = this.saisie.depenses[r.detail] || '';
-    }
     return { depart_reel: this.saisie.depart_reel || null, retour_reel: this.saisie.retour_reel || null,
-             observations: this.saisie.observations, depenses } as any;
+             observations: this.saisie.observations } as any;
   }
 
   modifier(): void { if (this.modifiable) this.sauver$.next(); }

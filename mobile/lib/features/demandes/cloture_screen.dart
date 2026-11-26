@@ -1,9 +1,9 @@
 // lib/features/demandes/cloture_screen.dart
 //
-// Clôture d'une mission par le demandeur : dates réelles, dépenses réelles par
-// rubrique de la note de frais, observations ; solde recalculé par le serveur
-// (à rembourser ou reste dû) ; pièces de clôture (rapport…) jointes ici ;
-// soumission au contrôle.
+// Clôture d'une mission par le demandeur (modèle « forfait acquis ») : dates
+// réelles, observations, pièces de clôture. Les forfaits (transport, hébergement…)
+// sont repris automatiquement de l'avance ; seules les indemnités s'ajustent sur
+// la durée réelle. Récapitulatif recalculé par le serveur ; soumission au contrôle.
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -15,17 +15,6 @@ import 'commun.dart';
 import 'fichiers.dart';
 import 'mission_saisie.dart' show versIsoLocal;
 
-/// Rubriques de la note de frais (mêmes clés que le web et l'API)
-const rubriquesCloture = [
-  (cle: 'hotel', libelle: "Frais d'hôtel", aide: 'Petit déjeuner compris', detail: null),
-  (cle: 'transport', libelle: 'Transport', aide: 'Location de véhicule, taxis', detail: null),
-  (cle: 'telephone', libelle: 'Frais de téléphone', aide: '', detail: null),
-  (cle: 'divers', libelle: 'Divers', aide: 'Précisez ci-dessous', detail: 'divers_detail'),
-  (cle: 'reception', libelle: 'Réception', aide: '', detail: null),
-  (cle: 'detaxe', libelle: 'Détaxe (à reverser)', aide: 'Taxes remboursées à l’étranger : déduites', detail: null),
-  (cle: 'a_refacturer', libelle: 'Autres frais à refacturer', aide: 'Précisez ci-dessous', detail: 'a_refacturer_detail'),
-];
-
 class ClotureScreen extends StatefulWidget {
   final Map<String, dynamic> demande;
   const ClotureScreen({super.key, required this.demande});
@@ -35,7 +24,6 @@ class ClotureScreen extends StatefulWidget {
 
 class _ClotureScreenState extends State<ClotureScreen> {
   late Map<String, dynamic> _cloture;
-  late final Map<String, dynamic> _depenses;
   final _observations = TextEditingController();
   String? _departReel;
   String? _retourReel;
@@ -49,7 +37,6 @@ class _ClotureScreenState extends State<ClotureScreen> {
   void initState() {
     super.initState();
     _cloture = Map<String, dynamic>.from(widget.demande['cloture'] as Map);
-    _depenses = Map<String, dynamic>.from(_cloture['depenses'] as Map? ?? {});
     _observations.text = _cloture['observations'] as String? ?? '';
     final mission = widget.demande['mission'] as Map? ?? {};
     _departReel = _iso(_cloture['depart_reel'] ?? mission['depart_le']);
@@ -62,13 +49,6 @@ class _ClotureScreenState extends State<ClotureScreen> {
     super.dispose();
   }
 
-  /// « 40000.00 » → « 40000 » ; zéro ou vide → champ vide (indication « 0 »)
-  String _montantSaisi(dynamic v) {
-    final n = num.tryParse('${v ?? ''}');
-    if (n == null || n == 0) return '';
-    return n == n.roundToDouble() ? n.toInt().toString() : n.toString();
-  }
-
   String? _iso(dynamic v) {
     final d = DateTime.tryParse('${v ?? ''}');
     return d == null ? null : versIsoLocal(d.toLocal());
@@ -78,12 +58,6 @@ class _ClotureScreenState extends State<ClotureScreen> {
         'depart_reel': _departReel,
         'retour_reel': _retourReel,
         'observations': _observations.text.trim(),
-        'depenses': {
-          for (final r in rubriquesCloture) ...{
-            r.cle: num.tryParse('${_depenses[r.cle] ?? ''}'.replaceAll(',', '.')) ?? 0,
-            if (r.detail != null) r.detail!: _depenses[r.detail] ?? '',
-          },
-        },
       };
 
   Future<bool> _enregistrer({bool silencieux = false}) async {
@@ -199,31 +173,15 @@ class _ClotureScreenState extends State<ClotureScreen> {
               Expanded(child: _date('Retour réel', _retourReel, _erreur('retour_reel'), modifiable ? () => _choisirDate(false) : null)),
             ]),
             const SizedBox(height: 8),
-            LibelleSection('Dépenses réelles ($_devise)'),
-            for (final r in rubriquesCloture) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: TextFormField(
-                  initialValue: _montantSaisi(_depenses[r.cle]),
-                  enabled: modifiable,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: r.libelle, hintText: '0', helperText: r.aide.isEmpty ? null : r.aide,
-                      errorText: _erreur(r.cle), border: const OutlineInputBorder(), isDense: true),
-                  onChanged: (v) => _depenses[r.cle] = v,
-                ),
+            if (modifiable)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Les forfaits (transport, hébergement…) sont repris automatiquement de l\'avance ; '
+                  'seules les indemnités s\'ajustent sur la durée réelle. Pour une dépense au-delà de l\'avance, '
+                  'faites une demande de frais complémentaires.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
               ),
-              if (r.detail != null && (num.tryParse('${_depenses[r.cle] ?? ''}') ?? 0) > 0)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: TextFormField(
-                    initialValue: '${_depenses[r.detail] ?? ''}',
-                    enabled: modifiable,
-                    decoration: InputDecoration(labelText: 'Précisions : ${r.libelle.toLowerCase()}', errorText: _erreur(r.detail!),
-                        border: const OutlineInputBorder(), isDense: true),
-                    onChanged: (v) => _depenses[r.detail!] = v,
-                  ),
-                ),
-            ],
             TextField(
               controller: _observations,
               enabled: modifiable,

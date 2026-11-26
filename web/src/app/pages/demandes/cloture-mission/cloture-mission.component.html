@@ -30,23 +30,6 @@
                [disabled]="!modifiable" [class.is-invalid]="erreur('retour_reel')">
         @if (erreur('retour_reel')) { <div class="invalid-feedback">{{ erreur('retour_reel') }}</div> }
       </div>
-      <div class="col-md-4">
-        <label class="form-label">Indemnités journalières</label>
-        <div class="form-control bg-light">{{ calcul['jours'] ?? '—' }} jour(s) × {{ calcul['tarif_jour'] | montant:calcul['devise_tarif'] }}</div>
-      </div>
-
-      @for (r of rubriques; track r.cle) {
-        <div class="col-md-6 col-xl-4">
-          <label class="form-label" [for]="'cl-' + r.cle">{{ r.libelle }} <small class="text-muted">({{ devise }})</small></label>
-          <input [id]="'cl-' + r.cle" type="number" min="0" class="form-control" placeholder="0" [(ngModel)]="saisie.depenses[r.cle]" (ngModelChange)="modifier()"
-                 [disabled]="!modifiable" placeholder="0">
-          @if (r.aide) { <div class="form-text">{{ r.aide }}</div> }
-          @if (r.detail && (saisie.depenses[r.cle] > 0 || saisie.depenses[r.detail])) {
-            <input class="form-control form-control-sm mt-1" [placeholder]="'Détail : ' + r.libelle.toLowerCase()" [(ngModel)]="saisie.depenses[r.detail]"
-                   (ngModelChange)="modifier()" [disabled]="!modifiable" [attr.aria-label]="'Détail ' + r.libelle">
-          }
-        </div>
-      }
       <div class="col-12">
         <label class="form-label" for="cl-obs">Observations et déroulement de la mission</label>
         <textarea id="cl-obs" class="form-control" rows="2" [(ngModel)]="saisie.observations" (ngModelChange)="modifier()" [disabled]="!modifiable"></textarea>
@@ -67,21 +50,26 @@
     <div class="table-responsive mt-3">
       <table class="table table-sm align-middle mb-0">
         <tbody>
-          <tr><td>Total des dépenses réelles</td><td class="text-end fw-semibold" data-test="total-reel">{{ calcul['total'] | montant:devise }}</td></tr>
-          <tr><td>Avance reçue (mission et frais complémentaires payés)</td><td class="text-end">{{ calcul['avance'] | montant:devise }}</td></tr>
+          <tr><td>Indemnités journalières ({{ calcul['jours'] ?? '—' }} j × {{ calcul['tarif_jour'] | montant:calcul['devise_tarif'] }})</td>
+            <td class="text-end">{{ calcul['indemnites'] | montant:devise }}</td></tr>
+          @if (+calcul['transport'] > 0) { <tr><td>Transport (forfait)</td><td class="text-end">{{ calcul['transport'] | montant:devise }}</td></tr> }
+          @if (+calcul['hotel'] > 0) { <tr><td>Hébergement (forfait)</td><td class="text-end">{{ calcul['hotel'] | montant:devise }}</td></tr> }
+          @if (+calcul['divers'] > 0) {
+            <tr><td>Autres frais (forfait)@if (calcul['divers_detail']) { <small class="text-muted"> — {{ calcul['divers_detail'] }}</small> }</td>
+              <td class="text-end">{{ calcul['divers'] | montant:devise }}</td></tr>
+          }
+          <tr class="border-top"><td class="fw-semibold">Dépenses retenues</td>
+            <td class="text-end fw-semibold" data-test="total-reel">{{ calcul['total'] | montant:devise }}</td></tr>
+          <tr><td>Avance reçue</td><td class="text-end">{{ calcul['avance'] | montant:devise }}</td></tr>
           @if (+calcul['a_rembourser'] > 0) {
             <tr class="table-warning"><td><b>À rembourser à la société</b> (reversement)</td><td class="text-end fw-semibold">{{ calcul['a_rembourser'] | montant:devise }}</td></tr>
-          }
-          @if (+calcul['a_reverser'] > 0) {
-            <tr class="table-info"><td><b>Reste dû au demandeur</b></td><td class="text-end fw-semibold">{{ calcul['a_reverser'] | montant:devise }}</td></tr>
-          }
-          @if (+calcul['depassement'] > 0) {
-            <tr class="table-danger"><td colspan="2" class="small">Dépenses supérieures à l'engagé ({{ calcul['engage_total'] | montant:devise }}) de
-              <b>{{ calcul['depassement'] | montant:devise }}</b> : faites une demande de frais complémentaires pour ce montant.</td></tr>
           }
         </tbody>
       </table>
     </div>
+    @if (modifiable) {
+      <div class="form-text mt-2"><i class="ri-information-line me-1"></i>Les forfaits (transport, hébergement…) sont repris automatiquement de l'avance approuvée ; seules les indemnités s'ajustent sur la durée réelle. Pour une dépense au-delà de l'avance, faites une demande de frais complémentaires.</div>
+    }
 
     <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
       @if (modifiable) {

@@ -136,11 +136,11 @@ const contenu = [
 
   h1('7. Clôturer une mission'),
   puce('Une mission approuvée passe « En attente de clôture ». Elle peut être payée pendant ce temps.'),
-  puce('Au retour, le demandeur ouvre la fiche et remplit « Clôture de la mission » : dates réelles, dépenses réelles (hôtel, transport, téléphone, divers, réception, détaxe, autres frais à refacturer) et observations. Les indemnités journalières sont calculées : jours réels × tarif de la mission.'),
-  puce('Sur le web, la saisie est enregistrée automatiquement au fur et à mesure ; sur mobile, bouton « Déclarer mes dépenses réelles » puis « Enregistrer et recalculer ». Le solde (à rembourser à la société ou reste dû au demandeur) s\'affiche aussitôt.'),
+  puce('Au retour, le demandeur ouvre la fiche et remplit « Clôture de la mission » : il saisit seulement les dates réelles et des observations, et joint les pièces. Les forfaits de l\'avance (transport, hébergement…) sont repris automatiquement ; seules les indemnités journalières s\'ajustent sur la durée réelle (jours réels × tarif), plafonnées aux jours approuvés.'),
+  puce('Un récapitulatif en lecture seule affiche les montants retenus et, le cas échéant, la somme à rembourser à la société. Une mission écourtée réduit les indemnités et crée donc un reversement ; une mission plus longue ou une dépense au-delà de l\'avance passe par une demande de frais complémentaires.'),
   puce('Il joint le rapport de mission (obligatoire) — sur mobile, bouton « Joindre » à côté de la pièce, photo ou fichier — puis clique sur « Soumettre la clôture ». La soumission est refusée tant qu\'une pièce obligatoire manque.'),
   puce('La comptabilité contrôle depuis « Clôtures à contrôler » : elle valide, ou retourne au demandeur avec un motif.'),
-  puce('À la validation : si l\'avance reçue dépasse les dépenses réelles, un reversement est créé ; si elle est inférieure, le reste est payé au demandeur ; au-delà de l\'engagé, le demandeur fait une demande de frais complémentaires.'),
+  puce('À la validation : si l\'avance reçue dépasse le montant retenu, un reversement est créé et perçu par la comptabilité avant la clôture définitive.'),
   puce('La mission est clôturée quand elle est payée et qu\'aucun reversement n\'est attendu. La note de frais est alors remplie avec les montants réels.'),
 
   h1('8. Délais, rappels et escalades'),
@@ -206,7 +206,7 @@ const contenu = [
     ['Joindre un justificatif', 'Fiche de la demande → « Ajouter une pièce » : prendre une photo, choisir dans la galerie ou choisir un fichier (PDF, Word, Excel).'],
     ['Télécharger un document', 'Icône PDF en haut de la fiche : fiche, ordre de mission, note de frais, demande de paiement.'],
     ['Valider', 'Onglet À valider → fiche → Approuver, Retourner pour correction ou Rejeter (commentaire obligatoire pour retourner ou rejeter).'],
-    ['Clôturer une mission', 'Fiche → « Déclarer mes dépenses réelles » → joindre le rapport → « Soumettre la clôture ».'],
+    ['Clôturer une mission', 'Fiche → saisir les dates réelles et les observations → joindre le rapport → « Soumettre la clôture ».'],
     ['Être prévenu', 'Notifications push (à autoriser au premier lancement) et cloche de l\'accueil.'],
     ['Déléguer mes validations', 'Onglet Profil → Mes délégations → Déléguer.'],
   ], [2600, 6700]),

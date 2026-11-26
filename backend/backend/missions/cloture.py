@@ -51,34 +51,74 @@ def obtenir(demande):
     return cloture
 
 
+def _jours_prevus(demande):
+    """Jours de mission approuvés (ceux qui ont servi au calcul du per diem de l'avance)."""
+    m = (demande.donnees or {}).get('mission') or {}
+    return int(m.get('nombre_jours') or 0)
+
+
 def calculer(demande, cloture):
-    """Note de frais réelle : indemnités (jours réels × tarif figé), total, avance, solde, reversement."""
+    """
+    Note de frais à la clôture (modèle « forfait acquis ») :
+      - indemnités journalières recalculées sur les JOURS RÉELS, plafonnées aux jours approuvés ;
+      - transport, hébergement et autres frais : forfaits REPRIS de l'avance approuvée, inchangés ;
+      - le demandeur ne saisit aucun montant (dates réelles + observations + pièces seulement).
+    Reversement = avance payée − montant retenu (ne survient que si la mission est écourtée).
+    """
     from tresorerie.services import synthese
     fig = (demande.parametres_figes or {}).get('missions') or {}
+    pd = fig.get('per_diem')
+    jours_prevus = _jours_prevus(demande)
     jours = tarif = None
     indemnites = Decimal('0')
-    pd = fig.get('per_diem')
-    if cloture.depart_reel and cloture.retour_reel and pd:
-        jours = (cloture.retour_reel - cloture.depart_reel).days + 1
+    if pd:
         t = (fig.get('taux') or {}).get(pd['devise'])
+        coef = Decimal(t['taux']) if t else Decimal('1')
         tarif = Decimal(pd['montant'])
-        indemnites = (tarif * jours * Decimal(t['taux'] if t else '1')).quantize(Decimal('0.01'))
-    dep = {r: _d((cloture.depenses or {}).get(r)) for r in RUBRIQUES}
-    charges = dep['hotel'] + dep['transport'] + indemnites + dep['telephone'] + dep['divers'] + dep['reception'] - dep['detaxe']
-    total = charges + dep['a_refacturer']
+        if cloture.depart_reel and cloture.retour_reel:
+            jours_reels = (cloture.retour_reel - cloture.depart_reel).days + 1
+            # Plafond : jamais plus que les jours approuvés (les jours en plus passent par une
+            # demande de frais complémentaires). Une mission écourtée réduit les indemnités.
+            jours = min(jours_reels, jours_prevus) if jours_prevus else jours_reels
+        else:
+            jours = jours_prevus or None
+        if jours:
+            indemnites = (tarif * jours * coef).quantize(Decimal('0.01'))
+
+    # Forfaits repris du récapitulatif figé de l'avance (hors indemnités journalières)
+    forfaits = {'hotel': Decimal('0'), 'transport': Decimal('0'), 'divers': Decimal('0')}
+    divers_detail = []
+    calc = demande.version_courante.calcul if demande.version_courante_id else {}
+    for l in (calc or {}).get('lignes', []):
+        montant = Decimal(l.get('montant_ref') or '0')
+        if l['rubrique'] == 'per_diem':
+            continue
+        if l['rubrique'] == 'transport':
+            forfaits['transport'] += montant
+        elif l['rubrique'] == 'hebergement':
+            forfaits['hotel'] += montant
+        else:  # visa, aérien, autres
+            forfaits['divers'] += montant
+            divers_detail.append(l['libelle'])
+
+    charges = indemnites + forfaits['hotel'] + forfaits['transport'] + forfaits['divers']
     s = synthese(demande)
     complements_approuves = Decimal(s['engage_total']) - (demande.montant_approuve or 0)
     paye_total = Decimal(s['paye_total'])
-    retenu_mission = max(Decimal('0'), min(total - complements_approuves, demande.montant_approuve or Decimal('0')))
-    depassement = max(Decimal('0'), total - Decimal(s['engage_total']))
+    # Retenu mission : forfaits + indemnités réelles, plafonné au montant approuvé de la mission
+    retenu_mission = max(Decimal('0'), min(charges, demande.montant_approuve or Decimal('0')))
+    # Dépenses retenues affichées (mission + compléments approuvés, tous repris)
+    retenu_affiche = retenu_mission + complements_approuves
     return {
-        'jours': jours, 'tarif_jour': str(tarif) if tarif is not None else None, 'devise_tarif': pd['devise'] if pd else '',
-        'indemnites': str(indemnites), **{r: str(v) for r, v in dep.items()},
-        'divers_detail': (cloture.depenses or {}).get('divers_detail', ''),
-        'a_refacturer_detail': (cloture.depenses or {}).get('a_refacturer_detail', ''),
-        'total_charges': str(charges), 'total': str(total), 'engage_total': s['engage_total'], 'avance': str(paye_total),
-        'a_rembourser': str(max(paye_total - total, Decimal('0'))), 'a_reverser': str(max(total - paye_total, Decimal('0'))),
-        'retenu_mission': str(retenu_mission), 'depassement': str(depassement),
+        'jours': jours, 'jours_prevus': jours_prevus,
+        'tarif_jour': str(tarif) if tarif is not None else None, 'devise_tarif': pd['devise'] if pd else '',
+        'indemnites': str(indemnites), 'hotel': str(forfaits['hotel']), 'transport': str(forfaits['transport']),
+        'divers': str(forfaits['divers']), 'telephone': '0', 'reception': '0', 'detaxe': '0', 'a_refacturer': '0',
+        'divers_detail': ' ; '.join(divers_detail), 'a_refacturer_detail': '',
+        'total_charges': str(charges), 'total': str(retenu_affiche), 'engage_total': s['engage_total'],
+        'avance': str(paye_total),
+        'a_rembourser': str(max(paye_total - retenu_affiche, Decimal('0'))), 'a_reverser': '0',
+        'retenu_mission': str(retenu_mission), 'depassement': '0',
         'devise': demande.devise_reference or demande.devise,
     }
 
@@ -120,12 +160,8 @@ def enregistrer(demande, user, donnees):
                 raise ErreurMetier({cle: 'Date invalide.'})
     if cloture.depart_reel and cloture.retour_reel and cloture.retour_reel < cloture.depart_reel:
         raise ErreurMetier({'retour_reel': 'Le retour ne peut pas précéder le départ.'})
-    if 'depenses' in donnees:
-        dep = donnees.get('depenses') or {}
-        propre = {r: str(_d(dep.get(r))) for r in RUBRIQUES}
-        propre['divers_detail'] = str(dep.get('divers_detail') or '')[:500]
-        propre['a_refacturer_detail'] = str(dep.get('a_refacturer_detail') or '')[:500]
-        cloture.depenses = propre
+    # Les dépenses ne sont plus saisies à la clôture : les forfaits (transport, hébergement…)
+    # sont repris automatiquement de l'avance approuvée (voir calculer()).
     if 'observations' in donnees:
         cloture.observations = str(donnees.get('observations') or '')[:5000]
     cloture.save()

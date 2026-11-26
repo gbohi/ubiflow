@@ -791,8 +791,13 @@ Montant demandé · montant approuvé · montant payé · solde restant ·
 montant réel (clôture) · reversement dû / perçu.
 
 ### 8.4 Reversement
-- À la clôture : `reversement = montant payé − dépenses réelles retenues`
-  si positif.
+- À la clôture (modèle « forfait acquis ») : les forfaits de l'avance
+  (transport, hébergement, visa, aérien…) sont **repris automatiquement** ;
+  seules les **indemnités journalières** s'ajustent à la durée réelle, plafonnées
+  aux jours approuvés. `reversement = montant payé − montant retenu` si positif
+  (il ne survient donc que si la mission est écourtée). Un dépassement (mission
+  plus longue, dépense au-delà de l'avance) passe par une **demande de frais
+  complémentaires**, jamais par la clôture.
 - À l'annulation après paiement : reversement du montant payé.
 - La comptabilité enregistre la perception ; la demande ne se clôture
   qu'une fois le reversement perçu (ou abandonné par `admin_finances` avec
