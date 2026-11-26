@@ -67,9 +67,19 @@ export class MissionFormComponent implements OnInit, OnChanges {
     if (!this.lectureSeule) setTimeout(() => this.changer());
   }
 
+  // Les listes sont mémoïsées : ng-select reçoit la MÊME référence de tableau tant
+  // que le filtre ne change pas. Sans cela, un nouveau tableau à chaque détection de
+  // changement reconstruit les options et le clic de sélection ne « tombe » jamais.
+  private _cacheDepart?: { cle: string; v: Ville[] };
+  private _cacheDestination?: { cle: string; v: Ville[] };
+
   get villesDepart(): Ville[] {
     const pays = this.paysLocal;
-    return pays ? this.villes.filter(v => v.pays_code === pays) : this.villes;
+    const cle = `${this.villes.length}|${pays}`;
+    if (this._cacheDepart?.cle !== cle) {
+      this._cacheDepart = { cle, v: pays ? this.villes.filter(v => v.pays_code === pays) : this.villes };
+    }
+    return this._cacheDepart.v;
   }
 
   /** Pays de la ville de départ (pays des missions locales) */
@@ -80,8 +90,13 @@ export class MissionFormComponent implements OnInit, OnChanges {
 
   get villesDestination(): Ville[] {
     const pays = this.paysLocal;
-    if (!pays) return this.villes;
-    return this.villes.filter(v => this.typeMission === 'locale' ? v.pays_code === pays : v.pays_code !== pays);
+    const cle = `${this.villes.length}|${pays}|${this.typeMission}`;
+    if (this._cacheDestination?.cle !== cle) {
+      const v = !pays ? this.villes
+        : this.villes.filter(x => this.typeMission === 'locale' ? x.pays_code === pays : x.pays_code !== pays);
+      this._cacheDestination = { cle, v };
+    }
+    return this._cacheDestination.v;
   }
 
   get rubriquesAutorisees(): string[] { return FRAIS_PAR_TYPE[this.typeMission]; }

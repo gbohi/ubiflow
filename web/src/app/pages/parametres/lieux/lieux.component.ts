@@ -69,7 +69,14 @@ export class LieuxComponent implements OnInit {
     const t = sansAccents(this.recherche.trim());
     return t ? this.distances.filter(d => sansAccents(`${d.ville_a_libelle} ${d.ville_b_libelle}`).includes(t)) : this.distances;
   }
-  get villesActives(): Ville[] { return this.villes.filter(v => v.actif); }
+  // Mémoïsé : même référence de tableau tant que la liste ne change pas, sinon
+  // ng-select reconstruit ses options et le clic de sélection ne fonctionne pas.
+  private _villesActives?: { cle: number; v: Ville[] };
+  get villesActives(): Ville[] {
+    const actives = this.villes.filter(v => v.actif);
+    if (this._villesActives?.cle !== actives.length) this._villesActives = { cle: actives.length, v: actives };
+    return this._villesActives.v;
+  }
 
   // ── Export de l'onglet affiché ──
   get titreExport(): string { return this.onglet === 'villes' ? 'Villes' : this.onglet === 'distances' ? 'Distances' : 'Pays'; }
